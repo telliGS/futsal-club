@@ -16,7 +16,7 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
     where: { teamId },
     include: {
       player: {
-        include: { payments: { orderBy: { month: "desc" }, take: 6 } },
+        include: { payments: { orderBy: { month: "desc" }, take: 24 } },
       },
     },
     orderBy: { player: { lastName: "asc" } },

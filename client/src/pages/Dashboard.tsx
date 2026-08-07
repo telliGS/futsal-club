@@ -30,6 +30,24 @@ interface MeData {
   teams: Team[];
 }
 
+const MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+// Rango de meses desde enero del año actual hasta enero del próximo (13 columnas)
+function monthRange(): string[] {
+  const now = new Date();
+  const out: string[] = [];
+  for (let i = 0; i < 13; i++) {
+    const d = new Date(now.getFullYear(), i, 1); // Ene(0) -> Ene(12)
+    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  }
+  return out;
+}
+
+function monthShort(m: string) {
+  const [, mo] = m.split("-");
+  return MONTHS[Number(mo) - 1];
+}
+
 export default function Dashboard() {
   const token = getToken();
   const [me, setMe] = useState<MeData | null>(null);
@@ -37,6 +55,7 @@ export default function Dashboard() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [view, setView] = useState<"lista" | "calendario">("lista");
 
   useEffect(() => {
     if (!token) {
@@ -59,7 +78,10 @@ export default function Dashboard() {
     if (!teamId || !token) return;
     apiFetch<Player[]>(`/teams/${teamId}/players`, {}, token)
       .then(setPlayers)
-      .catch(() => setPlayers([]));
+      .catch(() => {
+        setPlayers([]);
+        setError("No se pudo cargar el plantel");
+      });
   }, [teamId, token]);
 
   async function toggleCuota(p: Player, month: string, paid: boolean) {
@@ -69,9 +91,20 @@ export default function Dashboard() {
         method: "POST",
         body: JSON.stringify({ paid, amount: 0 }),
       }, token);
-      // refresh list
-      const fresh = await apiFetch<Player[]>(`/teams/${teamId}/players`, {}, token);
-      setPlayers(fresh);
+      // refresh local: actualizar el pago en el array sin recargar todo
+      setPlayers((prev) =>
+        prev.map((x) =>
+          x.id === p.id
+            ? {
+                ...x,
+                payments: [
+                  { month, paid, amount: 0 },
+                  ...x.payments.filter((y) => y.month !== month),
+                ],
+              }
+            : x
+        )
+      );
     } catch (e) {
       setError((e as Error).message);
     }
@@ -80,9 +113,12 @@ export default function Dashboard() {
   if (loading) return <div className="p-10">Cargando...</div>;
 
   const currentMonth = new Date().toISOString().slice(0, 7);
+  const months = monthRange();
+  const tecnicos = players.filter((p) => p.role !== "JUGADOR");
+  const plantel = players.filter((p) => p.role === "JUGADOR");
 
   return (
-    <div className="min-h-screen max-w-5xl mx-auto px-6 py-8">
+    <div className="min-h-screen max-w-6xl mx-auto px-6 py-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold">Panel de delegado</h1>
@@ -97,13 +133,13 @@ export default function Dashboard() {
       </div>
 
       {/* selector de equipo */}
-      {me && me.teams.length > 1 && (
-        <div className="mt-6">
+      {me && me.teams.length > 0 && (
+        <div className="mt-6 flex flex-wrap items-center gap-3">
           <label className="text-sm text-white/70">Estás viendo: </label>
           <select
             value={teamId}
             onChange={(e) => setTeamId(e.target.value)}
-            className="ml-2 px-3 py-2 rounded-lg bg-white/10 border border-white/20"
+            className="px-3 py-2 rounded-lg bg-white/10 border border-white/20"
           >
             {me.teams.map((t) => (
               <option key={t.id} value={t.id} className="bg-[#1c1c1c]">
@@ -111,65 +147,178 @@ export default function Dashboard() {
               </option>
             ))}
           </select>
+
+          {/* toggle de vista */}
+          <div className="ml-auto flex rounded-lg border border-white/15 overflow-hidden">
+            <button
+              onClick={() => setView("lista")}
+              className={`px-4 py-1.5 text-sm ${view === "lista" ? "bg-primary text-white" : "text-white/60 hover:text-white"}`}
+            >
+              Lista
+            </button>
+            <button
+              onClick={() => setView("calendario")}
+              className={`px-4 py-1.5 text-sm ${view === "calendario" ? "bg-primary text-white" : "text-white/60 hover:text-white"}`}
+            >
+              Calendario de cuotas
+            </button>
+          </div>
         </div>
       )}
 
       {error && <p className="mt-4 text-red-400">{error}</p>}
 
-      {/* Listado */}
-      <div className="mt-6 overflow-x-auto rounded-xl border border-white/10">
-        <table className="w-full text-sm">
-          <thead className="bg-white/5 text-left text-white/60">
-            <tr>
-              <th className="p-3">Jugador</th>
-              <th className="p-3">Rol</th>
-              <th className="p-3">DNI</th>
-              <th className="p-3">Estado</th>
-              <th className="p-3">{currentMonth} — pagó</th>
-              <th className="p-3">Historial reciente</th>
-            </tr>
-          </thead>
-          <tbody>
-            {players.map((p) => {
-              const thisMonth = p.payments.find((x) => x.month === currentMonth);
-              return (
-                <tr key={p.id} className="border-t border-white/5 hover:bg-white/5">
-                  <td className="p-3">
-                    <span className="font-semibold">{p.firstName} {p.lastName}</span>
-                    {p.position && <span className="text-white/40 text-xs ml-1">({p.position})</span>}
-                    {p.jersey && <span className="text-white/40 text-xs ml-1">#{p.jersey}</span>}
-                  </td>
-                  <td className="p-3">
-                    <span className={`px-2 py-0.5 rounded text-xs ${p.role !== "JUGADOR" ? "bg-primary/20 text-primary-light" : "bg-white/10"}`}>
-                      {p.role}
-                    </span>
-                  </td>
-                  <td className="p-3 text-white/60">{p.document}</td>
-                  <td className="p-3">
-                    <span className={`px-2 py-0.5 rounded text-xs ${p.status === "DEUDA" ? "bg-red-500/20 text-red-400" : p.status === "INACTIVO" ? "bg-white/10 text-white/50" : "bg-green-500/20 text-green-400"}`}>
-                      {p.status}
-                    </span>
-                  </td>
-                  <td className="p-3">
-                    <button
-                      onClick={() => toggleCuota(p, currentMonth, !thisMonth?.paid)}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold ${thisMonth?.paid ? "bg-green-500/30 text-green-300" : "bg-white/10 hover:bg-green-500/30"}`}
-                    >
-                      {thisMonth?.paid ? "Pagado ✓" : "Marcar pago"}
-                    </button>
-                  </td>
-                  <td className="p-3 text-xs text-white/60">
-                    {p.payments.slice(1, 4).map((x) => (x.paid ? "✓" : "·")).join(" ") ?? "—"}
-                  </td>
+      {/* ===================== VISTA LISTA ===================== */}
+      {view === "lista" && (
+        <div className="mt-6 overflow-x-auto rounded-xl border border-white/10">
+          <table className="w-full text-sm">
+            <thead className="bg-white/5 text-left text-white/60">
+              <tr>
+                <th className="p-3">Jugador</th>
+                <th className="p-3">Rol</th>
+                <th className="p-3">DNI</th>
+                <th className="p-3">Estado</th>
+                <th className="p-3">{currentMonth} — pagó</th>
+                <th className="p-3">Historial reciente</th>
+              </tr>
+            </thead>
+            <tbody>
+              {plantel.map((p) => {
+                const thisMonth = p.payments.find((x) => x.month === currentMonth);
+                return (
+                  <tr key={p.id} className="border-t border-white/5 hover:bg-white/5">
+                    <td className="p-3">
+                      <span className="font-semibold">{p.firstName} {p.lastName}</span>
+                      {p.position && <span className="text-white/40 text-xs ml-1">({p.position})</span>}
+                      {p.jersey && <span className="text-white/40 text-xs ml-1">#{p.jersey}</span>}
+                    </td>
+                    <td className="p-3">
+                      <span className={`px-2 py-0.5 rounded text-xs bg-white/10`}>
+                        {p.role}
+                      </span>
+                    </td>
+                    <td className="p-3 text-white/60">{p.document}</td>
+                    <td className="p-3">
+                      <span className={`px-2 py-0.5 rounded text-xs ${p.status === "DEUDA" ? "bg-red-500/20 text-red-400" : p.status === "INACTIVO" ? "bg-white/10 text-white/50" : "bg-green-500/20 text-green-400"}`}>
+                        {p.status}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      <button
+                        onClick={() => toggleCuota(p, currentMonth, !thisMonth?.paid)}
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold ${thisMonth?.paid ? "bg-green-500/30 text-green-300" : "bg-white/10 hover:bg-green-500/30"}`}
+                      >
+                        {thisMonth?.paid ? "Pagado ✓" : "Marcar pago"}
+                      </button>
+                    </td>
+                    <td className="p-3 text-xs text-white/60">
+                      {p.payments.slice(1, 4).map((x) => (x.paid ? "✓" : "·")).join(" ") ?? "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+              {plantel.length === 0 && (
+                <tr><td colSpan={6} className="p-6 text-center text-white/40">Sin jugadores en este equipo.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ===================== VISTA CALENDARIO ===================== */}
+      {view === "calendario" && (
+        <div className="mt-6 overflow-x-auto rounded-xl border border-white/10">
+          <table className="w-full text-sm">
+            <thead className="bg-white/5 text-left text-white/60">
+              <tr>
+                <th className="p-3 sticky left-0 bg-[#141414] z-10">Jugador</th>
+                {months.map((m) => (
+                  <th key={m} className={`p-2 text-center ${m === currentMonth ? "bg-primary/20 text-primary-light" : ""}`}>
+                    {monthShort(m)}
+                    <span className="block text-[10px] opacity-60">{m.slice(2, 4)}</span>
+                  </th>
+                ))}
+                <th className="p-3">Debe</th>
+              </tr>
+            </thead>
+            <tbody>
+              {plantel.map((p) => {
+                const debe = p.payments.filter((x) => !x.paid && x.month <= currentMonth).length;
+                return (
+                  <tr key={p.id} className="border-t border-white/5 hover:bg-white/5">
+                    <td className="p-3 sticky left-0 bg-[#1d1d1d] z-10">
+                      <span className="font-semibold">{p.firstName} {p.lastName}</span>
+                    </td>
+                    {months.map((m) => {
+                      const pay = p.payments.find((x) => x.month === m);
+                      const esFuturo = m > currentMonth;
+                      const clickeable = !esFuturo;
+                      const paid = pay?.paid ?? false;
+                      const marcado = pay !== undefined;
+                      return (
+                        <td key={m} className={`p-1 text-center ${esFuturo ? "opacity-30" : ""}`}>
+                          <button
+                            disabled={!clickeable}
+                            onClick={() => toggleCuota(p, m, !paid)}
+                            className={`w-full h-7 rounded-md text-xs font-semibold transition-colors ${
+                              esFuturo
+                                ? "bg-white/5 text-white/30 cursor-default"
+                                : paid
+                                  ? "bg-green-500/30 text-green-300 hover:bg-green-500/50"
+                                  : marcado
+                                    ? "bg-red-500/25 text-red-300 hover:bg-green-500/40"
+                                    : "bg-white/5 text-white/40 hover:bg-white/10"
+                            }`}
+                          >
+                            {esFuturo ? "·" : paid ? "✓" : marcado ? "✗" : "·"}
+                          </button>
+                        </td>
+                      );
+                    })}
+                    <td className="p-3 text-center">
+                      <span className={`px-2 py-0.5 rounded text-xs ${debe > 0 ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400"}`}>
+                        {debe > 0 ? `${debe} ${debe === 1 ? "mes" : "meses"}` : "OK"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {plantel.length === 0 && (
+                <tr><td colSpan={months.length + 2} className="p-6 text-center text-white/40">Sin jugadores en este equipo.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ===================== CUERPO TÉCNICO (separado, sin pagos) ===================== */}
+      {tecnicos.length > 0 && (
+        <div className="mt-8">
+          <h2 className="font-display text-lg font-bold text-white/80 mb-3">Cuerpo técnico</h2>
+          <div className="overflow-x-auto rounded-xl border border-white/10">
+            <table className="w-full text-sm">
+              <thead className="bg-white/5 text-left text-white/60">
+                <tr>
+                  <th className="p-3">Nombre</th>
+                  <th className="p-3">Rol</th>
+                  <th className="p-3">DNI</th>
                 </tr>
-              );
-            })}
-            {players.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-white/40">Sin jugadores en este equipo.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {tecnicos.map((p) => (
+                  <tr key={p.id} className="border-t border-white/5">
+                    <td className="p-3 font-semibold">{p.firstName} {p.lastName}</td>
+                    <td className="p-3">
+                      <span className="px-2 py-0.5 rounded text-xs bg-primary/20 text-primary-light">{p.role}</span>
+                    </td>
+                    <td className="p-3 text-white/60">{p.document}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <p className="mt-6 text-xs text-white/40">
         <Link to="/" className="underline">Ver sitio público</Link>
