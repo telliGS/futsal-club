@@ -20,6 +20,13 @@ interface Player {
   position?: string | null;
   jersey?: number | null;
   payments: Array<{ month: string; paid: boolean; amount: number }>;
+  estadoCuota?: {
+    deudor: boolean;
+    alDia: boolean;
+    pendiente: boolean;
+    puedeJugar: boolean;
+    mesesDebe: number;
+  };
 }
 
 interface MeData {
@@ -110,6 +117,23 @@ export default function Dashboard() {
     }
   }
 
+  // Recalcular estado de cuota en cliente (misma regla que el server:
+  // pago del 1 al 10; del día 11 sin pago del mes en curso = deudor, no juega)
+  function estadoLocal(p: Player, now = new Date()): NonNullable<Player["estadoCuota"]> {
+    const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const pagadoMesActual = p.payments.some((x) => x.month === cur && x.paid);
+    const deudaPrevia = p.payments.filter((x) => !x.paid && x.month < cur).length;
+    const vencio = now.getDate() > 10 && !pagadoMesActual;
+    const deudor = deudaPrevia > 0 || vencio;
+    return {
+      deudor,
+      alDia: pagadoMesActual && !deudor,
+      pendiente: !pagadoMesActual && !vencio && !deudor,
+      puedeJugar: !deudor,
+      mesesDebe: deudaPrevia + (vencio ? 1 : 0),
+    };
+  }
+
   if (loading) return <div className="p-10">Cargando...</div>;
 
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -177,16 +201,17 @@ export default function Dashboard() {
                 <th className="p-3">Jugador</th>
                 <th className="p-3">Rol</th>
                 <th className="p-3">DNI</th>
-                <th className="p-3">Estado</th>
+                <th className="p-3">Estado de cuota</th>
                 <th className="p-3">{currentMonth} — pagó</th>
-                <th className="p-3">Historial reciente</th>
+                <th className="p-3">Deuda</th>
               </tr>
             </thead>
             <tbody>
               {plantel.map((p) => {
                 const thisMonth = p.payments.find((x) => x.month === currentMonth);
+                const ec = p.estadoCuota ?? estadoLocal(p);
                 return (
-                  <tr key={p.id} className="border-t border-white/5 hover:bg-white/5">
+                  <tr key={p.id} className={`border-t border-white/5 hover:bg-white/5 ${ec.deudor ? "bg-red-500/5" : ""}`}>
                     <td className="p-3">
                       <span className="font-semibold">{p.firstName} {p.lastName}</span>
                       {p.position && <span className="text-white/40 text-xs ml-1">({p.position})</span>}
@@ -199,9 +224,15 @@ export default function Dashboard() {
                     </td>
                     <td className="p-3 text-white/60">{p.document}</td>
                     <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-xs ${p.status === "DEUDA" ? "bg-red-500/20 text-red-400" : p.status === "INACTIVO" ? "bg-white/10 text-white/50" : "bg-green-500/20 text-green-400"}`}>
-                        {p.status}
-                      </span>
+                      {ec.deudor ? (
+                        <span className="px-2 py-0.5 rounded text-xs bg-red-500/20 text-red-400 font-semibold">
+                          DEUDOR — no puede jugar ✕
+                        </span>
+                      ) : (
+                        <span className={`px-2 py-0.5 rounded text-xs ${ec.pendiente ? "bg-amber-500/20 text-amber-300" : "bg-green-500/20 text-green-400"}`}>
+                          {ec.pendiente ? "Pendiente (hasta el 10)" : "Al día — puede jugar ✓"}
+                        </span>
+                      )}
                     </td>
                     <td className="p-3">
                       <button
@@ -212,7 +243,7 @@ export default function Dashboard() {
                       </button>
                     </td>
                     <td className="p-3 text-xs text-white/60">
-                      {p.payments.slice(1, 4).map((x) => (x.paid ? "✓" : "·")).join(" ") ?? "—"}
+                      {ec.mesesDebe > 0 ? `${ec.mesesDebe} ${ec.mesesDebe === 1 ? "mes" : "meses"} sin pagar` : "—"}
                     </td>
                   </tr>
                 );
@@ -243,11 +274,16 @@ export default function Dashboard() {
             </thead>
             <tbody>
               {plantel.map((p) => {
-                const debe = p.payments.filter((x) => !x.paid && x.month <= currentMonth).length;
+                const ec = p.estadoCuota ?? estadoLocal(p);
                 return (
-                  <tr key={p.id} className="border-t border-white/5 hover:bg-white/5">
+                  <tr key={p.id} className={`border-t border-white/5 hover:bg-white/5 ${ec.deudor ? "bg-red-500/5" : ""}`}>
                     <td className="p-3 sticky left-0 bg-[#1d1d1d] z-10">
                       <span className="font-semibold">{p.firstName} {p.lastName}</span>
+                      {ec.deudor && (
+                        <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-red-500/25 text-red-300 font-semibold">
+                          ✕ no juega
+                        </span>
+                      )}
                     </td>
                     {months.map((m) => {
                       const pay = p.payments.find((x) => x.month === m);
@@ -276,8 +312,8 @@ export default function Dashboard() {
                       );
                     })}
                     <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded text-xs ${debe > 0 ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400"}`}>
-                        {debe > 0 ? `${debe} ${debe === 1 ? "mes" : "meses"}` : "OK"}
+                      <span className={`px-2 py-0.5 rounded text-xs ${ec.mesesDebe > 0 ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400"}`}>
+                        {ec.mesesDebe > 0 ? `${ec.mesesDebe} ${ec.mesesDebe === 1 ? "mes" : "meses"}` : "OK"}
                       </span>
                     </td>
                   </tr>

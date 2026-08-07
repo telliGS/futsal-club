@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../config.js";
 import { requireAuth, canAccessTeam } from "../middleware/auth.js";
+import { calcularEstadoCuota } from "../lib/cuota.js";
 
 const router = Router();
 
@@ -23,19 +24,24 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
   });
 
   res.json(
-    links.map((l) => ({
-      id: l.player.id,
-      lastName: l.player.lastName,
-      firstName: l.player.firstName,
-      document: l.player.document,
-      birthDate: l.player.birthDate,
-      hasInsurance: l.player.hasInsurance,
-      status: l.player.status,
-      role: l.role,
-      position: l.position,
-      jersey: l.jersey,
-      payments: l.player.payments,
-    }))
+    links.map((l) => {
+      const estadoCuota = calcularEstadoCuota(l.player.payments);
+      return {
+        id: l.player.id,
+        lastName: l.player.lastName,
+        firstName: l.player.firstName,
+        document: l.player.document,
+        birthDate: l.player.birthDate,
+        hasInsurance: l.player.hasInsurance,
+        status: l.player.status,
+        role: l.role,
+        position: l.position,
+        jersey: l.jersey,
+        payments: l.player.payments,
+        // regla de cuota: pago del 1 al 10; del 11 sin pagar = deudor, no juega
+        estadoCuota,
+      };
+    })
   );
 });
 
