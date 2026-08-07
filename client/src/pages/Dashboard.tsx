@@ -93,6 +93,16 @@ export default function Dashboard() {
 
   async function toggleCuota(p: Player, month: string, paid: boolean) {
     if (!token) return;
+    // Protección anti-accidente: quitar un pago ya registrado pide confirmación
+    if (!paid) {
+      const yaPago = p.payments.some((x) => x.month === month && x.paid);
+      if (yaPago) {
+        const ok = window.confirm(
+          `¿Quitar el pago de la cuota ${monthShort(month)} de ${p.firstName} ${p.lastName}?`
+        );
+        if (!ok) return;
+      }
+    }
     try {
       await apiFetch(`/players/${p.id}/payments/${month}`, {
         method: "POST",
