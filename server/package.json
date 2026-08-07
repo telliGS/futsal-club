@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "db:push": "prisma db push",
     "db:seed": "tsx src/scripts/seed.ts",
-    "db:import": "tsx src/scripts/import-drive.ts"
+    "db:import": "tsx src/scripts/import-drive.ts",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "tsx src/scripts/seed.ts"

@@ -62,7 +62,7 @@ async function main() {
         const fill = cell.fill as any;
         if (fill?.fgColor?.argb && colorIsRed(fill.fgColor.argb)) { red = true; break; }
       }
-      rows.push({ nombre, apellido, dni, cat, red, });
+      rows.push({ row: n, nombre, apellido, dni, cat, red });
     });
 
     const redRows = rows.filter((r) => r.red);

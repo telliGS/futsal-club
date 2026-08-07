@@ -9,5 +9,7 @@ export function getJwtSecret(): string {
   return process.env.JWT_SECRET;
 }
 
-export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? "12h";
+import type { SignOptions } from "jsonwebtoken";
+
+export const JWT_EXPIRES_IN: SignOptions["expiresIn"] = (process.env.JWT_EXPIRES_IN ?? "12h") as SignOptions["expiresIn"];
 export const PORT = Number(process.env.PORT ?? 4000);
