@@ -35,8 +35,13 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <Link to="/" className="text-sm text-white/50 hover:text-accent">← Volver</Link>
-        <h1 className="font-display text-2xl font-bold mt-4">Área de delegados</h1>
+        <Link to="/" className="text-sm text-white/50 hover:text-white">← Volver</Link>
+        <img
+          src="/escudo-jh.png"
+          alt="Escudo Club José Hernández"
+          className="w-20 h-20 mx-auto mt-6 drop-shadow-lg"
+        />
+        <h1 className="font-display text-2xl font-bold mt-4 text-center">Área de delegados</h1>
         <p className="text-white/60 text-sm mt-1 mb-8">Ingresá con tu cuenta para gestionar tu equipo.</p>
 
         <form onSubmit={submit} className="space-y-4">
@@ -64,7 +69,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg bg-accent text-black font-semibold hover:bg-yellow-400 disabled:opacity-50"
+            className="w-full py-3 rounded-lg bg-primary text-white font-semibold hover:bg-primary-light disabled:opacity-50"
           >
             {loading ? "Ingresando..." : "Ingresar"}
           </button>

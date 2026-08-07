@@ -41,7 +41,7 @@ export default function Status() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10">
-      <Link to="/" className="self-start text-sm text-white/50 hover:text-accent mb-6">← Volver al inicio</Link>
+      <Link to="/" className="self-start text-sm text-white/50 hover:text-white mb-6">← Volver al inicio</Link>
 
       <h1 className="font-display text-3xl font-bold text-center">Consulta tu cuota</h1>
       <p className="text-white/60 mt-2 text-center max-w-sm">
@@ -56,7 +56,7 @@ export default function Status() {
           inputMode="numeric"
           className="flex-1 px-4 py-3 rounded-lg bg-white/10 border border-white/20 focus:outline-none focus:border-accent text-lg"
         />
-        <button type="submit" disabled={loading} className="px-5 py-3 rounded-lg bg-accent text-black font-semibold hover:bg-yellow-400 disabled:opacity-50">
+        <button type="submit" disabled={loading} className="px-5 py-3 rounded-lg bg-primary text-white font-semibold hover:bg-primary-light disabled:opacity-50">
           Buscar
         </button>
       </form>

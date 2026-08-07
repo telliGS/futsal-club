@@ -140,7 +140,7 @@ export default function Dashboard() {
                     {p.jersey && <span className="text-white/40 text-xs ml-1">#{p.jersey}</span>}
                   </td>
                   <td className="p-3">
-                    <span className={`px-2 py-0.5 rounded text-xs ${p.role !== "JUGADOR" ? "bg-accent/20 text-accent" : "bg-white/10"}`}>
+                    <span className={`px-2 py-0.5 rounded text-xs ${p.role !== "JUGADOR" ? "bg-primary/20 text-primary-light" : "bg-white/10"}`}>
                       {p.role}
                     </span>
                   </td>

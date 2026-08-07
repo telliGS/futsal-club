@@ -4,10 +4,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Paleta del club
-        primary: "#1d4ed8", // azul
-        accent: "#FBBF24",  // dorado
-        fossil: "#121212",
+        // Paleta del club (extraída del escudo real + Instagram @josehernandezfs)
+        primary: "#068938",       // verde JH (color principal del escudo)
+        "primary-dark": "#046B27", // verde oscuro para gradientes
+        "primary-light": "#0AA547", // verde claro para hovers
+        accent: "#FFFFFF",        // blanco (detalle del escudo)
+        fossil: "#0D0D0D",        // fondo oscuro
       },
       fontFamily: {
         display: ["Epilogue", "sans-serif"],

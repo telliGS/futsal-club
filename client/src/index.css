@@ -3,5 +3,5 @@
 @tailwind utilities;
 
 body {
-  @apply bg-[#121212] text-white font-body antialiased;
+  @apply bg-fossil text-white font-body antialiased;
 }
