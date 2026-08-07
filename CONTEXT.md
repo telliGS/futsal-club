@@ -25,8 +25,10 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 - La cuota se paga del **1 al 10 de cada mes**. Se paga el mes CALENDARIO en curso.
 - Desde el **día 11** sin pagar el mes en curso (o con meses anteriores impagos) → jugador **DEUDOR** → **no tiene permiso de jugar**.
 - Lógica centralizada: `server/src/lib/cuota.ts` → `calcularEstadoCuota(payments, now)` devuelve `{ deudor, alDia, pendiente, puedeJugar, mesesDebe }`. Se expone en `GET /api/teams/:id/players` (campo `estadoCuota` por jugador) y en `GET /api/public/status?document=X` (`deudor`, `puedeJugar`, `diasParaPagar`).
-- El client recalcula en `Dashboard.tsx` (`estadoLocal`) para reflejar el toggle sin refetch.
+- **Status sincronizado automático**: `POST /api/players/:id/payments/:month` recalcula la regla tras guardar y actualiza el campo `status` del jugador en BD (al marcar/sacar un pago): con deuda → `DEUDA`; sin deuda y estaba ACTIVO/DEUDA → `ACTIVO` (respeta INACTIVO manual). Devuelve `{ payment, estadoCuota, status }` y el panel aplica esa respuesta directo (refactor 09/08).
+- El client recalcula en `Dashboard.tsx` (`estadoLocal`) solo como fallback si el server no trae `estadoCuota`.
 - Quitar un pago ya registrado (marcar como impago) pide `window.confirm` (anti-accidente).
+- La columna principal del panel es SIEMPRE el mes en curso (dinámico); los meses anteriores pasan solo al calendario (historial).
 
 ## API (endpoints clave)
 - `POST /api/auth/login`, `GET /api/auth/me` (ADMIN ve 10 equipos)
