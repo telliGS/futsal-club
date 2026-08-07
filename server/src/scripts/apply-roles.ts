@@ -1,4 +1,5 @@
 // Correcciones manuales de roles/categorías confirmadas por el club.
+// Fuente: columna "Cat. Nativa" del sheet (marca D.T./A.T./P.F./DEL por categoría)
 // Se aplican DESPUÉS del import automático y tienen prioridad.
 // Uso: tsx src/scripts/apply-roles.ts
 import { prisma } from "../config.js";
@@ -7,28 +8,72 @@ import { prisma } from "../config.js";
 // role: JUGADOR | DT | AT | PF | DEL | ...
 // status: ACTIVO | DEUDA | INACTIVO | LESIONADO
 const OVERRIDES = [
-  // Alex Mendez: ya no es jugador, es DT de C20; en JH NEGRO sigue como DT.
-  // (el club dijo "C17, C20 y JH C" — en la BD solo tiene vínculos C17/C20/JH NEGRO.
-  //  Se aplica DT en C20 y JH NEGRO; C17 queda pendiente de confirmar.)
-  { dni: "41789668", teamName: "C20", role: "DT" },
-  { dni: "41789668", teamName: "JH NEGRO", role: "DT" },
+  // ====== Cuerpo técnico (del sheet) ======
 
-  // Lucas Salvarini — DT de JH NEGRO y JUGADOR de JH ELITE
-  { dni: "42206899", teamName: "JH NEGRO", role: "DT" },
+  // C11
+  { dni: "44734407", teamName: "C11", role: "DT" },           // Fernandez Alan
+  { dni: "41867190", teamName: "C11", role: "DEL" },        // Ruiz Diaz Marcos
+
+  // C13
+  { dni: "44734407", teamName: "C13", role: "DT" },  // Fernandez Alan
+  { dni: "41867190", teamName: "C13", role: "DEL" }, // Ruiz Diaz Marcos
+
+  // C15
+  { dni: "45946364", teamName: "C15", role: "DT" },  // Burne Mateo
+  { dni: "44734407", teamName: "C15", role: "DEL" }, // Fernandez Alan
+
+  // C17
+  { dni: "41789668", teamName: "C17", role: "DT" },  // Mendez Alex
+  { dni: "44862944", teamName: "C17", role: "DEL" }, // Domingorena Santiago
+
+  // C20
+  { dni: "41789668", teamName: "C20", role: "DT" },  // Mendez Alex
+  { dni: "45337032", teamName: "C20", role: "DEL" }, // Fornes Tomas
+
+  // C20 FEM
+  { dni: "41867190", teamName: "C20 FEM", role: "DT" }, // Ruiz Diaz Marcos
+  { dni: "46519219", teamName: "C20 FEM", role: "DEL" }, // Taborda Victoria
+
+  // 1ra Fem
+  { dni: "46318924", teamName: "1ra Fem", role: "DT" }, // Vittor Marcos
+
+  // JH C
+  { dni: "26410015", teamName: "JH C", role: "DT" }, // Motta Gabriel
+
+  // JH NEGRO
+  { dni: "42206899", teamName: "JH NEGRO", role: "DT" }, // Salvarini Lucas
+  { dni: "41403788", teamName: "JH NEGRO", role: "AT" }, // Grillo Joaquin
+
+  // JH ELITE
+  { dni: "36910234", teamName: "JH ELITE", role: "DT" }, // Erben Mauro
+  { dni: "35707367", teamName: "JH ELITE", role: "AT" }, // Schroeder Mauro
+  { dni: "41867190", teamName: "JH ELITE", role: "PF" }, // Ruiz Diaz Marcos
+  { dni: "37290269", teamName: "JH ELITE", role: "DEL" }, // Alloatti Matias
+
+  // ====== Jugadores con doble/triple rol ======
+
+  // Lucas Salvarini: JUGADOR de JH ELITE (y DT en JH NEGRO arriba)
   { dni: "42206899", teamName: "JH ELITE", role: "JUGADOR" },
 
-  // Joaquín Grillo — AT de JH NEGRO y JUGADOR de JH ELITE
-  { dni: "41403788", teamName: "JH NEGRO", role: "AT" },
+  // Grillo: JUGADOR de JH ELITE (AT en JH NEGRO arriba)
   { dni: "41403788", teamName: "JH ELITE", role: "JUGADOR" },
 
-  //------ Correcciones round 2 -------
+  // Fernandez Alan: además de DT/DEL, es JUGADOR de JH ELITE
+  { dni: "44734407", teamName: "JH ELITE", role: "JUGADOR" },
 
-// Mauro Schroeder: JUGADOR en JH NEGRO, AT en JH ELITE
+  // Schroeder: JUGADOR en JH NEGRO
   { dni: "35707367", teamName: "JH NEGRO", role: "JUGADOR" },
-  { dni: "35707367", teamName: "JH ELITE", role: "AT" },
 
-  // Victoria Taborda: LESIONADA (jugadora activa pero fuera por lesión)
+  // Ruiz Diaz: JUGADOR en JH NEGRO
+  { dni: "41867190", teamName: "JH NEGRO", role: "JUGADOR" },
+
+  // Victor Taborda: LESIONADA (jugadora de 1ra Fem lesionada)
+  { dni: "46519219", teamName: "1ra Fem", role: "JUGADOR" },
   { dni: "46519219", status: "LESIONADO", notes: "Lesionada - sin actividad (revisar)" },
+
+  // Mendez Alex: ya NO es jugador (era jugador, ahora DT).
+  // En JH NEGRO aparece con DNI viejo; dudamos si sigue. Lo dejamos sin rol activo:
+  // { dni: "41789668", teamName: "JH NEGRO", role: "JUGADOR" },  // PENDIENTE confirmar
 ];
 
 async function main() {
@@ -39,7 +84,7 @@ async function main() {
       continue;
     }
 
-    // Override de datos del jugador (status / notes) sin tocar equipos
+    // Override de datos del jugador (status/notes) sin tocar equipos
     if (!o.teamName) {
       await prisma.player.update({
         where: { id: player.id },
@@ -57,12 +102,12 @@ async function main() {
       console.warn(`  [!] No existe equipo "${o.teamName}" — salteado`);
       continue;
     }
-    const link = await prisma.playerTeam.upsert({
+    await prisma.playerTeam.upsert({
       where: { playerId_teamId: { playerId: player.id, teamId: team.id } },
       update: { role: o.role },
       create: { playerId: player.id, teamId: team.id, role: o.role },
     });
-    console.log(`  ✓ ${player.firstName} ${player.lastName} → ${team.name} [${link.role}]`);
+    console.log(`  ✓ ${player.firstName} ${player.lastName} → ${team.name} [${o.role}]`);
   }
   await prisma.$disconnect();
 }
