@@ -184,7 +184,26 @@ router.post("/players/:id/payments/:month", requireAuth, async (req, res) => {
     update: { paid, amount, paidAt: paid ? new Date() : null },
     create: { playerId: player.id, month, paid, amount, paidAt: paid ? new Date() : null },
   });
-  res.json(payment);
+
+  // Recalcular estado según la regla (día + mes) y sincronizar el status del jugador.
+  // Si hay deuda → DEUDA; si no hay deuda y estaba ACTIVO/DEUDA → ACTIVO (INACTIVO se respeta).
+  const payments = await prisma.payment.findMany({
+    where: { playerId: player.id },
+    orderBy: { month: "desc" },
+    take: 24,
+  });
+  const estadoCuota = calcularEstadoCuota(payments);
+  let nuevoStatus = player.status;
+  if (estadoCuota.deudor) {
+    nuevoStatus = "DEUDA";
+  } else if (player.status === "DEUDA" || player.status === "ACTIVO") {
+    nuevoStatus = "ACTIVO";
+  }
+  if (nuevoStatus !== player.status) {
+    await prisma.player.update({ where: { id: player.id }, data: { status: nuevoStatus } });
+  }
+
+  res.json({ payment, estadoCuota, status: nuevoStatus });
 });
 
 // GET /api/players/:id/payments — historial

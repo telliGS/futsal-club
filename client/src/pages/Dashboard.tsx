@@ -104,11 +104,12 @@ export default function Dashboard() {
       }
     }
     try {
-      await apiFetch(`/players/${p.id}/payments/${month}`, {
-        method: "POST",
-        body: JSON.stringify({ paid, amount: 0 }),
-      }, token);
-      // refresh local: actualizar el pago en el array sin recargar todo
+      const res = await apiFetch<{ estadoCuota: Player["estadoCuota"]; status: string }>(
+        `/players/${p.id}/payments/${month}`,
+        { method: "POST", body: JSON.stringify({ paid, amount: 0 }) },
+        token
+      );
+      // refresh local con lo que devolvió el server (estado recalculado según día y mes)
       setPlayers((prev) =>
         prev.map((x) =>
           x.id === p.id
@@ -118,6 +119,8 @@ export default function Dashboard() {
                   { month, paid, amount: 0 },
                   ...x.payments.filter((y) => y.month !== month),
                 ],
+                estadoCuota: res.estadoCuota,
+                status: res.status,
               }
             : x
         )
@@ -212,7 +215,10 @@ export default function Dashboard() {
                 <th className="p-3">Rol</th>
                 <th className="p-3">DNI</th>
                 <th className="p-3">Estado de cuota</th>
-                <th className="p-3">{currentMonth} — pagó</th>
+                <th className="p-3">
+                  {monthShort(currentMonth)} {currentMonth.slice(0, 4)} — pagó
+                  <span className="block text-[10px] opacity-60">cuota del mes en curso</span>
+                </th>
                 <th className="p-3">Deuda</th>
               </tr>
             </thead>
