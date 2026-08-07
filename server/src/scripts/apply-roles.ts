@@ -39,6 +39,7 @@ const OVERRIDES = [
 
   // JH C
   { dni: "26410015", teamName: "JH C", role: "DT" }, // Motta Gabriel
+  { dni: "41789668", teamName: "JH C", role: "DT" }, // Mendez Alex (confirmado por el delegado)
 
   // JH NEGRO
   { dni: "42206899", teamName: "JH NEGRO", role: "DT" }, // Salvarini Lucas
