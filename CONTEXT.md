@@ -51,9 +51,17 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 
 ## Estado actual (07/08/2026)
 - **En prod**: panel con calendario Ene→Ene, cuerpo técnico separado, regla de cuota 1–10 (verificada con prueba controlada deudor/no-jugar y restaurada), confirmación anti-accidente de pago, endpoint público con `diasParaPagar`.
-- **Pendiente**: OAuth, Supabase Auth para usuarios delegados reales, pagos (Mercado Pago?), limitar panel por rol delegado (solo su equipo), eliminar `BLOCKED/ERROR` deployments viejos, actualizar CONTEXT.md.
+- **[09/08] Status sincronizado automático**: `POST /players/:id/payments/:month` recalcula la regla y actualiza `status` (DEUDA↔ACTIVO) en BD; devuelve `{payment, estadoCuota, status}` y el panel aplica esa respuesta (solo como fuente de verdad). Verificado end-to-end (impago mes anterior → DEUDA/no juega; pago → ACTIVO; impago del mes en curso antes del día 11 → PENDIENTE no deudor).
+- **[09/08] Columna principal = mes en curso** con nombre legible ("Ago 2026 — pagó / cuota del mes en curso"); meses anteriores solo quedan en el calendario.
+- **Usuarios de prueba**:
+  - `admin@josehernandez.futbol` / `admin1234` (ADMIN, 10 equipos)
+  - `delegado@josehernandez.futbol` / `delegado1234` (DELEGADO, solo C11, del seed)
+  - `delegado.elite@josehernandez.futbol` / `Elite1234567` (DELEGADO de prueba, solo JH ELITE — creado con `server/src/scripts/create-delegado-elite.ts`). Credenciales verificadas en prod, 403 en otros equipos.
+  - JH ELITE en prod: 17 jugadores + 3 técnicos (DT Mauro Erben, PF Marcos Ruiz Diaz, AT Mauro Schroeder).
+- **Pendiente**: continuar con correcciones + front (página pública, login, detalles de UX), OAuth/Supabase Auth, pagos online (Mercado Pago?), limpiar deployments viejos BLOCKED/ERROR en Vercel.
 
 ## Decisiones técnicas
 - `PlayerTeam` portotype: rol del jugador EN el equipo (JUGADOR | técnico/DIREC) — payments son por jugador, no por equipo.
-- `calcularEstadoCuota` client-side duplica la lógica del server para feedback inmediato; el server es fuente de verdad.
-- generateMonth(now, i) usa getFullYear + meses 0..12 → siempre Ene del año "actual" como inicio para simetría simple (puede ir 2026-01 → 2027-01 sin importar el mes real).
+- `calcularEstadoCuota` en el server es la fuente de verdad; el client lo duplica (`estadoLocal`) solo como fallback si el server no trae estadoCuota.
+- `generateMonth(now, i)` usa getFullYear + meses 0..12 → siempre Ene del año "actual" como inicio para simetría simple (puede ir 2026-01 → 2027-01 sin importar el mes real).
+- Scripts de creación/corrección de usuarios se corren localmente con `npx tsx src/scripts/xxx.ts` (DATABASE_URL 5432 local apunta a la misma Supabase de prod).
