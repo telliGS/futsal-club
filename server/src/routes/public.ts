@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../config.js";
+import { calcularDocumentos, aptoParaJugar, labelTipo } from "../lib/ficha.js";
 
 const router = Router();
 
 // GET /api/public/status?document=12345678
-// Público: el jugador ingresa SU DNI y ve su estado (al día / deudor con detalle)
+// Público: el jugador ingresa SU DNI y ve su estado (al día / deudor con detalle + fichas)
 router.get("/status", async (req, res) => {
   const schema = z.object({ document: z.string().min(6) });
   const parsed = schema.safeParse(req.query);
@@ -19,6 +20,7 @@ router.get("/status", async (req, res) => {
     include: {
       teams: { include: { team: true } },
       payments: { orderBy: { month: "desc" } },
+      documentos: { select: { tipo: true, fechaVencimiento: true } },
     },
   });
   if (!player) return res.status(404).json({ error: "No se encontró ningún jugador con ese DNI" });
@@ -39,7 +41,16 @@ router.get("/status", async (req, res) => {
   const periodoSinPagar = day > 10 && !pagoMesActual;
   const isPaid = pagoMesActual && unpaid.length === 0;
   const deudor = unpaid.length > 0 || periodoSinPagar;
-  const puedeJugar = !deudor;
+  const puedeJugarCuota = !deudor;
+
+  // Fichas / estudios (regla por categoría: mayores → ergo, menores → electro)
+  const ficha = calcularDocumentos(
+    player.documentos,
+    new Date(),
+    player.teams.map((t) => t.team.category)
+  );
+  const apto = aptoParaJugar(puedeJugarCuota, ficha);
+  const motivo = apto.razones.map((r) => r.replace(/^cuota adeudada$/, "cuota del mes sin pagar")).join(", ");
 
   res.json({
     id: player.id,
@@ -48,11 +59,18 @@ router.get("/status", async (req, res) => {
     currentMonth,
     isPaid,
     deudor,
-    puedeJugar,
+    puedeJugar: apto.puedeJugar,
+    motivo: apto.puedeJugar ? null : motivo,
     diasParaPagar: deudor ? 0 : Math.max(0, 10 - day), // días restantes del plazo (1-10)
     lastPayment: player.payments.find((p) => p.paid) ?? null,
     unpaidMonths: unpaid.map((p) => ({ month: p.month, amount: p.amount })),
     totalDeuda,
+    fichas: ficha.resumen,
+    fichasDetalle: {
+      electro: ficha.porTipo.ELECTROCARDIOGRAMA,
+      ergo: ficha.porTipo.ERGONOMETRIA,
+      fichaMedica: ficha.porTipo.FICHA_MEDICA,
+    },
   });
 });
 

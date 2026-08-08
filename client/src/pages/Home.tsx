@@ -17,7 +17,12 @@ function formatFecha(iso: string) {
 }
 
 function formatHora(iso: string) {
-  return new Date(iso).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  // Forzado a 24h (00-23) para evitar "p. m." / AM-PM según el navegador
+  return new Date(iso).toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 export default function Home() {

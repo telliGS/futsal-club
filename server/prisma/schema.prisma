@@ -67,6 +67,7 @@ model Player {
 
   teams   PlayerTeam[]
   payments Payment[]
+  documentos JugadorDocumento[]
 }
 
 // Muchos a muchos: un jugador puede jugar en varios equipos.
@@ -87,6 +88,27 @@ model PlayerTeam {
 
 // ---------------- Jugadores: modelo viejo eliminado (ver PlayerTeam) ----------------
 // ---------------- Cuotas (mensuales por jugador) ----------------
+
+// Ficha médica / estudios (ergonometría, electro) cargados por el delegado.
+// 'data' guarda el archivo (PDF/imagen) en la misma BD (bytea) — máximo ~2 MB.
+model JugadorDocumento {
+  id                String    @id @default(cuid())
+  playerId          String
+  tipo              String    // "FICHA_MEDICA" | "ELECTROCARDIOGRAMA" | "ERGONOMETRIA" | "OTRO"
+  descripcion       String?   // ej: "Renovación 2do semestre 2026"
+  fileName          String    // nombre original del archivo (se descarga igual)
+  mime              String    // application/pdf, image/jpeg...
+  size              Int       // bytes
+  data              Bytes     // contenido del archivo
+  fechaEmision      DateTime? // fecha de emisión que figura en el papel (referencia)
+  fechaVencimiento  DateTime? // la que manda: vence por regla del club (ergo 2 años, electro 1 año desde emisión) o la que el delegado escriba
+  subidoPorId       String?   // auditoría: delegado que lo subió
+  createdAt         DateTime  @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+}
 
 model Payment {
   id        String   @id @default(cuid())

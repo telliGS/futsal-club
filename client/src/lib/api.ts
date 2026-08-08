@@ -1,6 +1,6 @@
 // En desarrollo usa el proxy de Vite (/api -> localhost:4000).
 // En producción usa VITE_API_URL (la URL del backend desplegado).
-const API = import.meta.env.VITE_API_URL ?? "/api";
+export const API = import.meta.env.VITE_API_URL ?? "/api";
 
 export async function apiFetch<T>(
   path: string,

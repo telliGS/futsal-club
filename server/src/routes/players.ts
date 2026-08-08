@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../config.js";
 import { requireAuth, canAccessTeam } from "../middleware/auth.js";
 import { calcularEstadoCuota } from "../lib/cuota.js";
+import { calcularDocumentos, MAX_DOC_BYTES, TipoDocumento, TIPOS_DOCUMENTO, aptoParaJugar, vencimientoPorRegla } from "../lib/ficha.js";
 
 const router = Router();
 
@@ -13,11 +14,17 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
   const can = await canAccessTeam(req.user!.id, teamId);
   if (!can) return res.status(403).json({ error: "No tenés acceso a este equipo" });
 
+  const team = await prisma.team.findUnique({ where: { id: teamId }, select: { category: true } });
+  const categoria = team?.category ?? null;
+
   const links = await prisma.playerTeam.findMany({
     where: { teamId },
     include: {
       player: {
-        include: { payments: { orderBy: { month: "desc" }, take: 24 } },
+        include: {
+          payments: { orderBy: { month: "desc" }, take: 24 },
+          documentos: { select: { tipo: true, fechaVencimiento: true } },
+        },
       },
     },
     orderBy: { player: { lastName: "asc" } },
@@ -26,6 +33,8 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
   res.json(
     links.map((l) => {
       const estadoCuota = calcularEstadoCuota(l.player.payments);
+      const estadoFichas = calcularDocumentos(l.player.documentos, new Date(), categoria);
+      const apto = aptoParaJugar(estadoCuota.puedeJugar, estadoFichas);
       return {
         id: l.player.id,
         lastName: l.player.lastName,
@@ -40,6 +49,9 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
         payments: l.player.payments,
         // regla de cuota: pago del 1 al 10; del 11 sin pagar = deudor, no juega
         estadoCuota,
+        // ficha médica / estudios
+        fichas: estadoFichas,
+        apto,
       };
     })
   );
@@ -103,17 +115,21 @@ const updatePlayerSchema = z.object({
   jersey: z.number().int().optional().nullable(),
 });
 
-// PATCH /api/players/:id
+// PATCH /api/players/:id  (body: datos del jugador + opcional teamId para rol/pos/n° del vínculo correcto)
 router.patch("/players/:id", requireAuth, async (req, res) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
   if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
 
   // verificar acceso por cualquiera de sus vínculos
   const links = await prisma.playerTeam.findMany({ where: { playerId: player.id } });
+  let allowed = false;
   for (const l of links) {
-    if (await canAccessTeam(req.user!.id, l.teamId)) break;
-    if (l === links[links.length - 1]) return res.status(403).json({ error: "No tenés acceso a este jugador" });
+    if (await canAccessTeam(req.user!.id, l.teamId)) {
+      allowed = true;
+      break;
+    }
   }
+  if (!allowed) return res.status(403).json({ error: "No tenés acceso a este jugador" });
 
   const parsed = updatePlayerSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Datos inválidos" });
@@ -126,12 +142,13 @@ router.patch("/players/:id", requireAuth, async (req, res) => {
       birthDate: birthDate ? new Date(birthDate) : birthDate === null ? null : undefined,
     },
   });
-  // rol/pos/número se guardan en el vínculo principal
+
+  // rol/pos/número se guardan en el vínculo del equipo indicado (o el primero con acceso)
   if (role || position || jersey !== undefined) {
-    const first = links[0];
-    if (first) {
+    const target = links.find((l) => l.teamId === req.body?.teamId) ?? links.find((l) => canAccessTeam(req.user!.id, l.teamId)) ?? links[0];
+    if (target) {
       await prisma.playerTeam.update({
-        where: { playerId_teamId: { playerId: player.id, teamId: first.teamId } },
+        where: { playerId_teamId: { playerId: player.id, teamId: target.teamId } },
         data: { role: role ?? undefined, position, jersey },
       });
     }
@@ -221,6 +238,134 @@ router.get("/players/:id/payments", requireAuth, async (req, res) => {
     orderBy: { month: "desc" },
   });
   res.json(payments);
+});
+
+// ------------------- Documentos (ficha médica / estudios) -------------------
+
+/** Verifica que el usuario tenga acceso a algún equipo del jugador (o sea ADMIN). */
+async function canAccessPlayer(userId: string, playerId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  if (user?.role === "ADMIN") return true;
+  const links = await prisma.playerTeam.findMany({ where: { playerId }, select: { teamId: true } });
+  for (const l of links) {
+    if (await canAccessTeam(userId, l.teamId)) return true;
+  }
+  return false;
+}
+
+/** Categorías de los equipos del jugador (para la regla por categoría). */
+async function categoriasDeJugador(playerId: string): Promise<string[]> {
+  const teams = await prisma.team.findMany({
+    where: { players: { some: { playerId } } },
+    select: { category: true },
+  });
+  return teams.map((t) => t.category).filter(Boolean) as string[];
+}
+
+const uploadDocSchema = z.object({
+  tipo: z.enum(TIPOS_DOCUMENTO),
+  descripcion: z.string().max(200).optional().nullable(),
+  fileName: z.string().min(1).max(200),
+  mime: z.string().min(1).max(100),
+  dataBase64: z.string().min(1),
+  fechaEmision: z.string().optional().nullable(), // fecha del papel (referencia)
+  fechaVencimiento: z.string().optional().nullable(), // si viene, manda (lo que dice el papel)
+  categoria: z.string().optional().nullable(), // categoría del equipo (para la regla ergo 2a / electro 1a)
+});
+
+// GET /api/players/:id/documents — lista de documentos (sin el archivo) + estado calculado
+router.get("/players/:id/documents", requireAuth, async (req, res) => {
+  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
+  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!(await canAccessPlayer(req.user!.id, player.id))) {
+    return res.status(403).json({ error: "No tenés acceso a este jugador" });
+  }
+  const docs = await prisma.jugadorDocumento.findMany({
+    where: { playerId: player.id },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true, tipo: true, descripcion: true, fileName: true, mime: true,
+      size: true, fechaEmision: true, fechaVencimiento: true, subidoPorId: true, createdAt: true,
+    },
+  });
+  // cálculo de estado con los mismísimos campos que van al cliente
+  // (regla por categoría: mayores → ergo, menores → electro)
+  const categorias = await categoriasDeJugador(player.id);
+  const estado = calcularDocumentos(docs.map((d) => ({ tipo: d.tipo, fechaVencimiento: d.fechaVencimiento })), new Date(), categorias);
+  res.json({ documentos: docs, estado });
+});
+
+// POST /api/players/:id/documents — subir documento (data en base64, máx ~2 MB)
+router.post("/players/:id/documents", requireAuth, async (req, res) => {
+  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
+  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!(await canAccessPlayer(req.user!.id, player.id))) {
+    return res.status(403).json({ error: "No tenés acceso a este jugador" });
+  }
+  const parsed = uploadDocSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
+
+  const { tipo, descripcion, fileName, mime, dataBase64, fechaEmision, fechaVencimiento, categoria } = parsed.data;
+  const buf = Buffer.from(dataBase64, "base64");
+  if (buf.length === 0) return res.status(400).json({ error: "El archivo está vacío" });
+  if (buf.length > MAX_DOC_BYTES) {
+    return res.status(400).json({ error: `El archivo supera el máximo de 2 MB (son ${(buf.length / 1024 / 1024).toFixed(1)} MB)` });
+  }
+
+  const emision = fechaEmision ? new Date(fechaEmision) : null;
+  // La fecha que manda: la explícita si vino; si no, la regla del club
+  // (ergo 2 años / electro 1 año desde la emisión, según categoría)
+  const vence =
+    fechaVencimiento ? new Date(fechaVencimiento)
+    : vencimientoPorRegla(tipo, emision, categoria) ?? emision;
+
+  const doc = await prisma.jugadorDocumento.create({
+    data: {
+      playerId: player.id,
+      tipo,
+      descripcion: descripcion ?? null,
+      fileName,
+      mime,
+      size: buf.length,
+      data: buf,
+      fechaEmision: emision,
+      fechaVencimiento: vence,
+      subidoPorId: req.user!.id,
+    },
+  });
+
+  const docs = await prisma.jugadorDocumento.findMany({ where: { playerId: player.id }, select: { tipo: true, fechaVencimiento: true } });
+  const categorias = await categoriasDeJugador(player.id);
+  const estado = calcularDocumentos(docs, new Date(), categorias);
+  res.status(201).json({ documento: { ...doc, data: undefined }, estado });
+});
+
+// GET /api/players/:id/documents/:docId/download — descargar el archivo
+router.get("/players/:id/documents/:docId/download", requireAuth, async (req, res) => {
+  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
+  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!(await canAccessPlayer(req.user!.id, player.id))) {
+    return res.status(403).json({ error: "No tenés acceso a este jugador" });
+  }
+  const doc = await prisma.jugadorDocumento.findUnique({ where: { id: req.params.docId } });
+  if (!doc || doc.playerId !== player.id) return res.status(404).json({ error: "Documento no encontrado" });
+
+  res.setHeader("Content-Type", doc.mime);
+  res.setHeader("Content-Disposition", `attachment; filename="${doc.fileName.replace(/[\\"]/g, "_")}"`);
+  res.send(doc.data);
+});
+
+// DELETE /api/players/:id/documents/:docId — borrar (con confirmación de quién)
+router.delete("/players/:id/documents/:docId", requireAuth, async (req, res) => {
+  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
+  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!(await canAccessPlayer(req.user!.id, player.id))) {
+    return res.status(403).json({ error: "No tenés acceso a este jugador" });
+  }
+  const doc = await prisma.jugadorDocumento.findFirst({ where: { id: req.params.docId, playerId: player.id } });
+  if (!doc) return res.status(404).json({ error: "Documento no encontrado" });
+  await prisma.jugadorDocumento.delete({ where: { id: doc.id } });
+  res.json({ ok: true });
 });
 
 export default router;
