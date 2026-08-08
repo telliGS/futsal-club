@@ -45,7 +45,7 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 ## Commands
 - Build client: `npm run build` (client/) → tsc + vite
 - Deploy client: commit+push a master → auto-deploy GitHub (rootDirectory `client`); luego alias al nuevo deploy: `vercel alias <url-nuevo>.vercel.app jh-futsal.vercel.app`
-- Deploy server: `vercel deploy --prod --yes --no-wait` (en server/) → poll API hasta READY → `vercel alias <url> server-tellig.vercel.app`
+- Deploy server: `vercel deploy --prod --yes --no-wait --scope team_u0Xf2d5IqhLVBFQ92tKX7u4h` (en server/) → poll API hasta READY → `vercel alias <url> server-tellig.vercel.app`. **IMPORTANTE**: sin `--scope` da "Not authorized" (el CLI resuelve al scope personal `tellig`); con `--scope team_u0...` funciona. El alias también con `--scope`.
 - Token Vercel: `C:\Users\Guille\AppData\Roaming\xdg.data\com.vercel.cli\auth.json`; API para polls: `https://api.vercel.com/...` con `team_u0Xf2d5IqhLVBFQ92tKX7u4h`.
 - PowerShell: añadir `$env:Path = ("C:\Program Files\nodejs;$env:APPDATA\npm") + ';' + $env:Path` para node/npx/vercel.
 
@@ -64,6 +64,7 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
   - `delegado.elite@josehernandez.futbol` / `Elite1234567` (DELEGADO de prueba, solo JH ELITE — creado con `server/src/scripts/create-delegado-elite.ts`). Credenciales verificadas en prod, 403 en otros equipos.
   - JH ELITE en prod: 17 jugadores + 3 técnicos (DT Mauro Erben, PF Marcos Ruiz Diaz, AT Mauro Schroeder).
 - **Pendiente**: continuar con correcciones + front (página pública, login, detalles de UX), OAuth/Supabase Auth, pagos online (Mercado Pago?), limpiar deployments viejos BLOCKED/ERROR en Vercel.
+- **[08/08] DEPLOYADO a prod**: ficha médica por categoría, documentos con fecha de emisión, plantilla Excel + import, fix 413, hora 24h. Server: deploy manual CLI (`--scope team_u0Xf2d5IqhLVBFQ92tKX7u4h`) + alias. Front: auto-deploy GitHub (commit 3f51cba). Verificado end-to-end en prod.
 - **Pendiente (08/08, prioridad baja)**: **PWA** — el club le preguntó a Guille si se puede hacer app además de web. Decisión del usuario: **PWA gratis** (`vite-plugin-pwa` + manifest con logo del club + service worker offline + botón "Instalar"). Backend no necesita cambios; Capacitor sería la vía futura a las stores. NO planear por ahora, solo registrado.
 
 ## Integración TIMBO (fixtures del futsal de Paraná) — [07/08] RESUELTA
