@@ -111,8 +111,17 @@ model Match {
   rival     String
   isHome    Boolean   // true si juega de local
   category  String?   // denormaliz nacional simple para el público
+  timboId   Int?      @unique // id del partido en TIMBO (sync automático); null = manual
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([dateTime])
+}
+
+// Estado global de sincronizaciones (ej. última corrida de TIMBO)
+model SyncState {
+  id        String   @id @default(cuid())
+  key       String   @unique // "timbo" | ...
+  value     Json
+  updatedAt DateTime @updatedAt
 }

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../config.js";
 import { requireAuth, requireAdmin, canAccessTeam } from "../middleware/auth.js";
+import { weekendWindowArg } from "../lib/timbo.js";
 
 const router = Router();
 
@@ -21,8 +22,20 @@ router.get("/", async (req, res) => {
   res.json(matches);
 });
 
-// GET /api/matches/upcoming — próximos desde ahora (para el home)
-router.get("/upcoming", async (_req, res) => {
+// GET /api/matches/upcoming?weekend=1 — partidos del próximo finde (viernes→lunes, hora ARG)
+// Con weekend=true devuelve TODOS los del viernes→lunes (el home los agrupa por categoría).
+// Sin parámetro, próximos desde ahora (comportamiento anterior).
+router.get("/upcoming", async (req, res) => {
+  const { weekend } = req.query;
+  if (weekend === "1" || weekend === "true") {
+    const { start, end } = weekendWindowArg(new Date());
+    const matches = await prisma.match.findMany({
+      where: { dateTime: { gte: start, lte: end } },
+      include: { team: true },
+      orderBy: [{ dateTime: "asc" }],
+    });
+    return res.json(matches);
+  }
   const matches = await prisma.match.findMany({
     where: { dateTime: { gte: new Date() } },
     include: { team: true },
