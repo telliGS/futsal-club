@@ -16,13 +16,18 @@ export async function apiFetch<T>(
   const res = await fetch(`${API}${path}`, { ...options, headers });
   if (!res.ok) {
     let message = "Error de red";
+    let body: Record<string, unknown> = {};
     try {
-      const body = await res.json();
-      message = body.error ?? message;
+      body = (await res.json()) as Record<string, unknown>;
+      message = (body.error as string) ?? message;
     } catch {
       /* noop */
     }
-    throw new Error(message);
+    // arrastra code/playerId/equipoActual/etc. del server (ej. CAMBIO_PRIMERA)
+    const err = new Error(message) as Error & Record<string, unknown>;
+    Object.assign(err, body);
+    err.status = res.status;
+    throw err;
   }
   return res.json() as Promise<T>;
 }

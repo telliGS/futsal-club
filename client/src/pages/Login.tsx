@@ -1,11 +1,20 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { apiFetch, setToken } from "../lib/api";
+import Layout from "../components/Layout";
 
 interface LoginResponse {
   token: string;
   user: { role: string };
 }
+
+const FEATURES = [
+  { icon: "📋", text: "Plantel de tu equipo" },
+  { icon: "🗓️", text: "Cuotas mes a mes" },
+  { icon: "📄", text: "Fichas médicas de tus jugadores" },
+  { icon: "💰", text: "Presupuesto de la categoría" },
+  { icon: "📥", text: "Importar plantel desde Excel" },
+];
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -33,48 +42,121 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <Link to="/" className="text-sm text-white/50 hover:text-white">← Volver</Link>
-        <img
-          src="/escudo-jh.png"
-          alt="Escudo Club José Hernández"
-          className="w-20 h-20 mx-auto mt-6 drop-shadow-lg"
-        />
-        <h1 className="font-display text-2xl font-bold mt-4 text-center">Área de delegados</h1>
-        <p className="text-white/60 text-sm mt-1 mb-8">Ingresá con tu cuenta para gestionar tu equipo.</p>
+    <Layout>
+      <div className="max-w-5xl mx-auto px-6 py-12 md:py-16">
+        <div className="rounded-lg border border-outline bg-surface-1 overflow-hidden grid md:grid-cols-2 animate-fade-up">
+          {/* ======== Panel de marca (izquierda) — noche de estadio ======== */}
+          <div className="relative bg-surface p-8 md:p-10 text-white overflow-hidden border-b md:border-b-0 md:border-r border-outline">
+            {/* Luz del estadio subiendo desde el piso */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(120% 90% at 50% 110%, rgba(0,147,66,0.30) 0%, rgba(0,99,43,0.12) 38%, transparent 72%)",
+              }}
+            />
+            {/* Círculo central de la cancha, tenue */}
+            <div
+              aria-hidden="true"
+              className="absolute right-[-7rem] bottom-[-7rem] w-[22rem] h-[22rem] rounded-full border border-white/[0.05]"
+            />
+            <div
+              aria-hidden="true"
+              className="absolute right-[-5rem] bottom-[-5rem] w-[12rem] h-[12rem] rounded-full border border-white/[0.05]"
+            />
+            <div className="relative">
+              <div className="flex items-center gap-3">
+                <img src="/escudo-jh.png" alt="" className="w-14 h-14 drop-shadow-[0_0_28px_rgba(0,255,102,0.25)]" />
+                <div>
+                  <p className="font-display font-bold text-lg leading-tight">Panel del club</p>
+                  <p className="text-xs font-mono uppercase tracking-widest text-primary-light mt-0.5">
+                    José Hernández Futsal
+                  </p>
+                </div>
+              </div>
 
-        <form onSubmit={submit} className="space-y-4">
-          <div>
-            <label className="text-sm text-white/70">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full px-4 py-2.5 rounded-lg bg-white/10 border border-white/20 focus:outline-none focus:border-accent"
-              required
-            />
+              <h2 className="font-display text-2xl md:text-3xl font-bold mt-8 leading-snug">
+                Todo tu equipo,
+                <br />
+                en un solo lugar
+              </h2>
+              <p className="text-white/70 text-sm mt-3 leading-relaxed">
+                Desde el panel de delegado gestionás el plantel, las cuotas, las
+                fichas médicas y el presupuesto de tu categoría.
+              </p>
+
+              <ul className="mt-8 space-y-3">
+                {FEATURES.map((f) => (
+                  <li key={f.text} className="flex items-center gap-3 text-sm">
+                    <span className="w-8 h-8 shrink-0 rounded-lg bg-surface-2 border border-outline flex items-center justify-center text-base">
+                      {f.icon}
+                    </span>
+                    <span className="text-white/80">{f.text}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-10 rounded-lg bg-surface-2 border border-outline px-4 py-3 text-xs text-white/70">
+                <p className="font-semibold text-white/90">⚠ Solo para delegados</p>
+                <p className="mt-1">Si no tenés cuenta, pedile al administrador del club que te la cree.</p>
+              </div>
+            </div>
           </div>
-          <div>
-            <label className="text-sm text-white/70">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full px-4 py-2.5 rounded-lg bg-white/10 border border-white/20 focus:outline-none focus:border-accent"
-              required
-            />
+
+          {/* ======== Formulario (derecha) ======== */}
+          <div className="p-8 md:p-10 flex items-center">
+            <div className="w-full max-w-sm mx-auto">
+              <p className="text-xs font-mono uppercase tracking-widest text-white/40">Ingreso</p>
+              <h1 className="font-display text-2xl font-bold mt-1">Área de delegados</h1>
+              <p className="text-white/60 text-sm mt-1 mb-8">
+                Ingresá con tu cuenta para gestionar tu equipo.
+              </p>
+
+              <form onSubmit={submit} className="space-y-5">
+                <div>
+                  <label className="text-sm text-white/70 block mb-1.5">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="delegado@josehernandez.futbol"
+                    className="w-full px-4 py-3 rounded-lg bg-surface-1 border border-outline text-white placeholder-white/30
+                           focus:outline-none focus:border-primary focus:bg-surface-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-white/70 block mb-1.5">Contraseña</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 rounded-lg bg-surface-1 border border-outline text-white placeholder-white/30
+                           focus:outline-none focus:border-primary focus:bg-surface-2"
+                    required
+                  />
+                </div>
+
+                {error && (
+                  <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+                    {error}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn w-full bg-primary text-white hover:bg-primary-light disabled:opacity-50"
+                >
+                  {loading ? "Ingresando..." : "Ingresar al panel"}
+                </button>
+              </form>
+            </div>
           </div>
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 rounded-lg bg-primary text-white font-semibold hover:bg-primary-light disabled:opacity-50"
-          >
-            {loading ? "Ingresando..." : "Ingresar"}
-          </button>
-        </form>
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 }

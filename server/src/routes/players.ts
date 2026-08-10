@@ -4,6 +4,7 @@ import { prisma } from "../config.js";
 import { requireAuth, canAccessTeam } from "../middleware/auth.js";
 import { calcularEstadoCuota } from "../lib/cuota.js";
 import { calcularDocumentos, MAX_DOC_BYTES, TipoDocumento, TIPOS_DOCUMENTO, aptoParaJugar, vencimientoPorRegla } from "../lib/ficha.js";
+import { pagaCuotaEnEquipo, categoriasPagoJugador } from "../lib/nativo.js";
 
 const router = Router();
 
@@ -14,8 +15,8 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
   const can = await canAccessTeam(req.user!.id, teamId);
   if (!can) return res.status(403).json({ error: "No tenés acceso a este equipo" });
 
-  const team = await prisma.team.findUnique({ where: { id: teamId }, select: { category: true } });
-  const categoria = team?.category ?? null;
+  const team = await prisma.team.findUnique({ where: { id: teamId }, select: { category: true, type: true } });
+  const tipoEquipoActual = team?.type ?? null;
 
   const links = await prisma.playerTeam.findMany({
     where: { teamId },
@@ -24,6 +25,7 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
         include: {
           payments: { orderBy: { month: "desc" }, take: 24 },
           documentos: { select: { tipo: true, fechaVencimiento: true } },
+          teams: { include: { team: { select: { name: true, type: true, category: true } } } },
         },
       },
     },
@@ -32,9 +34,36 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
 
   res.json(
     links.map((l) => {
-      const estadoCuota = calcularEstadoCuota(l.player.payments);
-      const estadoFichas = calcularDocumentos(l.player.documentos, new Date(), categoria);
+      // Regla de ficha del club: el documento que manda es el de la
+      // categoría MENOR del jugador, valga para todos sus paneles
+      // (C17 + C20 + PRIMERA → solo electro). Solo cuentan los
+      // equipos donde la persona es JUGADOR (técnicos no definen ficha).
+      const equiposJugador = l.player.teams.filter((t) => t.role === "JUGADOR");
+      const categoriasFicha = (equiposJugador.length > 0 ? equiposJugador : l.player.teams)
+        .map((t) => t.team.category);
+      // INACTIVO: la deuda se congela en la fecha en que dejó de jugar
+      // (no corre cuota durante el tiempo fuera; al volver se ve la deuda real)
+      const congelado = l.player.status === "INACTIVO" && l.player.inactiveSince
+        ? l.player.inactiveSince.toISOString().slice(0, 7)
+        : undefined;
+      const estadoCuota = calcularEstadoCuota(l.player.payments, new Date(), congelado ? { congelarDesde: congelado } : {});
+      const estadoFichas = calcularDocumentos(l.player.documentos, new Date(), categoriasFicha);
       const apto = aptoParaJugar(estadoCuota.puedeJugar, estadoFichas);
+      // Regla nativo/formativa: ¿dónde paga la cuota este jugador?
+      // Solo importan los equipos donde la persona es JUGADOR (los
+      // vínculos técnicos DT/AT/PF y de delegado NO cuentan: ej.
+      // Marcos Ruiz Diaz es DEL/DT/PF en formativas pero JUGADOR
+      // solo en JH NEGRO → paga acá).
+      const tiposEquipos = equiposJugador.map((t) => t.team.type);
+      const nombresEquipos = equiposJugador.map((t) => t.team.name);
+      const equiposLike = equiposJugador.map((t) => ({
+        name: t.team.name,
+        type: t.team.type,
+        category: t.team.category,
+      }));
+      const esFormativos = equiposJugador.some((t) => t.team.type === "FORMATIVA");
+      const pagaAca = pagaCuotaEnEquipo(equiposLike, tipoEquipoActual ?? "", team?.category ?? null);
+      const categoriaPago = categoriasPagoJugador(equiposLike);
       return {
         id: l.player.id,
         lastName: l.player.lastName,
@@ -43,10 +72,15 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
         birthDate: l.player.birthDate,
         hasInsurance: l.player.hasInsurance,
         status: l.player.status,
+        inactiveSince: l.player.inactiveSince,
         role: l.role,
         position: l.position,
         jersey: l.jersey,
         cuentaPresupuesto: l.cuentaPresupuesto,
+        // formato: paga la cuota acá (true) o en su categoría formativa (false)
+        esFormativos,
+        pagaAca,
+        categoriaPago,
         payments: l.player.payments,
         // regla de cuota: pago del 1 al 10; del 11 sin pagar = deudor, no juega
         estadoCuota,
@@ -95,6 +129,36 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
       },
     });
   }
+  // REGLA: un jugador NO puede ser JUGADOR en dos equipos de PRIMERA.
+  // Si el destino es PRIMERA y ya es JUGADOR en otra PRIMERA → 409 con
+  // code CAMBIO_PRIMERA + datos (pide confirmación explícita en el panel);
+  // solo el endpoint /players/:id/cambiar-primera permite moverlo.
+  const rol = (role ?? "JUGADOR") as string;
+  if (rol === "JUGADOR") {
+    const destTeam = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: { type: true },
+    });
+    if (destTeam?.type === "PRIMERA" && player) {
+      const otraPrimera = await prisma.playerTeam.findFirst({
+        where: {
+          playerId: player.id,
+          role: "JUGADOR",
+          teamId: { not: teamId },
+          team: { type: "PRIMERA" },
+        },
+        include: { team: { select: { id: true, name: true } } },
+      });
+      if (otraPrimera) {
+        return res.status(409).json({
+          error: `Este jugador ya es JUGADOR en ${otraPrimera.team.name}. Un jugador no puede estar en dos equipos de primera.`,
+          code: "CAMBIO_PRIMERA",
+          playerId: player.id,
+          equipoActual: { id: otraPrimera.team.id, name: otraPrimera.team.name },
+        });
+      }
+    }
+  }
   await prisma.playerTeam.upsert({
     where: { playerId_teamId: { playerId: player.id, teamId } },
     update: { role: role ?? "JUGADOR", position, jersey, cuentaPresupuesto: cuentaPresupuesto ?? undefined },
@@ -102,6 +166,153 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
   });
 
   res.status(201).json(player);
+});
+
+// ---------- Mover jugador de una PRIMERA a otra ----------
+// Confirmación explícita del caso CAMBIO_PRIMERA (409 del POST de alta):
+// quita el vínculo JUGADOR del equipo origen y lo vincula al destino.
+// Los datos del jugador (payments, documentos, fichas) viven en el Player
+// y NO se pierden; solo cambia el vínculo de equipo.
+const cambiarPrimeraSchema = z.object({
+  deTeamId: z.string().min(1),
+  aTeamId: z.string().min(1),
+  position: z.string().optional().nullable(),
+  jersey: z.number().int().optional().nullable(),
+  cuentaPresupuesto: z.boolean().optional(),
+});
+
+router.post("/players/:id/cambiar-primera", requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const parsed = cambiarPrimeraSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
+  }
+  const { deTeamId, aTeamId, position, jersey, cuentaPresupuesto } = parsed.data;
+  if (deTeamId === aTeamId) return res.status(400).json({ error: "El jugador ya está en ese equipo" });
+
+  const can = await canAccessTeam(req.user!.id, aTeamId);
+  if (!can) return res.status(403).json({ error: "No tenés acceso a este equipo" });
+
+  // coherente con el 409: el jugador debe ser JUGADOR en una PRIMERA distinta del destino
+  const origen = await prisma.playerTeam.findFirst({
+    where: { playerId: id, role: "JUGADOR", teamId: deTeamId },
+  });
+  if (!origen) {
+    return res.status(400).json({ error: "El jugador no es JUGADOR en el equipo de origen" });
+  }
+
+  await prisma.$transaction([
+    prisma.playerTeam.deleteMany({
+      where: { playerId: id, teamId: deTeamId, role: "JUGADOR" },
+    }),
+    prisma.playerTeam.upsert({
+      where: { playerId_teamId: { playerId: id, teamId: aTeamId } },
+      update: { role: "JUGADOR", position, jersey, cuentaPresupuesto: cuentaPresupuesto ?? undefined },
+      create: { playerId: id, teamId: aTeamId, role: "JUGADOR", position, jersey, cuentaPresupuesto: cuentaPresupuesto ?? true },
+    }),
+  ]);
+
+  res.json({ ok: true });
+});
+
+// GET /api/players/by-document?document=X — ¿el DNI ya está registrado?
+// Para el alta: si existe, el POST solo VINCULA (no duplica). Devuelve
+// datos básicos + equipos (solo rol JUGADOR) si el usuario tiene acceso
+// a algún equipo del jugador (evita "pescar" planteles ajenos).
+router.get("/players/by-document", requireAuth, async (req, res) => {
+  const document = String(req.query.document ?? "").replace(/\D/g, "");
+  if (!document) return res.json({ found: false });
+  const player = await prisma.player.findUnique({
+    where: { document },
+    include: { teams: { include: { team: { select: { name: true, type: true } } } } },
+  });
+  if (!player) return res.json({ found: false });
+
+  let acceso = false;
+  for (const t of player.teams) {
+    if (await canAccessTeam(req.user!.id, t.teamId)) {
+      acceso = true;
+      break;
+    }
+  }
+  if (!acceso) return res.json({ found: false });
+
+  res.json({
+    found: true,
+    player: {
+      id: player.id,
+      firstName: player.firstName,
+      lastName: player.lastName,
+      birthDate: player.birthDate,
+      equipos: player.teams
+        .filter((t) => t.role === "JUGADOR")
+        .map((t) => ({ name: t.team.name, type: t.team.type })),
+    },
+  });
+});
+
+// ---------- Pasar a INACTIVO / REACTIVAR ----------
+// INACTIVO: deja de contar en el presupuesto y la deuda se CONGELA en
+// inactiveSince = hasta dónde jugó (no corre cuota mientras está fuera).
+// REACTIVAR: se limpia el congelamiento y se recalcula la regla — si tenía
+// deuda real queda DEUDA (sin apto) hasta ponerse al día; el panel avisa
+// con los meses que debe.
+const statusSchema = z.object({
+  status: z.enum(["ACTIVO", "INACTIVO"]),
+  inactiveSince: z.string().optional().nullable(), // "YYYY-MM" (o null)
+});
+
+router.patch("/players/:id/status", requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const parsed = statusSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Status inválido", details: parsed.error.issues });
+  }
+  const { status: nuevo, inactiveSince } = parsed.data;
+
+  const player = await prisma.player.findUnique({
+    where: { id },
+    include: { teams: { select: { teamId: true } }, payments: { orderBy: { month: "desc" }, take: 24 } },
+  });
+  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+
+  // acceso: cualquiera de los equipos donde está el jugador
+  let acceso = false;
+  for (const t of player.teams) {
+    if (await canAccessTeam(req.user!.id, t.teamId)) {
+      acceso = true;
+      break;
+    }
+  }
+  if (!acceso) return res.status(403).json({ error: "No tenés acceso a equipos de este jugador" });
+
+  if (nuevo === "INACTIVO") {
+    // hasta dónde jugó: el mes indicado (o si no, hoy) → primer día del mes
+    let desde: Date;
+    if (inactiveSince && /^\d{4}-\d{2}/.test(inactiveSince)) {
+      const mesActual = new Date().toISOString().slice(0, 7);
+      if (inactiveSince.slice(0, 7) > mesActual) {
+        return res.status(400).json({ error: `El mes de corte no puede ser futuro (mes actual: ${mesActual})` });
+      }
+      desde = new Date(`${inactiveSince.slice(0, 7)}-01T00:00:00Z`);
+    } else {
+      desde = new Date();
+    }
+    await prisma.player.update({ where: { id }, data: { status: "INACTIVO", inactiveSince: desde } });
+    const congelado = desde.toISOString().slice(0, 7);
+    const estadoCuota = calcularEstadoCuota(player.payments, new Date(), { congelarDesde: congelado });
+    res.json({ ok: true, status: "INACTIVO", inactiveSince: desde, estadoCuota });
+    return;
+  }
+
+  // REACTIVAR: si debe meses (antes de irse) vuelve DEUDA → no puede jugar
+  await prisma.player.update({ where: { id }, data: { status: "ACTIVO", inactiveSince: null } });
+  const estadoCuota = calcularEstadoCuota(player.payments);
+  const statusFinal = estadoCuota.deudor ? "DEUDA" : "ACTIVO";
+  if (statusFinal === "DEUDA") {
+    await prisma.player.update({ where: { id }, data: { status: "DEUDA" } });
+  }
+  res.json({ ok: true, status: statusFinal, inactiveSince: null, estadoCuota });
 });
 
 // ---------- Editar jugador ----------
@@ -181,32 +392,21 @@ router.delete("/players/:id", requireAuth, async (req, res) => {
 
 // ------------------- Cuotas -------------------
 
-// POST /api/players/:id/payments/:month
-router.post("/players/:id/payments/:month", requireAuth, async (req, res) => {
-  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
-  const links = await prisma.playerTeam.findMany({ where: { playerId: player.id } });
+// Acceso del usuario a TODOS los equipos del jugador (con uno alcanza... en
+// realidad exige acceso a todos, igual que el POST actual).
+async function checkPlayerAccess(req: any, res: any, playerId: string): Promise<boolean> {
+  const links = await prisma.playerTeam.findMany({ where: { playerId } });
   for (const l of links) {
     if (!(await canAccessTeam(req.user!.id, l.teamId))) {
-      return res.status(403).json({ error: "No tenés acceso a este jugador" });
+      res.status(403).json({ error: "No tenés acceso a este jugador" });
+      return false;
     }
   }
+  return true;
+}
 
-  const { month } = req.params;
-  if (!/^\d{4}-\d{2}$/.test(month)) {
-    return res.status(400).json({ error: "Formato de mes inválido. Usá YYYY-MM" });
-  }
-  const paid = Boolean(req.body?.paid);
-  const amount = typeof req.body?.amount === "number" ? req.body.amount : 0;
-
-  const payment = await prisma.payment.upsert({
-    where: { playerId_month: { playerId: player.id, month } },
-    update: { paid, amount, paidAt: paid ? new Date() : null },
-    create: { playerId: player.id, month, paid, amount, paidAt: paid ? new Date() : null },
-  });
-
-  // Recalcular estado según la regla (día + mes) y sincronizar el status del jugador.
-  // Si hay deuda → DEUDA; si no hay deuda y estaba ACTIVO/DEUDA → ACTIVO (INACTIVO se respeta).
+// Recalcula la regla de cuota tras un cambio y sincroniza el status del jugador.
+async function recalcularTrasPago(player: { id: string; status: string }) {
   const payments = await prisma.payment.findMany({
     where: { playerId: player.id },
     orderBy: { month: "desc" },
@@ -222,8 +422,58 @@ router.post("/players/:id/payments/:month", requireAuth, async (req, res) => {
   if (nuevoStatus !== player.status) {
     await prisma.player.update({ where: { id: player.id }, data: { status: nuevoStatus } });
   }
+  return { estadoCuota, status: nuevoStatus };
+}
 
-  res.json({ payment, estadoCuota, status: nuevoStatus });
+// POST /api/players/:id/payments/:month
+router.post("/players/:id/payments/:month", requireAuth, async (req, res) => {
+  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
+  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!(await checkPlayerAccess(req, res, player.id))) return;
+
+  const { month } = req.params;
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    return res.status(400).json({ error: "Formato de mes inválido. Usá YYYY-MM" });
+  }
+  // No se puede pagar un mes que todavía no llegó (evita "pagos" futuros que
+  // rompen la consulta de cuota y el calendario)
+  const mesActual = new Date().toISOString().slice(0, 7);
+  if (month > mesActual) {
+    return res.status(400).json({ error: `No se puede registrar el mes ${month}: todavía no llegó (mes actual: ${mesActual})` });
+  }
+  const paid = Boolean(req.body?.paid);
+  const amount = typeof req.body?.amount === "number" ? req.body.amount : 0;
+
+  const payment = await prisma.payment.upsert({
+    where: { playerId_month: { playerId: player.id, month } },
+    update: { paid, amount, paidAt: paid ? new Date() : null },
+    create: { playerId: player.id, month, paid, amount, paidAt: paid ? new Date() : null },
+  });
+
+  const { estadoCuota, status } = await recalcularTrasPago(player);
+
+  res.json({ payment, estadoCuota, status });
+});
+
+// DELETE /api/players/:id/payments/:month — pone el mes en NULL: ni pagado
+// ni adeudado. Para meses que no le corresponden al jugador (ej. se incorporó
+// después: Mateo Villalba entró en febrero → enero impago se ELIMINA y deja
+// de contar como deuda). Idempotente: si no hay registro, responde ok igual.
+router.delete("/players/:id/payments/:month", requireAuth, async (req, res) => {
+  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
+  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!(await checkPlayerAccess(req, res, player.id))) return;
+
+  const { month } = req.params;
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    return res.status(400).json({ error: "Formato de mes inválido. Usá YYYY-MM" });
+  }
+
+  await prisma.payment.deleteMany({ where: { playerId: player.id, month } });
+
+  const { estadoCuota, status } = await recalcularTrasPago(player);
+
+  res.json({ removed: true, estadoCuota, status });
 });
 
 // GET /api/players/:id/payments — historial

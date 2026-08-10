@@ -67,6 +67,9 @@ model Player {
   birthDate    DateTime?
   hasInsurance Boolean  @default(false)
   status       String   @default("ACTIVO") // ACTIVO | DEUDA | INACTIVO (rojo del sheet)
+  // Se setea al pasar a INACTIVO: hasta qué mes jugó. Al volver, la deuda
+  // se congela en esa fecha (no corre cuota durante el tiempo inactivo).
+  inactiveSince DateTime?
   notes        String?
 
   teams   PlayerTeam[]
@@ -162,14 +165,16 @@ model Payment {
 // ---------------- Partidos ----------------
 
 model Match {
-  id        String    @id @default(cuid())
-  teamId    String
-  dateTime  DateTime  // día y hora del partido
-  venue     String    // cancha / sede
-  rival     String
-  isHome    Boolean   // true si juega de local
-  category  String?   // denormaliz nacional simple para el público
-  timboId   Int?      @unique // id del partido en TIMBO (sync automático); null = manual
+  id         String    @id @default(cuid())
+  teamId     String
+  dateTime   DateTime  // día y hora del partido
+  venue      String    // cancha / sede
+  rival      String
+  isHome     Boolean   // true si juega de local
+  category   String?   // denormaliz nacional simple para el público
+  timboId    Int?      @unique // id del partido en TIMBO (sync automático); null = manual
+  clubGoals  Int?      // goles del club (null = sin resultado publicado / sin jugar)
+  rivalGoals Int?      // goles del rival (null = sin resultado publicado / sin jugar)
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 

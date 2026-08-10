@@ -25,16 +25,23 @@ export const DIA_CORTE = 10;
 
 export function calcularEstadoCuota(
   payments: PagoLike[],
-  now: Date = new Date()
+  now: Date = new Date(),
+  opts: { congelarDesde?: string } = {}
 ): EstadoCuota {
+  const { congelarDesde } = opts;
   const mesActual = mesKey(now);
   const dia = now.getDate();
 
   const pagadoMesActual = payments.some((p) => p.month === mesActual && p.paid);
-  // meses anteriores al actual sin pago (deudas vigentes)
-  const deudaPrevia = payments.filter((p) => !p.paid && p.month < mesActual).length;
+  // meses anteriores al actual sin pago (deudas vigentes). Si el jugador
+  // está INACTIVO (congelarDesde = última fecha jugada, YYYY-MM) solo
+  // cuentan los meses impagos ANTERIORES a esa fecha: no corre cuota
+  // durante el tiempo que estuvo fuera.
+  const deudaPrevia = payments.filter(
+    (p) => !p.paid && p.month < mesActual && (!congelarDesde || p.month < congelarDesde)
+  ).length;
   // si estamos del día 11 en adelante y el mes en curso no está pago → venció
-  const vencioMesActual = dia > DIA_CORTE && !pagadoMesActual;
+  const vencioMesActual = dia > DIA_CORTE && !pagadoMesActual && !congelarDesde;
 
   const deudor = deudaPrevia > 0 || vencioMesActual;
   const pendiente = !pagadoMesActual && !vencioMesActual;

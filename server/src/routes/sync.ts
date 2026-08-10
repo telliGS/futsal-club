@@ -13,7 +13,7 @@
 
 import { Router } from "express";
 import { prisma } from "../config.js";
-import { CLUB_ZONES, getZoneMatches, clubTeamForMatch, clubInfoFromMatch, weekendWindowArg, TIMBO_EDITION_ID, TimboMatch } from "../lib/timbo.js";
+import { CLUB_ZONES, getZoneMatches, clubTeamForMatch, clubInfoFromMatch, resultFromMatch, weekendWindowArg, TIMBO_EDITION_ID, TimboMatch } from "../lib/timbo.js";
 
 const router = Router();
 
@@ -102,6 +102,7 @@ export async function runTimboSync(now = new Date()): Promise<{
         }
         seenIds.add(m.id);
         const info = clubInfoFromMatch(m);
+        const result = resultFromMatch(m);
         const prev = await prisma.match.findUnique({ where: { timboId: m.id } });
         await prisma.match.upsert({
           where: { timboId: m.id },
@@ -113,12 +114,16 @@ export async function runTimboSync(now = new Date()): Promise<{
             rival: info.rival,
             isHome: info.isHome,
             category: clubTeamName,
+            clubGoals: result?.clubGoals ?? null,
+            rivalGoals: result?.rivalGoals ?? null,
           },
           update: {
             dateTime: new Date(m.date_iso!),
             venue: m.field?.name ?? "Por confirmar",
             rival: info.rival,
             isHome: info.isHome,
+            clubGoals: result?.clubGoals ?? null,
+            rivalGoals: result?.rivalGoals ?? null,
           },
         });
         synced++;

@@ -14,16 +14,23 @@ export const ARG_TZ_OFFSET_MS = -3 * 60 * 60 * 1000;
  * Ventana del "finde" (viernes 00:00 → lunes 23:59 en hora ARG).
  * Correcta incluso corriendo en UTC (serverless): calcula el día
  * local en UTC-3 y devuelve límites absolutos (epoch).
+ *
+ * Regla: el finde EN CURSO es viernes→lunes. Por eso el LUNES sigue
+ * perteneciendo al finde que recién termina (puede haber partidos ese
+ * día). Recién desde el MARTES se muestra la fecha siguiente.
+ * (Antes el lunes saltaba directo al próximo viernes y aparecían los
+ *  partidos de la fecha siguiente con la actual todavía en juego.)
  */
 export function weekendWindowArg(now: Date): { start: Date; end: Date } {
   const localNow = new Date(now.getTime() + ARG_TZ_OFFSET_MS); // "hora ARG" como si fuera UTC
-  const day = localNow.getUTCDay(); // 0=dom ... 5=vie 6=sáb
+  const day = localNow.getUTCDay(); // 0=dom 1=lun ... 5=vie 6=sáb
   const fridayLocal = new Date(Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), localNow.getUTCDate(), 0, 0, 0, 0));
-  if (day >= 5) {
-    // vie/sáb/dom → el finde en curso (viernes de esta semana)
-    fridayLocal.setUTCDate(fridayLocal.getUTCDate() - (day - 5));
+  if (day >= 5 || day === 0 || day === 1) {
+    // vie/sáb/dom + LUNES → el finde en curso (volver al viernes:
+    // vie=0, sáb=1, dom=2 y lun=3 días atrás; fórmula ((day+2)%7))
+    fridayLocal.setUTCDate(fridayLocal.getUTCDate() - ((day + 2) % 7));
   } else {
-    // lun→jue → el próximo viernes
+    // mar→jue → el próximo viernes
     fridayLocal.setUTCDate(fridayLocal.getUTCDate() + ((5 - day + 7) % 7));
   }
   const endLocal = new Date(fridayLocal);
@@ -61,6 +68,10 @@ export interface TimboMatch {
   field?: { name?: string } | null;
   positions: TimboPosition[];
   goals?: number[] | null;
+  /** true cuando el partido está finalizado en TIMBO */
+  closed?: boolean;
+  /** 1 = TIMBO muestra el resultado públicamente */
+  show_result?: number;
 }
 
 export interface TimboZone {
@@ -110,6 +121,26 @@ export function clubInfoFromMatch(m: TimboMatch): { isHome: boolean; rival: stri
   const rivalIdx = clubIdx === 0 ? 1 : 0;
   const rival = m.positions[rivalIdx]?.roster?.team?.name ?? "Por confirmar";
   return { isHome: clubIdx === 0, rival };
+}
+
+/**
+ * Resultado del partido para el club: los goles de TIMBO vienen alineados
+ * por índice con `positions` (home en 0, visita en 1). Devuelve null si el
+ * partido no está cerrado o TIMBO no publica el resultado todavía
+ * (goals puede venir como [2] o [] durante el desarrollo del partido).
+ */
+export function resultFromMatch(m: TimboMatch): { clubGoals: number; rivalGoals: number } | null {
+  if (!m.closed || m.show_result !== 1) return null;
+  const goals = m.goals;
+  if (!goals || goals.length < 2) return null;
+  const isClub = (p: TimboPosition) => norm(p.roster?.team?.name).startsWith("JOSE HERNANDEZ");
+  const clubIdx = m.positions.findIndex(isClub);
+  if (clubIdx === -1) return null;
+  const rivalIdx = clubIdx === 0 ? 1 : 0;
+  const clubGoals = goals[clubIdx];
+  const rivalGoals = goals[rivalIdx];
+  if (clubGoals == null || rivalGoals == null) return null;
+  return { clubGoals, rivalGoals };
 }
 
 // ------------------------------------------------------------

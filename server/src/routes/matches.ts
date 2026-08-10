@@ -24,13 +24,29 @@ router.get("/", async (req, res) => {
 
 // GET /api/matches/upcoming?weekend=1 — partidos del próximo finde (viernes→lunes, hora ARG)
 // Con weekend=true devuelve TODOS los del viernes→lunes (el home los agrupa por categoría).
+// Con weekend=2 devuelve el finde EN CURSO + el SIGUIENTE (el home muestra ambos
+// para que la sección nunca quede vacía cuando se juegan los partidos del finde).
 // Sin parámetro, próximos desde ahora (comportamiento anterior).
 router.get("/upcoming", async (req, res) => {
   const { weekend } = req.query;
   if (weekend === "1" || weekend === "true") {
-    const { start, end } = weekendWindowArg(new Date());
+    const { end } = weekendWindowArg(new Date());
+    // Solo partidos aún por jugarse (>= ahora) del finde en curso,
+    // para que no aparezcan los ya disputados ni la fecha siguiente.
     const matches = await prisma.match.findMany({
-      where: { dateTime: { gte: start, lte: end } },
+      where: { dateTime: { gte: new Date(), lte: end } },
+      include: { team: true },
+      orderBy: [{ dateTime: "asc" }],
+    });
+    return res.json(matches);
+  }
+  if (weekend === "2") {
+    // finde actual + el siguiente: el siguiente comienza 7 días después
+    // del actual (viernes→lunes; el martes no hay partidos de todos modos)
+    const { start, end } = weekendWindowArg(new Date());
+    const finalFindeSiguiente = new Date(end.getTime() + 7 * 86_400_000);
+    const matches = await prisma.match.findMany({
+      where: { dateTime: { gte: new Date(), lte: finalFindeSiguiente } },
       include: { team: true },
       orderBy: [{ dateTime: "asc" }],
     });

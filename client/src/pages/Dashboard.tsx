@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch, API, getToken, setToken } from "../lib/api";
+import Layout from "../components/Layout";
 
 interface Team {
   id: string;
@@ -49,10 +50,16 @@ interface Player {
   document: string;
   birthDate?: string | null;
   status: string;
+  inactiveSince?: string | null; // hasta dónde jugó (ISO) — inactivo
   role: string;
   position?: string | null;
   jersey?: number | null;
   cuentaPresupuesto?: boolean;
+  // Regla nativo/formativa: el jugador paga la cuota en este equipo (true)
+  // o en su categoría formativa (false — aparece pero sin opciones de pago)
+  esFormativos?: boolean;
+  pagaAca?: boolean;
+  categoriaPago?: string[];
   hasInsurance?: boolean;
   payments: Array<{ month: string; paid: boolean; amount: number }>;
   estadoCuota?: {
@@ -101,6 +108,33 @@ interface PresupuestoData {
   };
 }
 
+// Total del club (ADMIN): un renglón por equipo + totales
+interface TotalEquipo {
+  teamId: string;
+  categoria: string;
+  tipo: string;
+  jugadores: number;
+  cuota: number;
+  ingreso: number;
+  gastosFijos: number;
+  gastosExtra: number;
+  gastos: number;
+  balance: number;
+  deuda: number;
+}
+
+interface TotalPresupuesto {
+  mes: string;
+  porEquipo: TotalEquipo[];
+  totales: {
+    jugadores: number;
+    ingreso: number;
+    gastos: number;
+    deuda: number;
+    balance: number;
+  };
+}
+
 const MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
 // Rango de meses desde enero del año actual hasta enero del próximo (13 columnas)
@@ -141,17 +175,82 @@ function tiposBloqueantes(cat?: string | null): string[] {
 
 // Badge compacto del estado de un tipo de documento
 function BadgeFicha({ st }: { st: EstadoUnTipo | undefined }) {
-  if (!st) return <span className="px-1.5 py-0.5 rounded text-[10px] bg-white/10 text-white/40">—</span>;
+  if (!st) return <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-surface-2 text-white/45">—</span>;
   switch (st.estado) {
     case "VIGENTE":
-      return <span className="px-1.5 py-0.5 rounded text-[10px] bg-green-500/20 text-green-400">OK</span>;
+      return <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-green-500/20 text-green-400">OK</span>;
     case "PROXIMO_A_VENCER":
-      return <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300">pronto vence</span>;
+      return <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-amber-500/20 text-amber-300">pronto vence</span>;
     case "VENCIDO":
-      return <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-500/20 text-red-400">vencido</span>;
+      return <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-red-500/20 text-red-400">vencido</span>;
     case "SIN_CARGAR":
-      return <span className="px-1.5 py-0.5 rounded text-[10px] bg-white/10 text-white/40">sin cargar</span>;
+      return <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-surface-2 text-white/45">sin cargar</span>;
   }
+}
+
+// ---------- Iconos SVG del panel (stroke, monocromo, iguales en cualquier SO) ----------
+const ICONS = {
+  doc: (
+    <>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" />
+      <path d="M14 3v5h5" />
+    </>
+  ),
+  edit: <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z" />,
+  trash: (
+    <>
+      <path d="M4 7h16" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+      <path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" />
+      <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+    </>
+  ),
+  pause: (
+    <>
+      <rect x="7" y="4" width="3.5" height="16" rx="1" />
+      <rect x="13.5" y="4" width="3.5" height="16" rx="1" />
+    </>
+  ),
+  play: <path d="M8 5.5v13l11-6.5-11-6.5Z" />,
+  check: <path d="M4.5 12.5l5 5L19.5 7" />,
+  nulo: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M6.5 6.5l11 11" />
+    </>
+  ),
+  upload: (
+    <>
+      <path d="M12 16V4" />
+      <path d="M7 9l5-5 5 5" />
+      <path d="M4 20h16" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M12 4v12" />
+      <path d="M7 11l5 5 5-5" />
+      <path d="M4 20h16" />
+    </>
+  ),
+} as const;
+
+function Icon({ name, className = "w-4 h-4" }: { name: keyof typeof ICONS; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      {ICONS[name]}
+    </svg>
+  );
 }
 
 export default function Dashboard() {
@@ -179,6 +278,51 @@ export default function Dashboard() {
     hasInsurance: false,
   });
   const [cuentaPresupuesto, setCuentaPresupuesto] = useState(true);
+
+  // Jugador ya registrado para ese DNI (se vincula sin duplicar)
+  interface PlayerEncontrado {
+    id: string;
+    firstName: string;
+    lastName: string;
+    equipos: { name: string; type: string }[];
+  }
+  const [foundPlayer, setFoundPlayer] = useState<PlayerEncontrado | null>(null);
+  const [buscandoDni, setBuscandoDni] = useState(false);
+
+  // Al escribir un DNI en alta: ¿ya existe? (debounce 450 ms)
+  useEffect(() => {
+    if (editing || !showForm) return;
+    const dni = form.document.replace(/\D/g, "");
+    if (dni.length < 6) {
+      setFoundPlayer(null);
+      setBuscandoDni(false);
+      return;
+    }
+    setBuscandoDni(true);
+    const t = setTimeout(async () => {
+      try {
+        const r = await apiFetch<{ found: boolean; player?: PlayerEncontrado }>(
+          `/players/by-document?document=${dni}`,
+          {},
+          token ?? undefined
+        );
+        setFoundPlayer(r.found ? (r.player ?? null) : null);
+        // autocompletar datos si vino el jugador
+        if (r.found && r.player) {
+          setForm((f) => ({
+            ...f,
+            firstName: r.player!.firstName,
+            lastName: r.player!.lastName,
+          }));
+        }
+      } catch {
+        setFoundPlayer(null);
+      } finally {
+        setBuscandoDni(false);
+      }
+    }, 450);
+    return () => clearTimeout(t);
+  }, [form.document, editing, showForm]);
 
   function openNuevo() {
     setEditing(null);
@@ -237,7 +381,35 @@ export default function Dashboard() {
       const updated = await apiFetch<Player[]>(`/teams/${teamId}/players`, {}, token);
       setPlayers(updated);
     } catch (e) {
-      setFormError((e as Error).message);
+      const err = e as Error & { code?: string; playerId?: string; equipoActual?: { id: string; name: string } };
+      // Ya es JUGADOR en otra PRIMERA → preguntar y mover (sin perder datos)
+      if (!editing && err.code === "CAMBIO_PRIMERA" && err.playerId && err.equipoActual) {
+        const aNombre = me?.teams.find((t) => t.id === teamId)?.name ?? "este equipo";
+        const confirma = window.confirm(
+          `${err.message}\n\n¿Moverlo a ${aNombre}? Saldrá automáticamente de ${err.equipoActual.name}. Se conservan todos sus datos, pagos y fichas médicas.`
+        );
+        if (confirma) {
+          try {
+            await apiFetch(`/players/${err.playerId}/cambiar-primera`, {
+              method: "POST",
+              body: JSON.stringify({
+                deTeamId: err.equipoActual.id,
+                aTeamId: teamId,
+                position: form.position.trim() || null,
+                jersey: form.jersey ? Number(form.jersey) : null,
+                cuentaPresupuesto,
+              }),
+            }, token);
+            setShowForm(false);
+            const updated = await apiFetch<Player[]>(`/teams/${teamId}/players`, {}, token);
+            setPlayers(updated);
+          } catch (e2) {
+            setFormError((e2 as Error).message);
+          }
+        }
+        return;
+      }
+      setFormError(err.message);
     } finally {
       setSaving(false);
     }
@@ -250,6 +422,58 @@ export default function Dashboard() {
     try {
       await apiFetch(`/players/${p.id}`, { method: "DELETE" }, token);
       setPlayers((prev) => prev.filter((x) => x.id !== p.id));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  // ---------- Inactivo / Reactivar ----------
+  // INACTIVO: deja de contar la cuota y su deuda se congela (no acumula
+  // mientras está fuera). El mes de corte se elige en un modal (a veces se
+  // tardan en marcar la baja — el corte va al mes en que dejó de jugar).
+  // REACTIVAR: si tenía deuda real vuelve DEUDOR y no puede jugar hasta
+  // ponerse al día.
+  const [inactivoModal, setInactivoModal] = useState<Player | null>(null);
+  const [inactivoMes, setInactivoMes] = useState(() => new Date().toISOString().slice(0, 7));
+
+  function abrirInactivo(p: Player) {
+    setInactivoMes(new Date().toISOString().slice(0, 7));
+    setInactivoModal(p);
+  }
+
+  async function setInactivo(p: Player, desde: string) {
+    if (!token) return;
+    try {
+      await apiFetch(
+        `/players/${p.id}/status`,
+        { method: "PATCH", body: JSON.stringify({ status: "INACTIVO", inactiveSince: desde }) },
+        token
+      );
+      await recargarPlantel();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function reactivar(p: Player) {
+    if (!token) return;
+    const ok = window.confirm(
+      `¿Reactivar a ${p.firstName} ${p.lastName}?\n\nSi tiene meses de deuda de antes de irse, quedará DEUDOR y no podrá jugar hasta ponerse al día.`
+    );
+    if (!ok) return;
+    try {
+      const r = await apiFetch<{ status: string; estadoCuota: { mesesDebe: number; deudor: boolean } }>(
+        `/players/${p.id}/status`,
+        { method: "PATCH", body: JSON.stringify({ status: "ACTIVO" }) },
+        token
+      );
+      if (r.status === "DEUDA" && r.estadoCuota.deudor) {
+        const n = r.estadoCuota.mesesDebe;
+        window.alert(
+          `${p.firstName} ${p.lastName} vuelve con ${n} ${n === 1 ? "mes de deuda" : "meses de deuda"} (de antes de irse). Queda como DEUDOR: no tiene permiso de jugar hasta ponerse al día.`
+        );
+      }
+      await recargarPlantel();
     } catch (e) {
       setError((e as Error).message);
     }
@@ -464,6 +688,13 @@ export default function Dashboard() {
     }
   }
 
+  // Recargar plantel (tras inactivar/reactivar/guardar)
+  async function recargarPlantel() {
+    if (!token || !teamId) return;
+    const updated = await apiFetch<Player[]>(`/teams/${teamId}/players`, {}, token);
+    setPlayers(updated);
+  }
+
 
   // ---------- Presupuesto ----------
   const [presup, setPresup] = useState<PresupuestoData | null>(null);
@@ -476,6 +707,12 @@ export default function Dashboard() {
   const [gastoModal, setGastoModal] = useState<null | { tipo: "fijo" | "extra"; mes?: string }>(null);
   const [gastoForm, setGastoForm] = useState({ nombre: "", monto: "" });
   const [gastoSaving, setGastoSaving] = useState(false);
+
+  // ---------- Total del club (solo ADMIN) ----------
+  const [verTotal, setVerTotal] = useState(false);
+  const [totalData, setTotalData] = useState<TotalPresupuesto | null>(null);
+  const [totalLoading, setTotalLoading] = useState(false);
+  const [totalError, setTotalError] = useState("");
 
   const mesActual = () => {
     const d = new Date();
@@ -499,6 +736,20 @@ export default function Dashboard() {
       })
       .finally(() => setPresupLoading(false));
   }, [teamId, token, presupMes]);
+
+  // Total del club: solo el admin y cargado on-demand
+  useEffect(() => {
+    if (!verTotal || !token || me?.role !== "ADMIN") return;
+    setTotalLoading(true);
+    setTotalError("");
+    apiFetch<TotalPresupuesto>(`/teams/presupuesto/total?mes=${presupMes}`, {}, token)
+      .then(setTotalData)
+      .catch(() => {
+        setTotalData(null);
+        setTotalError("No se pudo cargar el total del club");
+      })
+      .finally(() => setTotalLoading(false));
+  }, [verTotal, token, presupMes, me?.role]);
 
   async function guardarQuota() {
     if (!token || !teamId) return;
@@ -625,7 +876,56 @@ export default function Dashboard() {
     }
   }
 
-  // Recalcular estado de cuota en cliente (misma regla que el server:
+  // Poner un mes en NULO: ni pagado ni adeudado. Elimina el registro del mes
+  // (ej. mes anterior a la incorporación del jugador: Mateo entró en febrero,
+  // el enero "impago" que quedó mal no le corresponde → se saca).
+  async function quitarRegistro(p: Player, month: string) {
+    if (!token) return;
+    const ok = window.confirm(
+      `¿Quitar el registro de ${monthShort(month)} de ${p.firstName} ${p.lastName}?\n\nQueda vacío: ni pagado ni adeudado (útil cuando ese mes no le corresponde, ej. todavía no se había incorporado).`
+    );
+    if (!ok) return;
+    try {
+      const res = await apiFetch<{ estadoCuota: Player["estadoCuota"]; status: string }>(
+        `/players/${p.id}/payments/${month}`,
+        { method: "DELETE" },
+        token
+      );
+      setPlayers((prev) =>
+        prev.map((x) =>
+          x.id === p.id
+            ? {
+                ...x,
+                payments: x.payments.filter((y) => y.month !== month),
+                estadoCuota: res.estadoCuota,
+                status: res.status,
+              }
+            : x
+        )
+      );
+} catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  // Menú de 3 estados para una celda con registro (calendario): al tocar un
+  // mes ya marcado (pagado o impago) se puede cambiar a pagado, impago o a
+  // NULL (quitar el registro — para meses que no le corresponden).
+  async function ponerEstado(p: Player, month: string) {
+    if (!token) return;
+    const actual = p.payments.find((x) => x.month === month);
+    const opcion = window.prompt(
+      `Estado de ${monthShort(month)} para ${p.firstName} ${p.lastName}:\n\n` +
+        `1 = Pagado\n2 = Impago (cuenta como deuda)\n3 = Nulo (ni pagado ni adeudado — sin registro)\n\n` +
+        `Respondé 1, 2 o 3. Cancelá para no tocar nada.`,
+      actual ? (actual.paid ? "1" : "2") : "1"
+    );
+    if (opcion === null) return;
+    const v = opcion.trim();
+    if (v === "1") await toggleCuota(p, month, true);
+    else if (v === "2") await toggleCuota(p, month, false);
+    else if (v === "3") await quitarRegistro(p, month);
+  }
   // pago del 1 al 10; del día 11 sin pago del mes en curso = deudor, no juega)
   function estadoLocal(p: Player, now = new Date()): NonNullable<Player["estadoCuota"]> {
     const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -647,18 +947,30 @@ export default function Dashboard() {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const months = monthRange();
   const tecnicos = players.filter((p) => p.role !== "JUGADOR");
-  const plantel = players.filter((p) => p.role === "JUGADOR");
+  // Jugadores que pagan acá (nativos o sin vínculo formativo)
+  const plantel = players.filter((p) => p.role === "JUGADOR" && p.pagaAca !== false);
+  // Jugadores de formativa que aparecen en este equipo pero pagan en su categoría
+  const plantelSinCuota = players.filter((p) => p.role === "JUGADOR" && p.pagaAca === false);
 
   return (
-    <div className="min-h-screen max-w-6xl mx-auto px-6 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold">Panel de delegado</h1>
-          <p className="text-white/60 text-sm">Hola, {me?.fullName} — {me?.role === "ADMIN" ? "Administrador" : "Delegado"}</p>
+    <Layout>
+    <div className="max-w-6xl mx-auto px-6 py-10">
+      {/* Encabezado del panel: tarjeta con saludo + botón salir */}
+      <div className="rounded-lg border border-outline bg-surface-1 p-5 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="hidden sm:flex w-12 h-12 rounded-lg bg-primary/15 border border-primary/30 items-center justify-center shrink-0">
+            <img src="/escudo-jh.png" alt="" className="w-8 h-8" />
+          </div>
+          <div>
+            <h1 className="font-display text-xl md:text-2xl font-bold">Panel de delegado</h1>
+            <p className="text-white/60 text-sm mt-0.5">
+              Hola, <span className="text-white/85 font-semibold">{me?.fullName}</span> — {me?.role === "ADMIN" ? "Administrador" : "Delegado"}
+            </p>
+          </div>
         </div>
         <button
           onClick={() => { setToken(null); window.location.href = "/"; }}
-          className="text-sm text-white/60 hover:text-red-400 border border-white/10 px-3 py-1.5 rounded-lg"
+          className="text-sm text-white/60 hover:text-red-400 border border-outline px-3 py-1.5 rounded-lg transition-all duration-200 hover:border-red-400/50 hover:bg-surface-2 active:scale-95"
         >
           Salir
         </button>
@@ -671,56 +983,60 @@ export default function Dashboard() {
           <select
             value={teamId}
             onChange={(e) => setTeamId(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-white/10 border border-white/20"
+            className="px-3 py-2 rounded-lg bg-surface-1 border border-outline transition-colors duration-200 focus:outline-none focus:border-primary"
           >
             {me.teams.map((t) => (
-              <option key={t.id} value={t.id} className="bg-[#1c1c1c]">
+              <option key={t.id} value={t.id} className="bg-surface-1">
                 {t.name}
               </option>
             ))}
           </select>
 
-          {/* toggle de vista */}
-          <div className="ml-auto flex rounded-lg border border-white/15 overflow-hidden">
-            <button
-              onClick={() => setView("lista")}
-              className={`px-4 py-1.5 text-sm ${view === "lista" ? "bg-primary text-white" : "text-white/60 hover:text-white"}`}
-            >
-              Lista
-            </button>
-            <button
-              onClick={() => setView("calendario")}
-              className={`px-4 py-1.5 text-sm ${view === "calendario" ? "bg-primary text-white" : "text-white/60 hover:text-white"}`}
-            >
-              Calendario de cuotas
-            </button>
-            <button
-              onClick={() => setView("presupuesto")}
-              className={`px-4 py-1.5 text-sm ${view === "presupuesto" ? "bg-primary text-white" : "text-white/60 hover:text-white"}`}
-            >
-              Presupuesto
-            </button>
+{/* toggle de vista + acciones */}
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <div className="flex rounded-lg border border-outline overflow-hidden">
+              <button
+                onClick={() => setView("lista")}
+                className={`px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${view === "lista" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+              >
+                Lista
+              </button>
+              <button
+                onClick={() => setView("calendario")}
+                className={`px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${view === "calendario" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+              >
+                Calendario de cuotas
+              </button>
+              <button
+                onClick={() => setView("presupuesto")}
+                className={`px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${view === "presupuesto" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+              >
+                Presupuesto
+              </button>
+            </div>
             <button
               onClick={openNuevo}
-              className="px-4 py-1.5 text-sm bg-primary-light text-primary-dark font-semibold hover:bg-white transition"
+              className="px-4 py-1.5 rounded-lg text-sm bg-primary text-white font-semibold transition-all duration-200 hover:bg-primary-light active:scale-95"
               title="Agregar jugador o cuerpo técnico"
             >
               + Agregar
             </button>
-            <div className="flex rounded-lg border border-white/15 overflow-hidden">
+            <div className="flex rounded-lg border border-outline overflow-hidden">
               <button
                 onClick={descargarPlantilla}
                 disabled={exporting}
-                className="px-3 py-1.5 text-xs font-semibold bg-white/10 text-white/80 hover:bg-white/20 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface-1 text-white/80 transition-all duration-200 hover:bg-surface-2 active:scale-95 disabled:opacity-50"
                 title="Descargar plantilla Excel para cargar el plantel"
               >
-                {exporting ? "Plantilla..." : "Plantilla"}
+                <Icon name="download" className="w-3.5 h-3.5" />
+                {exporting ? "Generando..." : "Plantilla"}
               </button>
               <button
                 onClick={() => setShowImport(true)}
-                className="px-3 py-1.5 text-xs font-semibold bg-white/10 text-white/80 hover:bg-white/20"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface-1 text-white/80 transition-all duration-200 hover:bg-surface-2 active:scale-95"
                 title="Importar plantel desde Excel"
               >
+                <Icon name="upload" className="w-3.5 h-3.5" />
                 Importar Excel
               </button>
             </div>
@@ -747,52 +1063,382 @@ export default function Dashboard() {
 
       {/* ===================== VISTA LISTA ===================== */}
       {view === "lista" && (
-        <div className="mt-6 overflow-x-auto rounded-xl border border-white/10">
-          <table className="w-full text-sm">
-            <thead className="bg-white/5 text-left text-white/60">
-              <tr>
-                <th className="p-3">Jugador</th>
-                <th className="p-3">Rol</th>
-                <th className="p-3">DNI</th>
-                <th className="p-3">Estado de cuota</th>
-                <th className="p-3">Fichas</th>
-                <th className="p-3">
-                  {monthShort(currentMonth)} {currentMonth.slice(0, 4)} — pagó
-                  <span className="block text-[10px] opacity-60">cuota del mes en curso</span>
-                </th>
-                <th className="p-3">Deuda</th>
-                <th className="p-3 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {plantel.map((p) => {
-                const thisMonth = p.payments.find((x) => x.month === currentMonth);
-                const ec = p.estadoCuota ?? estadoLocal(p);
-                return (
-                  <tr key={p.id} className={`border-t border-white/5 hover:bg-white/5 ${ec.deudor ? "bg-red-500/5" : ""}`}>
-                    <td className="p-3">
-                      <span className="font-semibold">{p.firstName} {p.lastName}</span>
-                      {p.position && <span className="text-white/40 text-xs ml-1">({p.position})</span>}
-                      {p.jersey && <span className="text-white/40 text-xs ml-1">#{p.jersey}</span>}
+        <>
+          {/* Resumen del equipo: contadores de estado */}
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="card p-4 flex items-center gap-3">
+              <span className="w-9 h-9 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center text-lg">👥</span>
+              <div>
+                <p className="font-display font-bold text-xl leading-none">
+                  {plantel.filter((p) => p.status !== "INACTIVO").length +
+                    plantelSinCuota.filter((p) => p.status !== "INACTIVO").length}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Jugadores</p>
+              </div>
+            </div>
+            <div className="card p-4 flex items-center gap-3">
+              <span className="w-9 h-9 rounded-lg bg-green-500/15 border border-green-500/25 flex items-center justify-center text-lg">✓</span>
+              <div>
+                <p className="font-display font-bold text-xl leading-none text-green-400">
+                  {plantel.filter((p) => p.status !== "INACTIVO" && (p.estadoCuota ?? estadoLocal(p)).alDia).length}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Al día</p>
+              </div>
+            </div>
+            <div className="card p-4 flex items-center gap-3">
+              <span className="w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-lg">⏳</span>
+              <div>
+                <p className="font-display font-bold text-xl leading-none text-amber-300">
+                  {plantel.filter((p) => p.status !== "INACTIVO" && (p.estadoCuota ?? estadoLocal(p)).pendiente).length}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Pendientes (1-10)</p>
+              </div>
+            </div>
+            <div className="card p-4 flex items-center gap-3">
+              <span className="w-9 h-9 rounded-lg bg-red-500/15 border border-red-500/25 flex items-center justify-center text-lg">✕</span>
+              <div>
+                <p className="font-display font-bold text-xl leading-none text-red-400">
+                  {plantel.filter((p) => p.status !== "INACTIVO" && (p.estadoCuota ?? estadoLocal(p)).deudor).length}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Con deuda</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ===== JUGADORES EN MÓVIL: tarjetas (tabla solo en md+) ===== */}
+          <div className="md:hidden mt-4 space-y-2">
+            {[
+              ...plantel.filter((x) => x.status !== "INACTIVO"),
+              ...plantel.filter((x) => x.status === "INACTIVO"),
+            ].map((p) => {
+              const thisMonth = p.payments.find((x) => x.month === currentMonth);
+              const ec = p.estadoCuota ?? estadoLocal(p);
+              return (
+                <div key={p.id} className={`card p-3 ${p.status === "INACTIVO" ? "opacity-70" : ""}`}>
+                  <div className="flex items-center gap-3">
+                    <span className="avatar w-8 h-8 text-xs">{p.firstName.charAt(0)}{p.lastName.charAt(0)}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm truncate">
+                        {p.firstName} {p.lastName}
+                      </p>
+                      <p className="text-[11px] text-white/40 truncate">
+                        {p.role === "JUGADOR" ? "Jugador" : p.role}
+                        {p.position && ` · ${p.position}`}
+                        {p.jersey != null && <span className="font-mono"> · #{p.jersey}</span>}
+                      </p>
+                    </div>
+                    {p.status === "INACTIVO" ? (
+                      <span className="shrink-0 px-2 py-0.5 rounded-md text-[11px] bg-surface-2 text-white/50 font-semibold">
+                        Inactivo
+                      </span>
+                    ) : ec.deudor ? (
+                      <span className="shrink-0 px-2 py-0.5 rounded-md text-[11px] bg-red-500/20 text-red-400 font-semibold">
+                        Deudor
+                      </span>
+                    ) : (
+                      <span className={`shrink-0 px-2 py-0.5 rounded-md text-[11px] font-semibold ${ec.pendiente ? "bg-amber-500/20 text-amber-300" : "bg-green-500/20 text-green-400"}`}>
+                        {ec.pendiente ? "Pendiente" : "Al día"}
+                      </span>
+                    )}
+                  </div>
+
+                  {p.status !== "INACTIVO" && (
+                    <div className="mt-2.5 flex items-center gap-2">
+                      <button
+                        onClick={() => toggleCuota(p, currentMonth, !thisMonth?.paid)}
+                        className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-150 active:scale-95 ${
+                          thisMonth?.paid
+                            ? "bg-green-500/25 text-green-300"
+                            : "bg-surface-2 text-white/80 hover:bg-green-500/25 hover:text-green-300"
+                        }`}
+                      >
+                        <Icon name="check" className="w-4 h-4" />
+                        {thisMonth?.paid ? "Pagado" : "Pagar cuota"}
+                      </button>
+                      {thisMonth && (
+                        <button
+                          onClick={() => ponerEstado(p, currentMonth)}
+                          className="w-11 h-10 inline-flex items-center justify-center rounded-lg bg-surface-2 text-white/50 active:scale-95"
+                          title="Cambiar estado: pagado / impago / nulo"
+                        >
+                          <Icon name="nulo" className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-2.5 flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                      {p.status !== "INACTIVO" && (
+                        ec.mesesDebe > 0 ? (
+                          <span className="text-red-300 font-semibold">debe {ec.mesesDebe} {ec.mesesDebe === 1 ? "mes" : "meses"}</span>
+                        ) : (
+                          <span className="text-green-400/80">sin deuda</span>
+                        )
+                      )}
+                      <span className={p.fichas?.aptoFichas ? "text-white/40" : "text-orange-300"}>
+                        {p.fichas?.aptoFichas ? "fichas OK" : "sin fichas ✕"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        onClick={() => abrirInactivo(p)}
+                        className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 active:scale-90"
+                        title={p.status === "INACTIVO" ? "Ajustar mes de corte" : "Pasar a inactivo"}
+                      >
+                        <Icon name="pause" className="w-4 h-4" />
+                      </button>
+                      {p.status === "INACTIVO" && (
+                        <button
+                          onClick={() => reactivar(p)}
+                          className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 active:scale-90"
+                          title="Reactivar jugador"
+                        >
+                          <Icon name="play" className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => openDocs(p)}
+                        className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 active:scale-90"
+                        title="Fichas y estudios"
+                      >
+                        <Icon name="doc" className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => openEditar(p)}
+                        className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 active:scale-90"
+                        title="Editar"
+                      >
+                        <Icon name="edit" className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => removePlayer(p)}
+                        className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-red-400 hover:bg-red-500/10 active:scale-90"
+                        title="Quitar del equipo"
+                      >
+                        <Icon name="trash" className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {plantel.length === 0 && (
+              <p className="p-6 text-center text-white/40 text-sm border border-dashed border-outline rounded-lg">
+                Sin jugadores en este equipo. Usá "+ Agregar" o importá desde Excel.
+              </p>
+            )}
+          </div>
+
+          {/* Tabla de jugadores (desktop) */}
+          <div className="hidden md:block mt-4 overflow-x-auto rounded-lg border border-outline">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="panel-th">Jugador</th>
+                  <th className="panel-th">Estado de cuota</th>
+                  <th className="panel-th">Pago {monthShort(currentMonth)}</th>
+                  <th className="panel-th">Fichas</th>
+                  <th className="panel-th">Deuda</th>
+                  <th className="panel-th text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                    ...plantel.filter((x) => x.status !== "INACTIVO"),
+                    ...plantel.filter((x) => x.status === "INACTIVO"),
+                  ].map((p) => {
+                  const thisMonth = p.payments.find((x) => x.month === currentMonth);
+                  const ec = p.estadoCuota ?? estadoLocal(p);
+                  return (
+                    <tr key={p.id} className={`panel-tr ${p.status === "INACTIVO" ? "opacity-60" : ec.deudor ? "bg-red-500/[0.04]" : ""}`}>
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-3">
+                          <span className="avatar">{p.firstName.charAt(0)}{p.lastName.charAt(0)}</span>
+                          <div className="min-w-0">
+                            <p className="font-semibold truncate">
+                              {p.firstName} {p.lastName}
+                            </p>
+                            <p className="text-[11px] text-white/40 truncate">
+                              {p.role === "JUGADOR" ? "Jugador" : p.role}
+                              {p.position && ` · ${p.position}`}
+                              {p.jersey != null && <span className="font-mono"> · #{p.jersey}</span>}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex flex-wrap gap-1.5">
+                          {p.status === "INACTIVO" ? (
+                            <span className="px-2 py-0.5 rounded-md text-[11px] bg-surface-2 text-white/50 font-semibold">
+                              Inactivo{p.inactiveSince ? ` · ${monthShort(p.inactiveSince.slice(0, 7))} ${p.inactiveSince.slice(0, 4)}` : ""}
+                            </span>
+                          ) : ec.deudor ? (
+                            <span className="px-2 py-0.5 rounded-md text-[11px] bg-red-500/20 text-red-400 font-semibold">
+                              Deudor
+                            </span>
+                          ) : (
+                            <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold ${ec.pendiente ? "bg-amber-500/20 text-amber-300" : "bg-green-500/20 text-green-400"}`}>
+                              {ec.pendiente ? "Pendiente" : "Al día"}
+                            </span>
+                          )}
+                          {p.fichas && !p.fichas.aptoFichas && (
+                            <span className="px-2 py-0.5 rounded-md text-[11px] bg-orange-500/20 text-orange-300 font-semibold">
+                              Sin fichas
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {p.status === "INACTIVO" ? (
+                          <span className="text-[11px] text-white/30">sin cuota</span>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => toggleCuota(p, currentMonth, !thisMonth?.paid)}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 active:scale-95 ${
+                                thisMonth?.paid
+                                  ? "bg-green-500/25 text-green-300 hover:bg-green-500/35"
+                                  : "bg-surface-2 text-white/70 hover:bg-green-500/25 hover:text-green-300"
+                              }`}
+                            >
+                              <Icon name="check" className="w-3.5 h-3.5" />
+                              {thisMonth?.paid ? "Pagado" : "Pagar"}
+                            </button>
+                            {thisMonth && (
+                              <button
+                                onClick={() => ponerEstado(p, currentMonth)}
+                                className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-surface-2 transition-colors"
+                                title="Cambiar estado: pagado / impago / nulo (quitar registro)"
+                              >
+                                <Icon name="nulo" className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span className="flex flex-col gap-0.5" title={p.fichas?.resumen ?? "Sin datos de fichas"}>
+                          <span className="flex items-center gap-1.5 flex-wrap">
+                            {(p.fichas?.bloqueantes ?? tiposBloqueantes(categoriaActual)).map((t) => (
+                              <span key={t} className="flex items-center gap-1">
+                                <span className="text-[10px] text-white/40">{labelTipo(t)}</span>
+                                <BadgeFicha st={p.fichas?.porTipo[t]} />
+                              </span>
+                            ))}
+                          </span>
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-white/60 tabular-nums">
+                        {ec.mesesDebe > 0 ? (
+                          <span className="text-red-300 font-semibold">
+                            {ec.mesesDebe} {ec.mesesDebe === 1 ? "mes" : "meses"}
+                          </span>
+                        ) : (
+                          <span className="text-white/30">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="row-actions">
+                          <button
+                            onClick={() => abrirInactivo(p)}
+                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90"
+                            title={p.status === "INACTIVO" ? "Ajustar mes de corte" : "Pasar a inactivo"}
+                          >
+                            <Icon name="pause" className="w-4 h-4" />
+                          </button>
+                          {p.status === "INACTIVO" && (
+                            <button
+                              onClick={() => reactivar(p)}
+                              className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90"
+                              title="Reactivar jugador"
+                            >
+                              <Icon name="play" className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => openDocs(p)}
+                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90"
+                            title="Fichas y estudios"
+                          >
+                            <Icon name="doc" className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => openEditar(p)}
+                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90"
+                            title="Editar"
+                          >
+                            <Icon name="edit" className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => removePlayer(p)}
+                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-red-400 hover:bg-red-500/10 transition-colors active:scale-90"
+                            title="Quitar del equipo"
+                          >
+                            <Icon name="trash" className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {plantel.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-white/40">
+                      Sin jugadores en este equipo. Usá "+ Agregar" o importá desde Excel.
                     </td>
-                    <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-xs bg-white/10`}>
-                        {p.role}
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {/* ====== JUGADORES DE FORMATIVA (pagan en su categoría, sin cuota acá) ====== */}
+      {view === "lista" && plantelSinCuota.length > 0 && (
+        <div className="mt-8">
+          <h2 className="font-display text-lg font-bold text-white/80 mb-2 flex items-center gap-2">
+            <span className="inline-block w-1.5 h-5 bg-amber-500/80 rounded" />
+            Pagan en su categoría formativa
+            <span className="text-xs font-mono text-white/40">({plantelSinCuota.length})</span>
+          </h2>
+          <p className="text-xs text-white/50 mb-3">
+            Aparecen en este plantel pero la cuota la pagan en su categoría: no cuentan para el presupuesto ni registran pagos acá.
+          </p>
+          <div className="overflow-x-auto rounded-lg border border-outline">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="panel-th">Jugador</th>
+                  <th className="panel-th">Paga en</th>
+                  <th className="panel-th">Fichas</th>
+                  <th className="panel-th text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {plantelSinCuota.map((p) => (
+                  <tr key={p.id} className="panel-tr">
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-3">
+                        <span className="avatar">{p.firstName.charAt(0)}{p.lastName.charAt(0)}</span>
+                        <div className="min-w-0">
+                          <p className="font-semibold truncate flex items-center gap-2">
+                            {p.firstName} {p.lastName}
+                            <span className="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] bg-amber-500/15 text-amber-300 font-mono uppercase tracking-wide">
+                              formativa
+                            </span>
+                          </p>
+                          <p className="text-[11px] text-white/40 truncate">{p.role}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className="px-2 py-0.5 rounded-md text-xs bg-primary/15 text-primary-light font-mono">
+                        {p.categoriaPago?.length ? p.categoriaPago.join(" · ") : "—"}
                       </span>
                     </td>
-                    <td className="p-3 text-white/60">{p.document}</td>
-                    <td className="p-3">
-                      {ec.deudor ? (
-                        <span className="px-2 py-0.5 rounded text-xs bg-red-500/20 text-red-400 font-semibold">
-                          DEUDOR — no puede jugar ✕
-                        </span>
-                      ) : (
-                        <span className={`px-2 py-0.5 rounded text-xs ${ec.pendiente ? "bg-amber-500/20 text-amber-300" : "bg-green-500/20 text-green-400"}`}>
-                          {ec.pendiente ? "Pendiente (hasta el 10)" : "Al día — puede jugar ✓"}
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3">
+                    <td className="px-3 py-2.5">
                       <span className="flex flex-col gap-0.5" title={p.fichas?.resumen ?? "Sin datos de fichas"}>
                         <span className="flex items-center gap-1.5 flex-wrap">
                           {(p.fichas?.bloqueantes ?? tiposBloqueantes(categoriaActual)).map((t) => (
@@ -807,117 +1453,169 @@ export default function Dashboard() {
                         </span>
                       </span>
                     </td>
-                    <td className="p-3">
-                      <button
-                        onClick={() => toggleCuota(p, currentMonth, !thisMonth?.paid)}
-                        className={`px-3 py-1 rounded-lg text-xs font-semibold ${thisMonth?.paid ? "bg-green-500/30 text-green-300" : "bg-white/10 hover:bg-green-500/30"}`}
-                      >
-                        {thisMonth?.paid ? "Pagado ✓" : "Marcar pago"}
-                      </button>
-                    </td>
-                    <td className="p-3 text-xs text-white/60">
-                      {ec.mesesDebe > 0 ? `${ec.mesesDebe} ${ec.mesesDebe === 1 ? "mes" : "meses"} sin pagar` : "—"}
-                    </td>
-                    <td className="p-3 text-right whitespace-nowrap">
-                      <button
-                        onClick={() => openDocs(p)}
-                        className="px-2 py-1 rounded text-xs text-white/60 hover:text-white hover:bg-white/10"
-                        title="Fichas y estudios del jugador"
-                      >
-                        Docs
-                      </button>
-                      <button
-                        onClick={() => openEditar(p)}
-                        className="px-2 py-1 rounded text-xs text-white/60 hover:text-white hover:bg-white/10"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => removePlayer(p)}
-                        className="px-2 py-1 rounded text-xs text-white/60 hover:text-red-400 hover:bg-red-500/10"
-                      >
-                        Quitar
-                      </button>
+                    <td className="px-3 py-2.5">
+                      <div className="row-actions">
+                        <button
+                          onClick={() => openDocs(p)}
+                          className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90"
+                          title="Fichas y estudios del jugador"
+                        >
+                          <Icon name="doc" className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => openEditar(p)}
+                          className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90"
+                          title="Editar"
+                        >
+                          <Icon name="edit" className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => removePlayer(p)}
+                          className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-red-400 hover:bg-red-500/10 transition-colors active:scale-90"
+                          title="Quitar del equipo"
+                        >
+                          <Icon name="trash" className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
-                );
-              })}
-              {plantel.length === 0 && (
-                <tr><td colSpan={8} className="p-6 text-center text-white/40">Sin jugadores en este equipo.</td></tr>
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {/* ===================== VISTA CALENDARIO ===================== */}
       {view === "calendario" && (
-        <div className="mt-6 overflow-x-auto rounded-xl border border-white/10">
-          <table className="w-full text-sm">
-            <thead className="bg-white/5 text-left text-white/60">
-              <tr>
-                <th className="p-3 sticky left-0 bg-[#141414] z-10">Jugador</th>
-                {months.map((m) => (
-                  <th key={m} className={`p-2 text-center ${m === currentMonth ? "bg-primary/20 text-primary-light" : ""}`}>
-                    {monthShort(m)}
-                    <span className="block text-[10px] opacity-60">{m.slice(2, 4)}</span>
-                  </th>
-                ))}
-                <th className="p-3">Debe</th>
-              </tr>
-            </thead>
-            <tbody>
-              {plantel.map((p) => {
-                const ec = p.estadoCuota ?? estadoLocal(p);
-                return (
-                  <tr key={p.id} className={`border-t border-white/5 hover:bg-white/5 ${ec.deudor ? "bg-red-500/5" : ""}`}>
-                    <td className="p-3 sticky left-0 bg-[#1d1d1d] z-10">
-                      <span className="font-semibold">{p.firstName} {p.lastName}</span>
-                      {ec.deudor && (
-                        <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-red-500/25 text-red-300 font-semibold">
-                          ✕ no juega
+        <div className="mt-6">
+          {/* Header + leyenda */}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-display text-lg font-bold">Calendario de cuotas</h2>
+              <p className="text-xs text-white/50 mt-1">
+                Tocá una celda para marcar o desmarcar el pago. Solo se editan los meses hasta{" "}
+                {monthShort(currentMonth)}.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 text-[10px] font-mono uppercase tracking-wider text-white/50">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 rounded-md bg-green-500/30 border border-green-500/40" /> Pagó
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 rounded-md bg-red-500/25 border border-red-500/40" /> Debe
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 rounded-md bg-surface-2 border border-outline" /> Sin cargar
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 overflow-x-auto rounded-lg border border-outline">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="panel-th sticky left-0 z-20 min-w-[220px]">Jugador</th>
+                  {months.map((m) => (
+                    <th
+                      key={m}
+                      className={`panel-th text-center min-w-[60px] ${m === currentMonth ? "text-primary-light" : ""}`}
+                    >
+                      {m === currentMonth && (
+                        <span className="block text-[9px] text-primary-light mb-0.5 tracking-widest">
+                          AHORA
                         </span>
                       )}
-                    </td>
-                    {months.map((m) => {
-                      const pay = p.payments.find((x) => x.month === m);
-                      const esFuturo = m > currentMonth;
-                      const clickeable = !esFuturo;
-                      const paid = pay?.paid ?? false;
-                      const marcado = pay !== undefined;
-                      return (
-                        <td key={m} className={`p-1 text-center ${esFuturo ? "opacity-30" : ""}`}>
-                          <button
-                            disabled={!clickeable}
-                            onClick={() => toggleCuota(p, m, !paid)}
-                            className={`w-full h-7 rounded-md text-xs font-semibold transition-colors ${
-                              esFuturo
-                                ? "bg-white/5 text-white/30 cursor-default"
-                                : paid
-                                  ? "bg-green-500/30 text-green-300 hover:bg-green-500/50"
+                      {monthShort(m)}
+                      <span className="block text-[9px] opacity-60">{m.slice(2, 4)}</span>
+                    </th>
+                  ))}
+                  <th className="panel-th text-center min-w-[80px]">Debe</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                    ...plantel.filter((x) => x.status !== "INACTIVO"),
+                    ...plantel.filter((x) => x.status === "INACTIVO"),
+                  ].map((p) => {
+                  const ec = p.estadoCuota ?? estadoLocal(p);
+                  return (
+                    <tr key={p.id} className={`panel-tr ${p.status === "INACTIVO" ? "opacity-60" : ec.deudor ? "bg-red-500/[0.04]" : ""}`}>
+                      <td className="px-3 py-2 sticky left-0 z-10 bg-surface-1">
+                        <div className="flex items-center gap-2.5">
+                          <span className="avatar w-7 h-7 text-xs">{p.firstName.charAt(0)}{p.lastName.charAt(0)}</span>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm leading-tight truncate">
+                              {p.firstName} {p.lastName}
+                            </p>
+                            {p.status === "INACTIVO" ? (
+                              <p className="text-[10px] text-white/40 font-mono uppercase tracking-wider">
+                                inactivo · hasta {p.inactiveSince ? `${monthShort(p.inactiveSince.slice(0, 7))} ${p.inactiveSince.slice(0, 4)}` : "hoy"}
+                              </p>
+                            ) : ec.deudor && (
+                              <p className="text-[10px] text-red-400 font-mono uppercase tracking-wider">
+                                ✕ no juega
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      {months.map((m) => {
+                        const pay = p.payments.find((x) => x.month === m);
+                        const esFuturo = m > currentMonth;
+                        const paid = pay?.paid ?? false;
+                        const marcado = pay !== undefined;
+                        return (
+                          <td key={m} className={`p-1 text-center ${esFuturo ? "opacity-25" : ""}`}>
+                            <button
+                              disabled={esFuturo}
+                              onClick={() => (marcado ? ponerEstado(p, m) : toggleCuota(p, m, true))}
+                              title={
+                                esFuturo
+                                  ? "Mes futuro"
                                   : marcado
-                                    ? "bg-red-500/25 text-red-300 hover:bg-green-500/40"
-                                    : "bg-white/5 text-white/40 hover:bg-white/10"
-                            }`}
-                          >
-                            {esFuturo ? "·" : paid ? "✓" : marcado ? "✗" : "·"}
-                          </button>
-                        </td>
-                      );
-                    })}
-                    <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded text-xs ${ec.mesesDebe > 0 ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400"}`}>
-                        {ec.mesesDebe > 0 ? `${ec.mesesDebe} ${ec.mesesDebe === 1 ? "mes" : "meses"}` : "OK"}
-                      </span>
+                                    ? `Cambiar estado de ${monthShort(m)} (pagado / impago / nulo)`
+                                    : `Marcar pago de ${monthShort(m)}`
+                              }
+                              className={`w-full h-8 inline-flex items-center justify-center rounded-md text-xs font-bold transition-all duration-150 active:scale-95 ${
+                                esFuturo
+                                  ? "bg-surface-1/50 text-white/20 cursor-default"
+                                  : paid
+                                    ? "bg-green-500/25 text-green-300 border border-green-500/30 hover:bg-green-500/40"
+                                    : marcado
+                                      ? "bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30"
+                                      : "bg-surface-1 text-white/35 border border-transparent hover:bg-surface-2 hover:text-white/60"
+                              }`}
+                            >
+                              {esFuturo ? "·" : paid ? <Icon name="check" className="w-3.5 h-3.5" /> : marcado ? <Icon name="nulo" className="w-3.5 h-3.5" /> : "·"}
+                            </button>
+                          </td>
+                        );
+                      })}
+                      <td className="px-3 py-2 text-center">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded-md text-xs font-mono ${
+                            ec.mesesDebe > 0
+                              ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                              : "bg-green-500/15 text-green-400 border border-green-500/25"
+                          }`}
+                        >
+                          {ec.mesesDebe > 0 ? `${ec.mesesDebe} ${ec.mesesDebe === 1 ? "mes" : "meses"}` : "OK"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {plantel.length === 0 && (
+                  <tr>
+                    <td colSpan={months.length + 2} className="p-6 text-center text-white/40">
+                      Sin jugadores en este equipo.
                     </td>
                   </tr>
-                );
-              })}
-              {plantel.length === 0 && (
-                <tr><td colSpan={months.length + 2} className="p-6 text-center text-white/40">Sin jugadores en este equipo.</td></tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -925,15 +1623,30 @@ export default function Dashboard() {
       {view === "presupuesto" && (
         <div className="mt-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-display text-lg font-bold">Presupuesto de {presup?.categoria ?? "la categoría"}</h2>
+            <div>
+              <h2 className="font-display text-lg font-bold">Presupuesto de {presup?.categoria ?? "la categoría"}</h2>
+              <p className="text-xs text-white/50 mt-1">
+                Balance del mes con lo que entra por cuotas y lo que sale en gastos.
+              </p>
+            </div>
             <div className="flex items-center gap-2">
               <label className="text-xs text-white/50">Mes:</label>
               <input
                 type="month"
                 value={presupMes}
                 onChange={(e) => setPresupMes(e.target.value || mesActual())}
-                className="px-2 py-1.5 rounded-lg bg-white/10 border border-white/20 text-sm"
+                className="px-2.5 py-1.5 rounded-lg bg-surface-1 border border-outline text-sm [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
+              {me?.role === "ADMIN" && (
+                <button
+                  onClick={() => setVerTotal(!verTotal)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 active:scale-95 ${
+                    verTotal ? "bg-primary text-white" : "bg-surface-1 text-white/60 hover:text-white hover:bg-surface-2"
+                  }`}
+                >
+                  {verTotal ? "Ocultar total" : "Total del club"}
+                </button>
+              )}
             </div>
           </div>
 
@@ -945,39 +1658,42 @@ export default function Dashboard() {
             <>
               {/* Tarjetas de números */}
               <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs text-white/50">Ingreso (cuotas)</p>
-                  <p className="mt-1 text-2xl font-bold text-green-400">{formatPesos(presup.resultado.ingreso)}</p>
-                  <p className="mt-1 text-xs text-white/60">
-                    {presup.jugadores} jugadores {presup.cuota != null ? `× ${formatPesos(presup.cuota)}` : "(sin cuota cargada)"}
+                <div className="card p-4">
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Ingreso · cuotas</p>
+                  <p className="mt-1.5 font-display text-2xl font-bold text-green-400 tabular-nums">{formatPesos(presup.resultado.ingreso)}</p>
+                  <p className="mt-1 text-xs text-white/60 leading-relaxed">
+                    {presup.jugadores} jugadores{presup.cuota != null ? ` × ${formatPesos(presup.cuota)}` : " (sin cuota cargada)"}
                     {presup.jugadoresExcluidos > 0 && ` · ${presup.jugadoresExcluidos} excluido${presup.jugadoresExcluidos === 1 ? "" : "s"}`}
                   </p>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs text-white/50">Gastos del mes</p>
-                  <p className="mt-1 text-2xl font-bold text-red-400">{formatPesos(presup.resultado.gastos)}</p>
-                  <p className="mt-1 text-xs text-white/60">
+                <div className="card p-4">
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Gastos del mes</p>
+                  <p className="mt-1.5 font-display text-2xl font-bold text-red-400 tabular-nums">{formatPesos(presup.resultado.gastos)}</p>
+                  <p className="mt-1 text-xs text-white/60 leading-relaxed">
                     {formatPesos(presup.gastosFijos.reduce((a, g) => a + g.monto, 0))} fijos +{" "}
                     {formatPesos(presup.gastosExtra.reduce((a, g) => a + g.monto, 0))} extras
                   </p>
                 </div>
-                <div className={`rounded-xl border p-4 ${presup.resultado.balance >= 0 ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}`}>
-                  <p className="text-xs text-white/50">Balance</p>
-                  <p className={`mt-1 text-2xl font-bold ${presup.resultado.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
+                <div className={`card p-4 ${presup.resultado.balance >= 0 ? "border-green-500/30 bg-green-500/[0.04]" : "border-red-500/30 bg-red-500/[0.04]"}`}>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Balance</p>
+                  <p className={`mt-1.5 font-display text-2xl font-bold tabular-nums ${presup.resultado.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
                     {formatPesos(presup.resultado.balance)}
                   </p>
-                  <p className="mt-1 text-xs text-white/60">
-                    {presup.resultado.balance >= 0 ? "superávit" : "déficit"} del mes
+                  <p className="mt-1 text-xs">
+                    <span className={presup.resultado.balance >= 0 ? "text-green-400/80" : "text-red-400/80"}>
+                      {presup.resultado.balance >= 0 ? "▲ superávit" : "▼ déficit"}
+                    </span>
+                    <span className="text-white/60"> del mes</span>
                   </p>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs text-white/50">Cuota recomendada</p>
-                  <p className="mt-1 text-2xl font-bold text-primary-light">
+                <div className="card p-4">
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Cuota recomendada</p>
+                  <p className="mt-1.5 font-display text-2xl font-bold text-primary-light tabular-nums">
                     {presup.resultado.recomendacionSana ? formatPesos(presup.resultado.cuotaRecomendada) : "—"}
                   </p>
-                  <p className="mt-1 text-xs text-white/60">
+                  <p className="mt-1 text-xs text-white/60 leading-relaxed">
                     {presup.resultado.recomendacionSana
-                      ? `mínima ${formatPesos(presup.resultado.cuotaMinima)} + 10% de margen`
+                      ? `mínima ${formatPesos(presup.resultado.cuotaMinima)} + 10% margen`
                       : "cargá gastos y jugadores para calcularla"}
                   </p>
                 </div>
@@ -987,19 +1703,19 @@ export default function Dashboard() {
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   onClick={() => { setQuotaInput(presup.cuota != null ? String(presup.cuota) : ""); setShowQuotaModal(true); }}
-                  className="px-3 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-light"
+                  className="btn bg-primary text-white hover:bg-primary-light active:scale-95"
                 >
-                  {presup.cuota != null ? `Cambiar cuota (${formatPesos(presup.cuota)})` : "Cargar cuota"}
+                  {presup.cuota != null ? `Cambiar cuota · ${formatPesos(presup.cuota)}` : "Cargar cuota"}
                 </button>
                 <button
                   onClick={() => openGastoModal("fijo")}
-                  className="px-3 py-2 rounded-lg bg-white/10 text-white/80 text-sm font-semibold hover:bg-white/20"
+                  className="btn bg-surface-1 text-white/80 border border-outline hover:bg-surface-2 active:scale-95"
                 >
                   + Gasto fijo
                 </button>
                 <button
                   onClick={() => openGastoModal("extra")}
-                  className="px-3 py-2 rounded-lg bg-white/10 text-white/80 text-sm font-semibold hover:bg-white/20"
+                  className="btn bg-surface-1 text-white/80 border border-outline hover:bg-surface-2 active:scale-95"
                 >
                   + Gasto extra
                 </button>
@@ -1007,24 +1723,31 @@ export default function Dashboard() {
 
               {/* Listas de gastos */}
               <div className="mt-6 grid md:grid-cols-2 gap-4">
-                <div className="rounded-xl border border-white/10">
-                  <div className="px-4 py-3 border-b border-white/10 bg-white/5 flex items-center justify-between">
-                    <h3 className="font-display font-bold text-sm">Gastos fijos (todos los meses)</h3>
-                    <span className="text-xs text-white/50">{presup.gastosFijos.length}</span>
+                <div className="rounded-lg border border-outline overflow-hidden">
+                  <div className="px-4 py-3 border-b border-outline bg-surface-1 flex items-center justify-between">
+                    <h3 className="font-display font-bold text-sm flex items-center gap-2">
+                      <span className="w-1.5 h-4 rounded-full bg-primary" />
+                      Gastos fijos
+                    </h3>
+                    <span className="text-xs font-mono text-white/50 bg-surface-2 px-2 py-0.5 rounded-full">
+                      {presup.gastosFijos.length} · {formatPesos(presup.gastosFijos.reduce((a, g) => a + g.monto, 0))}
+                    </span>
                   </div>
-                  <ul className="divide-y divide-white/5">
+                  <ul className="divide-y divide-outline/60">
                     {presup.gastosFijos.length === 0 && (
-                      <li className="px-4 py-3 text-sm text-white/40">Sin gastos fijos cargados.</li>
+                      <li className="px-4 py-6 text-sm text-white/40 text-center">
+                        Sin gastos fijos cargados. Se repiten todos los meses (cancha, árbitros...).
+                      </li>
                     )}
                     {presup.gastosFijos.map((g) => (
-                      <li key={g.id} className="px-4 py-2.5 flex items-center justify-between gap-2">
+                      <li key={g.id} className="px-4 py-2.5 flex items-center justify-between gap-2 group hover:bg-surface-2/50 transition-colors">
                         <span className="text-sm">{g.nombre}</span>
                         <span className="flex items-center gap-3">
-                          <span className="text-sm text-white/70">{formatPesos(g.monto)}</span>
+                          <span className="text-sm text-white/70 tabular-nums font-mono">{formatPesos(g.monto)}</span>
                           <button
                             onClick={() => borrarGasto("fijo", g.id)}
-                            className="text-xs text-red-400/70 hover:text-red-400"
-                            title="Eliminar"
+                            className="text-xs text-red-400/50 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                            title="Eliminar gasto"
                           >
                             ✕
                           </button>
@@ -1033,24 +1756,31 @@ export default function Dashboard() {
                     ))}
                   </ul>
                 </div>
-                <div className="rounded-xl border border-white/10">
-                  <div className="px-4 py-3 border-b border-white/10 bg-white/5 flex items-center justify-between">
-                    <h3 className="font-display font-bold text-sm">Gastos extras del mes</h3>
-                    <span className="text-xs text-white/50">{presup.gastosExtra.length}</span>
+                <div className="rounded-lg border border-outline overflow-hidden">
+                  <div className="px-4 py-3 border-b border-outline bg-surface-1 flex items-center justify-between">
+                    <h3 className="font-display font-bold text-sm flex items-center gap-2">
+                      <span className="w-1.5 h-4 rounded-full bg-amber-300/60" />
+                      Extras de {monthShort(presupMes)}
+                    </h3>
+                    <span className="text-xs font-mono text-white/50 bg-surface-2 px-2 py-0.5 rounded-full">
+                      {presup.gastosExtra.length} · {formatPesos(presup.gastosExtra.reduce((a, g) => a + g.monto, 0))}
+                    </span>
                   </div>
-                  <ul className="divide-y divide-white/5">
+                  <ul className="divide-y divide-outline/60">
                     {presup.gastosExtra.length === 0 && (
-                      <li className="px-4 py-3 text-sm text-white/40">Sin gastos puntuales en {monthShort(presupMes)}.</li>
+                      <li className="px-4 py-6 text-sm text-white/40 text-center">
+                        Sin gastos puntuales en este mes (cancha por lluvia, etc.).
+                      </li>
                     )}
                     {presup.gastosExtra.map((g) => (
-                      <li key={g.id} className="px-4 py-2.5 flex items-center justify-between gap-2">
+                      <li key={g.id} className="px-4 py-2.5 flex items-center justify-between gap-2 group hover:bg-surface-2/50 transition-colors">
                         <span className="text-sm">{g.nombre}</span>
                         <span className="flex items-center gap-3">
-                          <span className="text-sm text-white/70">{formatPesos(g.monto)}</span>
+                          <span className="text-sm text-white/70 tabular-nums font-mono">{formatPesos(g.monto)}</span>
                           <button
                             onClick={() => borrarGasto("extra", g.id)}
-                            className="text-xs text-red-400/70 hover:text-red-400"
-                            title="Eliminar"
+                            className="text-xs text-red-400/50 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                            title="Eliminar gasto"
                           >
                             ✕
                           </button>
@@ -1060,6 +1790,94 @@ export default function Dashboard() {
                   </ul>
                 </div>
               </div>
+
+              {/* ===== TOTAL DEL CLUB (ADMIN) ===== */}
+              {verTotal && me?.role === "ADMIN" && (
+                <div className="mt-8">
+                  {totalError && <p className="text-red-400 text-sm">{totalError}</p>}
+                  {totalLoading && <p className="text-white/50">Cargando total del club...</p>}
+                  {!totalLoading && totalData && (
+                    <>
+                      {/* Tarjetas de totales */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="card p-4">
+                          <p className="text-xs text-white/50">Jugadores que pagan</p>
+                          <p className="mt-1 text-2xl font-bold">{totalData.totales.jugadores}</p>
+                        </div>
+                        <div className="card p-4">
+                          <p className="text-xs text-white/50">Ingreso total del club</p>
+                          <p className="mt-1 text-2xl font-bold text-green-400">{formatPesos(totalData.totales.ingreso)}</p>
+                        </div>
+                        <div className="card p-4">
+                          <p className="text-xs text-white/50">Gastos totales</p>
+                          <p className="mt-1 text-2xl font-bold text-red-400">{formatPesos(totalData.totales.gastos)}</p>
+                        </div>
+                        <div className="card p-4">
+                          <p className="text-xs text-white/50">Deuda total</p>
+                          <p className="mt-1 text-2xl font-bold text-amber-300">{formatPesos(totalData.totales.deuda)}</p>
+                        </div>
+                      </div>
+
+                      <div className={`mt-3 card p-4 ${totalData.totales.balance >= 0 ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}`}>
+                        <p className="text-xs text-white/50">Balance total del club</p>
+                        <p className={`mt-1 text-2xl font-bold ${totalData.totales.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
+                          {formatPesos(totalData.totales.balance)}
+                        </p>
+                        <p className="mt-1 text-xs text-white/60">
+                          {totalData.totales.balance >= 0 ? "superávit" : "déficit"} de {monthShort(totalData.mes)} — el ingreso real es mayor: sumá la deuda ({formatPesos(totalData.totales.deuda)}) a cobrar
+                        </p>
+                      </div>
+
+                      {/* Tabla por equipo, ordenada por pérdida */}
+                      <div className="mt-4 overflow-x-auto rounded-lg border border-outline">
+                        <table className="w-full text-sm">
+                          <thead className="bg-surface-1/60 text-left text-white/60">
+                            <tr>
+                              <th className="p-3">Equipo</th>
+                              <th className="p-3">Jugadores</th>
+                              <th className="p-3">Cuota</th>
+                              <th className="p-3">Ingreso</th>
+                              <th className="p-3">Gastos</th>
+                              <th className="p-3">Balance</th>
+                              <th className="p-3">Deuda</th>
+                              <th className="p-3">Recomendada</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {totalData.porEquipo.map((e) => {
+                              const recomendada = e.jugadores > 0
+                                ? Math.ceil((e.gastos / e.jugadores) * 1.1 / 500) * 500
+                                : 0;
+                              return (
+                                <tr key={e.teamId} className={`border-t border-outline/60 ${e.balance < 0 ? "bg-red-500/5" : ""}`}>
+                                  <td className="p-3 font-semibold">
+                                    {e.categoria}
+                                    <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] ${e.tipo === "FORMATIVA" ? "bg-primary/20 text-primary-light" : "bg-surface-2 text-white/60"}`}>
+                                      {e.tipo === "FORMATIVA" ? "formativa" : "primera"}
+                                    </span>
+                                  </td>
+                                  <td className="p-3 text-white/70">{e.jugadores}</td>
+                                  <td className="p-3 text-white/70">{e.cuota ? formatPesos(e.cuota) : "—"}</td>
+                                  <td className="p-3 text-white/70">{formatPesos(e.ingreso)}</td>
+                                  <td className="p-3 text-white/70">{formatPesos(e.gastos)}</td>
+                                  <td className={`p-3 font-semibold ${e.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
+                                    {formatPesos(e.balance)}
+                                  </td>
+                                  <td className={`p-3 ${e.deuda > 0 ? "text-amber-300" : "text-white/40"}`}>{formatPesos(e.deuda)}</td>
+                                  <td className="p-3 text-white/60">{recomendada > 0 ? formatPesos(recomendada) : "—"}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      <p className="mt-2 text-xs text-white/40">
+                        Orden alfabético por categoría. La cuota recomendada por equipo = gastos ÷ jugadores + 10% margen, redondeada a $500.
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -1069,43 +1887,53 @@ export default function Dashboard() {
       {tecnicos.length > 0 && (
         <div className="mt-8">
           <h2 className="font-display text-lg font-bold text-white/80 mb-3">Cuerpo técnico</h2>
-          <div className="overflow-x-auto rounded-xl border border-white/10">
+<div className="overflow-x-auto rounded-lg border border-outline">
             <table className="w-full text-sm">
-              <thead className="bg-white/5 text-left text-white/60">
+              <thead>
                 <tr>
-                  <th className="p-3">Nombre</th>
-                  <th className="p-3">Rol</th>
-                  <th className="p-3">DNI</th>
-                  <th className="p-3 text-right">Acciones</th>
+                  <th className="panel-th">Nombre</th>
+                  <th className="panel-th">Rol</th>
+                  <th className="panel-th text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {tecnicos.map((p) => (
-                  <tr key={p.id} className="border-t border-white/5">
-                    <td className="p-3 font-semibold">{p.firstName} {p.lastName}</td>
-                    <td className="p-3">
-                      <span className="px-2 py-0.5 rounded text-xs bg-primary/20 text-primary-light">{p.role}</span>
+                  <tr key={p.id} className="panel-tr">
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-3">
+                        <span className="avatar">{p.firstName.charAt(0)}{p.lastName.charAt(0)}</span>
+                        <p className="font-semibold truncate">{p.firstName} {p.lastName}</p>
+                      </div>
                     </td>
-                    <td className="p-3 text-white/60">{p.document}</td>
-                    <td className="p-3 text-right whitespace-nowrap">
-                      <button
-                        onClick={() => openDocs(p)}
-                        className="px-2 py-1 rounded text-xs text-white/60 hover:text-white hover:bg-white/10"
-                      >
-                        Docs
-                      </button>
-                      <button
-                        onClick={() => openEditar(p)}
-                        className="px-2 py-1 rounded text-xs text-white/60 hover:text-white hover:bg-white/10"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => removePlayer(p)}
-                        className="px-2 py-1 rounded text-xs text-white/60 hover:text-red-400 hover:bg-red-500/10"
-                      >
-                        Quitar
-                      </button>
+                    <td className="px-3 py-2.5">
+                      <span className="px-2 py-0.5 rounded-md text-xs bg-primary/20 text-primary-light font-semibold">
+                        {p.role}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="row-actions">
+                        <button
+                          onClick={() => openDocs(p)}
+                          className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90"
+                          title="Fichas y estudios"
+                        >
+                          <Icon name="doc" className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => openEditar(p)}
+                          className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90"
+                          title="Editar"
+                        >
+                          <Icon name="edit" className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => removePlayer(p)}
+                          className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-red-400 hover:bg-red-500/10 transition-colors active:scale-90"
+                          title="Quitar del equipo"
+                        >
+                          <Icon name="trash" className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1122,7 +1950,7 @@ export default function Dashboard() {
       {/* ===================== MODAL ALTA / EDICIÓN DE JUGADOR ===================== */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#1d1d1d] p-6">
+          <div className="w-full max-w-md rounded-lg border border-outline bg-surface-2 p-6">
             <h2 className="font-display text-lg font-bold">
               {editing ? `Editar: ${editing.firstName} ${editing.lastName}` : "Nuevo jugador / técnico"}
             </h2>
@@ -1137,7 +1965,7 @@ export default function Dashboard() {
                   <input
                     value={form.lastName}
                     onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                    className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm"
+                    className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                     placeholder="Pérez"
                   />
                 </label>
@@ -1146,7 +1974,7 @@ export default function Dashboard() {
                   <input
                     value={form.firstName}
                     onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                    className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm"
+                    className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                     placeholder="Juan"
                   />
                 </label>
@@ -1155,17 +1983,41 @@ export default function Dashboard() {
                   <input
                     value={form.document}
                     onChange={(e) => setForm({ ...form, document: e.target.value.replace(/\D/g, "") })}
-                    className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm"
+                    className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                     placeholder="12345678"
                   />
                 </label>
+                {buscandoDni && (
+                  <p className="text-xs text-white/40">Buscando DNI...</p>
+                )}
+                {!buscandoDni && foundPlayer && (
+                  <div className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-2.5 text-xs col-span-2">
+                    <p className="text-primary-light font-semibold">
+                      ✓ DNI ya registrado: {foundPlayer.firstName} {foundPlayer.lastName}
+                    </p>
+                    <p className="text-white/70 mt-1 leading-relaxed">
+                      Se va a <span className="font-semibold text-white">vincular</span> a este equipo, sin duplicar datos.
+                      {foundPlayer.equipos.length > 0 && (
+                        <>
+                          {" "}Ya figura en:{" "}
+                          <span className="font-semibold text-white">
+                            {foundPlayer.equipos
+                              .map((e) => `${e.name} (${e.type === "FORMATIVA" ? "Formativa" : "Primera"})`)
+                              .join(", ")}
+                          </span>
+                          .
+                        </>
+                      )}
+                    </p>
+                  </div>
+                )}
                 <label className="block">
                   <span className="text-xs text-white/60">Fecha de nacimiento</span>
                   <input
                     type="date"
                     value={form.birthDate}
                     onChange={(e) => setForm({ ...form, birthDate: e.target.value })}
-                    className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm [color-scheme:dark]"
+                    className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm [color-scheme:dark]"
                   />
                 </label>
                 <label className="block">
@@ -1173,13 +2025,13 @@ export default function Dashboard() {
                   <select
                     value={form.role}
                     onChange={(e) => setForm({ ...form, role: e.target.value })}
-                    className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm"
+                    className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                   >
-                    <option value="JUGADOR" className="bg-[#1d1d1d]">Jugador</option>
-                    <option value="DT" className="bg-[#1d1d1d]">DT</option>
-                    <option value="AT" className="bg-[#1d1d1d]">AT</option>
-                    <option value="PF" className="bg-[#1d1d1d]">PF</option>
-                    <option value="DEL" className="bg-[#1d1d1d]">Delegado</option>
+                    <option value="JUGADOR" className="bg-surface-2">Jugador</option>
+                    <option value="DT" className="bg-surface-2">DT</option>
+                    <option value="AT" className="bg-surface-2">AT</option>
+                    <option value="PF" className="bg-surface-2">PF</option>
+                    <option value="DEL" className="bg-surface-2">Delegado</option>
                   </select>
                 </label>
                 <label className="block">
@@ -1187,7 +2039,7 @@ export default function Dashboard() {
                   <input
                     value={form.position}
                     onChange={(e) => setForm({ ...form, position: e.target.value })}
-                    className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm"
+                    className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                     placeholder="Ala, Cierre..."
                   />
                 </label>
@@ -1196,7 +2048,7 @@ export default function Dashboard() {
                   <input
                     value={form.jersey}
                     onChange={(e) => setForm({ ...form, jersey: e.target.value.replace(/\D/g, "") })}
-                    className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm"
+                    className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                     placeholder="10"
                   />
                 </label>
@@ -1212,7 +2064,7 @@ export default function Dashboard() {
               </div>
 
               {editing && form.role === "JUGADOR" && (
-                <label className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
+                <label className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-surface-1 border border-outline cursor-pointer hover:bg-surface-2 transition-colors">
                   <input
                     type="checkbox"
                     checked={cuentaPresupuesto}
@@ -1230,7 +2082,7 @@ export default function Dashboard() {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowForm(false)}
-                  className="flex-1 px-4 py-2 rounded-xl border border-white/15 text-sm hover:bg-white/5"
+                  className="flex-1 px-4 py-2 rounded-lg border border-outline text-sm hover:bg-surface-2"
                   disabled={saving}
                 >
                   Cancelar
@@ -1240,7 +2092,7 @@ export default function Dashboard() {
                   disabled={saving}
                   className="flex-1 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-light disabled:opacity-50"
                 >
-                  {saving ? "Guardando..." : editing ? "Guardar cambios" : "Agregar"}
+                  {saving ? "Guardando..." : editing ? "Guardar cambios" : foundPlayer ? "Vincular a este equipo" : "Agregar"}
                 </button>
               </div>
             </div>
@@ -1250,7 +2102,7 @@ export default function Dashboard() {
       {/* ===================== MODAL FICHAS / DOCUMENTOS ===================== */}
       {docsPlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-[#1d1d1d] p-6 max-h-[85vh] overflow-y-auto">
+          <div className="w-full max-w-lg rounded-lg border border-outline bg-surface-2 p-6 max-h-[85vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="font-display text-lg font-bold">
@@ -1279,7 +2131,7 @@ export default function Dashboard() {
             )}
 
             {/* Formulario de subida */}
-            <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
+            <div className="mt-5 rounded-lg border border-outline bg-surface-1 p-4 space-y-3">
               <p className="text-sm font-semibold text-white/80">Subir documento</p>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
@@ -1287,12 +2139,12 @@ export default function Dashboard() {
                   <select
                     value={docForm.tipo}
                     onChange={(e) => setDocForm({ ...docForm, tipo: e.target.value })}
-                    className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm"
+                    className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                   >
-                    <option value="FICHA_MEDICA" className="bg-[#1d1d1d]">Ficha médica</option>
-                    <option value="ELECTROCARDIOGRAMA" className="bg-[#1d1d1d]">Electrocardiograma</option>
-                    <option value="ERGONOMETRIA" className="bg-[#1d1d1d]">Ergometría</option>
-                    <option value="OTRO" className="bg-[#1d1d1d]">Otro</option>
+                    <option value="FICHA_MEDICA" className="bg-surface-2">Ficha médica</option>
+                    <option value="ELECTROCARDIOGRAMA" className="bg-surface-2">Electrocardiograma</option>
+                    <option value="ERGONOMETRIA" className="bg-surface-2">Ergometría</option>
+                    <option value="OTRO" className="bg-surface-2">Otro</option>
                   </select>
                 </label>
                 <label className="block">
@@ -1301,7 +2153,7 @@ export default function Dashboard() {
                     type="date"
                     value={docForm.fechaEmision}
                     onChange={(e) => setDocForm({ ...docForm, fechaEmision: e.target.value })}
-                    className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm [color-scheme:dark]"
+                    className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm [color-scheme:dark]"
                   />
                 </label>
                 <label className="block col-span-2">
@@ -1312,7 +2164,7 @@ export default function Dashboard() {
                   <input
                     value={docForm.descripcion}
                     onChange={(e) => setDocForm({ ...docForm, descripcion: e.target.value })}
-                    className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm"
+                    className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                     placeholder="Renovación 2do semestre 2026"
                   />
                 </label>
@@ -1346,7 +2198,7 @@ export default function Dashboard() {
                   const vence = d.fechaVencimiento ? new Date(d.fechaVencimiento) : null;
                   const vencido = vence && vence.getTime() < Date.now();
                   return (
-                    <li key={d.id} className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                    <li key={d.id} className="flex items-center gap-3 rounded-lg border border-outline bg-surface-1 px-3 py-2">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm truncate">
                           <span className="text-white/40 text-xs">{labelTipo(d.tipo)} · </span>
@@ -1369,7 +2221,7 @@ export default function Dashboard() {
                       </div>
                       <button
                         onClick={() => descargarDoc(d)}
-                        className="px-2 py-1 rounded text-xs text-white/60 hover:text-white hover:bg-white/10"
+                        className="px-2 py-1 rounded text-xs text-white/60 hover:text-white hover:bg-surface-2"
                       >
                         Descargar
                       </button>
@@ -1390,7 +2242,7 @@ export default function Dashboard() {
     {/* ===================== MODAL CUOTA ===================== */}
       {showQuotaModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#1d1d1d] p-6">
+          <div className="w-full max-w-sm rounded-lg border border-outline bg-surface-2 p-6">
             <div className="flex items-start justify-between gap-4">
               <h2 className="font-display text-lg font-bold">Cuota mensual</h2>
               <button onClick={() => setShowQuotaModal(false)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
@@ -1405,7 +2257,7 @@ export default function Dashboard() {
               value={quotaInput}
               onChange={(e) => setQuotaInput(e.target.value)}
               placeholder="Ej: 30000"
-              className="mt-4 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm"
+              className="mt-4 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
             />
             <button
               onClick={guardarQuota}
@@ -1421,7 +2273,7 @@ export default function Dashboard() {
       {/* ===================== MODAL GASTO ===================== */}
       {gastoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#1d1d1d] p-6">
+          <div className="w-full max-w-sm rounded-lg border border-outline bg-surface-2 p-6">
             <div className="flex items-start justify-between gap-4">
               <h2 className="font-display text-lg font-bold">
                 {gastoModal.tipo === "fijo" ? "Nuevo gasto fijo" : `Gasto extra de ${monthShort(gastoModal.mes ?? mesActual())}`}
@@ -1438,7 +2290,7 @@ export default function Dashboard() {
                 value={gastoForm.nombre}
                 onChange={(e) => setGastoForm((f) => ({ ...f, nombre: e.target.value }))}
                 placeholder="Nombre (ej: Cancha)"
-                className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm"
+                className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
               />
               <input
                 type="number"
@@ -1446,7 +2298,7 @@ export default function Dashboard() {
                 value={gastoForm.monto}
                 onChange={(e) => setGastoForm((f) => ({ ...f, monto: e.target.value }))}
                 placeholder="Monto (ej: 45000)"
-                className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm"
+                className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
               />
             </div>
             <button
@@ -1460,10 +2312,60 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* ===================== MODAL INACTIVO (elegir mes de corte) ===================== */}
+      {inactivoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-sm rounded-lg border border-outline bg-surface-2 p-6">
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="font-display text-lg font-bold">
+                {inactivoModal.status === "INACTIVO" ? "Ajustar mes de corte" : "Pasar a inactivo"}
+              </h2>
+              <button onClick={() => setInactivoModal(null)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
+            </div>
+            <p className="text-xs text-white/50 mt-1">
+              {inactivoModal.firstName} {inactivoModal.lastName} deja de contar la cuota y el presupuesto.
+              Su historial de pagos se conserva.
+            </p>
+            <label className="block mt-4">
+              <span className="text-xs text-white/60">Hasta qué mes jugó</span>
+              <input
+                type="month"
+                max={new Date().toISOString().slice(0, 7)}
+                value={inactivoMes}
+                onChange={(e) => setInactivoMes(e.target.value)}
+                className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+              />
+            </label>
+            <p className="text-xs text-white/40 mt-2 leading-relaxed">
+              Si tardaron en marcarlo (ej. dejó de venir en marzo y lo marcan ahora), elegí el mes en que dejó de jugar:
+              la deuda se congela ahí y los meses posteriores no corren cuota.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setInactivoModal(null)}
+                className="flex-1 px-4 py-2 rounded-xl bg-surface-1 border border-outline text-white/70 text-sm font-semibold hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  const p = inactivoModal;
+                  setInactivoModal(null);
+                  if (p && inactivoMes) setInactivo(p, inactivoMes);
+                }}
+                className="flex-1 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-light"
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===================== MODAL IMPORTAR EXCEL ===================== */}
       {showImport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-[#1d1d1d] p-6">
+          <div className="w-full max-w-lg rounded-lg border border-outline bg-surface-2 p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="font-display text-lg font-bold">Importar plantel desde Excel</h2>
@@ -1524,7 +2426,7 @@ export default function Dashboard() {
                 )}
                 <button
                   onClick={() => { setShowImport(false); setImportMsg(null); setImportFile(null); }}
-                  className="w-full px-4 py-2 rounded-xl border border-white/15 text-sm hover:bg-white/5"
+                  className="w-full px-4 py-2 rounded-lg border border-outline text-sm hover:bg-surface-2"
                 >
                   Cerrar
                 </button>
@@ -1534,5 +2436,6 @@ export default function Dashboard() {
         </div>
       )}
     </div>
+    </Layout>
   );
 }
