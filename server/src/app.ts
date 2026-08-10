@@ -4,6 +4,7 @@ import { prisma } from "./config.js";
 import authRoutes from "./routes/auth.js";
 import teamRoutes from "./routes/teams.js";
 import importRoutes from "./routes/import.js";
+import presupuestoRoutes from "./routes/presupuesto.js";
 import playerRoutes from "./routes/players.js";
 import matchRoutes from "./routes/matches.js";
 import syncRoutes from "./routes/sync.js";
@@ -21,6 +22,7 @@ app.get("/api/health", (_req, res) => res.json({ ok: true, time: new Date().toIS
 app.use("/api/auth", authRoutes);
 app.use("/api/teams", teamRoutes);
 app.use("/api/teams", importRoutes);
+app.use("/api/teams", presupuestoRoutes);
 app.use("/api", playerRoutes);
 app.use("/api/matches", matchRoutes);
 app.use("/api/sync", syncRoutes);

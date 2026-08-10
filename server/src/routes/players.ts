@@ -46,6 +46,7 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
         role: l.role,
         position: l.position,
         jersey: l.jersey,
+        cuentaPresupuesto: l.cuentaPresupuesto,
         payments: l.player.payments,
         // regla de cuota: pago del 1 al 10; del 11 sin pagar = deudor, no juega
         estadoCuota,
@@ -67,6 +68,7 @@ const createPlayerSchema = z.object({
   role: z.string().optional(),
   position: z.string().optional().nullable(),
   jersey: z.number().int().optional().nullable(),
+  cuentaPresupuesto: z.boolean().optional(),
 });
 
 router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
@@ -78,7 +80,7 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
   }
-  const { document, lastName, firstName, birthDate, hasInsurance, role, position, jersey } = parsed.data;
+  const { document, lastName, firstName, birthDate, hasInsurance, role, position, jersey, cuentaPresupuesto } = parsed.data;
 
   // upsert jugador por DNI (si ya existe en otro equipo, solo se vincula)
   let player = await prisma.player.findUnique({ where: { document } });
@@ -95,8 +97,8 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
   }
   await prisma.playerTeam.upsert({
     where: { playerId_teamId: { playerId: player.id, teamId } },
-    update: { role: role ?? "JUGADOR", position, jersey },
-    create: { playerId: player.id, teamId, role: role ?? "JUGADOR", position, jersey },
+    update: { role: role ?? "JUGADOR", position, jersey, cuentaPresupuesto: cuentaPresupuesto ?? undefined },
+    create: { playerId: player.id, teamId, role: role ?? "JUGADOR", position, jersey, cuentaPresupuesto: cuentaPresupuesto ?? true },
   });
 
   res.status(201).json(player);
@@ -113,6 +115,7 @@ const updatePlayerSchema = z.object({
   role: z.string().optional(),
   position: z.string().optional().nullable(),
   jersey: z.number().int().optional().nullable(),
+  cuentaPresupuesto: z.boolean().optional(),
 });
 
 // PATCH /api/players/:id  (body: datos del jugador + opcional teamId para rol/pos/n° del vínculo correcto)
@@ -134,7 +137,7 @@ router.patch("/players/:id", requireAuth, async (req, res) => {
   const parsed = updatePlayerSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Datos inválidos" });
 
-  const { birthDate, role, position, jersey, ...rest } = parsed.data;
+  const { birthDate, role, position, jersey, cuentaPresupuesto, ...rest } = parsed.data;
   const updated = await prisma.player.update({
     where: { id: player.id },
     data: {
@@ -143,13 +146,13 @@ router.patch("/players/:id", requireAuth, async (req, res) => {
     },
   });
 
-  // rol/pos/número se guardan en el vínculo del equipo indicado (o el primero con acceso)
-  if (role || position || jersey !== undefined) {
+  // rol/pos/número/cuentaPresupuesto se guardan en el vínculo del equipo indicado (o el primero con acceso)
+  if (role || position || jersey !== undefined || cuentaPresupuesto !== undefined) {
     const target = links.find((l) => l.teamId === req.body?.teamId) ?? links.find((l) => canAccessTeam(req.user!.id, l.teamId)) ?? links[0];
     if (target) {
       await prisma.playerTeam.update({
         where: { playerId_teamId: { playerId: player.id, teamId: target.teamId } },
-        data: { role: role ?? undefined, position, jersey },
+        data: { role: role ?? undefined, position, jersey, cuentaPresupuesto },
       });
     }
   }

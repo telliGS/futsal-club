@@ -52,6 +52,7 @@ interface Player {
   role: string;
   position?: string | null;
   jersey?: number | null;
+  cuentaPresupuesto?: boolean;
   hasInsurance?: boolean;
   payments: Array<{ month: string; paid: boolean; amount: number }>;
   estadoCuota?: {
@@ -71,6 +72,33 @@ interface MeData {
   email: string;
   role: string;
   teams: Team[];
+}
+
+// ---------- Presupuesto ----------
+interface GastoItem {
+  id: string;
+  nombre: string;
+  monto: number;
+  mes?: string | null;
+}
+
+interface PresupuestoData {
+  teamId: string;
+  categoria: string;
+  mes: string;
+  jugadores: number;
+  cuota: number | null;
+  jugadoresExcluidos: number;
+  gastosFijos: GastoItem[];
+  gastosExtra: GastoItem[];
+  resultado: {
+    ingreso: number;
+    gastos: number;
+    balance: number;
+    cuotaMinima: number | null;
+    cuotaRecomendada: number | null;
+    recomendacionSana: boolean;
+  };
 }
 
 const MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -133,7 +161,7 @@ export default function Dashboard() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [view, setView] = useState<"lista" | "calendario">("lista");
+  const [view, setView] = useState<"lista" | "calendario" | "presupuesto">("lista");
 
   // ---------- Alta / edición de jugadores ----------
   const [showForm, setShowForm] = useState(false);
@@ -150,6 +178,7 @@ export default function Dashboard() {
     jersey: "",
     hasInsurance: false,
   });
+  const [cuentaPresupuesto, setCuentaPresupuesto] = useState(true);
 
   function openNuevo() {
     setEditing(null);
@@ -157,6 +186,7 @@ export default function Dashboard() {
       lastName: "", firstName: "", document: "", birthDate: "",
       role: "JUGADOR", position: "", jersey: "", hasInsurance: false,
     });
+    setCuentaPresupuesto(true);
     setFormError("");
     setShowForm(true);
   }
@@ -173,6 +203,7 @@ export default function Dashboard() {
       jersey: p.jersey != null ? String(p.jersey) : "",
       hasInsurance: Boolean((p as unknown as { hasInsurance?: boolean }).hasInsurance),
     });
+    setCuentaPresupuesto(p.cuentaPresupuesto ?? true);
     setFormError("");
     setShowForm(true);
   }
@@ -194,6 +225,7 @@ export default function Dashboard() {
       position: form.position.trim() || null,
       jersey: form.jersey ? Number(form.jersey) : null,
       hasInsurance: form.hasInsurance,
+      cuentaPresupuesto,
     };
     try {
       if (editing) {
@@ -433,6 +465,100 @@ export default function Dashboard() {
   }
 
 
+  // ---------- Presupuesto ----------
+  const [presup, setPresup] = useState<PresupuestoData | null>(null);
+  const [presupMes, setPresupMes] = useState(() => new Date().toISOString().slice(0, 7));
+  const [presupLoading, setPresupLoading] = useState(false);
+  const [presupError, setPresupError] = useState("");
+  const [showQuotaModal, setShowQuotaModal] = useState(false);
+  const [quotaInput, setQuotaInput] = useState("");
+  const [quotaSaving, setQuotaSaving] = useState(false);
+  const [gastoModal, setGastoModal] = useState<null | { tipo: "fijo" | "extra"; mes?: string }>(null);
+  const [gastoForm, setGastoForm] = useState({ nombre: "", monto: "" });
+  const [gastoSaving, setGastoSaving] = useState(false);
+
+  const mesActual = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+
+  const formatPesos = (n: number | null | undefined): string => {
+    if (n == null) return "—";
+    return "$" + Math.round(n).toLocaleString("es-AR");
+  };
+
+  useEffect(() => {
+    if (!teamId || !token) return;
+    setPresupLoading(true);
+    setPresupError("");
+    apiFetch<PresupuestoData>(`/teams/${teamId}/presupuesto?mes=${presupMes}`, {}, token)
+      .then(setPresup)
+      .catch(() => {
+        setPresup(null);
+        setPresupError("No se pudo cargar el presupuesto");
+      })
+      .finally(() => setPresupLoading(false));
+  }, [teamId, token, presupMes]);
+
+  async function guardarQuota() {
+    if (!token || !teamId) return;
+    const n = Number(quotaInput.replace(/[^0-9]/g, ""));
+    setQuotaSaving(true);
+    try {
+      await apiFetch(`/teams/${teamId}/quota`, { method: "PUT", body: JSON.stringify({ quota: n > 0 ? n : null }) }, token);
+      setQuotaInput("");
+      setShowQuotaModal(false);
+      const updated = await apiFetch<PresupuestoData>(`/teams/${teamId}/presupuesto?mes=${presupMes}`, {}, token);
+      setPresup(updated);
+    } catch (e) {
+      setPresupError((e as Error).message);
+    } finally {
+      setQuotaSaving(false);
+    }
+  }
+
+  function openGastoModal(tipo: "fijo" | "extra") {
+    setGastoModal({ tipo, mes: presupMes });
+  }
+
+  async function guardarGasto() {
+    if (!token || !teamId || !gastoModal) return;
+    const monto = Number(gastoForm.monto.replace(/[^0-9]/g, ""));
+    const nombre = gastoForm.nombre.trim();
+    if (!nombre || monto <= 0) {
+      setPresupError("Completá el nombre y un monto válido.");
+      return;
+    }
+    setGastoSaving(true);
+    try {
+      if (gastoModal.tipo === "fijo") {
+        await apiFetch(`/teams/${teamId}/gastos/fijos`, { method: "POST", body: JSON.stringify({ nombre, monto }) }, token);
+      } else {
+        await apiFetch(`/teams/${teamId}/gastos/extras`, { method: "POST", body: JSON.stringify({ nombre, monto, mes: gastoModal.mes ?? presupMes }) }, token);
+      }
+      setGastoForm({ nombre: "", monto: "" });
+      setGastoModal(null);
+      const updated = await apiFetch<PresupuestoData>(`/teams/${teamId}/presupuesto?mes=${presupMes}`, {}, token);
+      setPresup(updated);
+    } catch (e) {
+      setPresupError((e as Error).message);
+    } finally {
+      setGastoSaving(false);
+    }
+  }
+
+  async function borrarGasto(tipo: "fijo" | "extra", id: string) {
+    if (!token || !teamId) return;
+    if (!window.confirm("¿Eliminar este gasto?")) return;
+    try {
+      await apiFetch(`/teams/${teamId}/gastos/${tipo === "fijo" ? "fijos" : "extras"}/${id}`, { method: "DELETE" }, token);
+      const updated = await apiFetch<PresupuestoData>(`/teams/${teamId}/presupuesto?mes=${presupMes}`, {}, token);
+      setPresup(updated);
+    } catch (e) {
+      setPresupError((e as Error).message);
+    }
+  }
+
   useEffect(() => {
     if (!token) {
       window.location.href = "/ingresar";
@@ -567,6 +693,12 @@ export default function Dashboard() {
               className={`px-4 py-1.5 text-sm ${view === "calendario" ? "bg-primary text-white" : "text-white/60 hover:text-white"}`}
             >
               Calendario de cuotas
+            </button>
+            <button
+              onClick={() => setView("presupuesto")}
+              className={`px-4 py-1.5 text-sm ${view === "presupuesto" ? "bg-primary text-white" : "text-white/60 hover:text-white"}`}
+            >
+              Presupuesto
             </button>
             <button
               onClick={openNuevo}
@@ -789,6 +921,150 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* ===================== VISTA PRESUPUESTO ===================== */}
+      {view === "presupuesto" && (
+        <div className="mt-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-display text-lg font-bold">Presupuesto de {presup?.categoria ?? "la categoría"}</h2>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-white/50">Mes:</label>
+              <input
+                type="month"
+                value={presupMes}
+                onChange={(e) => setPresupMes(e.target.value || mesActual())}
+                className="px-2 py-1.5 rounded-lg bg-white/10 border border-white/20 text-sm"
+              />
+            </div>
+          </div>
+
+          {presupError && <p className="mt-3 text-red-400 text-sm">{presupError}</p>}
+
+          {presupLoading && <p className="mt-4 text-white/50">Cargando presupuesto...</p>}
+
+          {!presupLoading && presup && (
+            <>
+              {/* Tarjetas de números */}
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs text-white/50">Ingreso (cuotas)</p>
+                  <p className="mt-1 text-2xl font-bold text-green-400">{formatPesos(presup.resultado.ingreso)}</p>
+                  <p className="mt-1 text-xs text-white/60">
+                    {presup.jugadores} jugadores {presup.cuota != null ? `× ${formatPesos(presup.cuota)}` : "(sin cuota cargada)"}
+                    {presup.jugadoresExcluidos > 0 && ` · ${presup.jugadoresExcluidos} excluido${presup.jugadoresExcluidos === 1 ? "" : "s"}`}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs text-white/50">Gastos del mes</p>
+                  <p className="mt-1 text-2xl font-bold text-red-400">{formatPesos(presup.resultado.gastos)}</p>
+                  <p className="mt-1 text-xs text-white/60">
+                    {formatPesos(presup.gastosFijos.reduce((a, g) => a + g.monto, 0))} fijos +{" "}
+                    {formatPesos(presup.gastosExtra.reduce((a, g) => a + g.monto, 0))} extras
+                  </p>
+                </div>
+                <div className={`rounded-xl border p-4 ${presup.resultado.balance >= 0 ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}`}>
+                  <p className="text-xs text-white/50">Balance</p>
+                  <p className={`mt-1 text-2xl font-bold ${presup.resultado.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
+                    {formatPesos(presup.resultado.balance)}
+                  </p>
+                  <p className="mt-1 text-xs text-white/60">
+                    {presup.resultado.balance >= 0 ? "superávit" : "déficit"} del mes
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs text-white/50">Cuota recomendada</p>
+                  <p className="mt-1 text-2xl font-bold text-primary-light">
+                    {presup.resultado.recomendacionSana ? formatPesos(presup.resultado.cuotaRecomendada) : "—"}
+                  </p>
+                  <p className="mt-1 text-xs text-white/60">
+                    {presup.resultado.recomendacionSana
+                      ? `mínima ${formatPesos(presup.resultado.cuotaMinima)} + 10% de margen`
+                      : "cargá gastos y jugadores para calcularla"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Acciones rápidas */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  onClick={() => { setQuotaInput(presup.cuota != null ? String(presup.cuota) : ""); setShowQuotaModal(true); }}
+                  className="px-3 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-light"
+                >
+                  {presup.cuota != null ? `Cambiar cuota (${formatPesos(presup.cuota)})` : "Cargar cuota"}
+                </button>
+                <button
+                  onClick={() => openGastoModal("fijo")}
+                  className="px-3 py-2 rounded-lg bg-white/10 text-white/80 text-sm font-semibold hover:bg-white/20"
+                >
+                  + Gasto fijo
+                </button>
+                <button
+                  onClick={() => openGastoModal("extra")}
+                  className="px-3 py-2 rounded-lg bg-white/10 text-white/80 text-sm font-semibold hover:bg-white/20"
+                >
+                  + Gasto extra
+                </button>
+              </div>
+
+              {/* Listas de gastos */}
+              <div className="mt-6 grid md:grid-cols-2 gap-4">
+                <div className="rounded-xl border border-white/10">
+                  <div className="px-4 py-3 border-b border-white/10 bg-white/5 flex items-center justify-between">
+                    <h3 className="font-display font-bold text-sm">Gastos fijos (todos los meses)</h3>
+                    <span className="text-xs text-white/50">{presup.gastosFijos.length}</span>
+                  </div>
+                  <ul className="divide-y divide-white/5">
+                    {presup.gastosFijos.length === 0 && (
+                      <li className="px-4 py-3 text-sm text-white/40">Sin gastos fijos cargados.</li>
+                    )}
+                    {presup.gastosFijos.map((g) => (
+                      <li key={g.id} className="px-4 py-2.5 flex items-center justify-between gap-2">
+                        <span className="text-sm">{g.nombre}</span>
+                        <span className="flex items-center gap-3">
+                          <span className="text-sm text-white/70">{formatPesos(g.monto)}</span>
+                          <button
+                            onClick={() => borrarGasto("fijo", g.id)}
+                            className="text-xs text-red-400/70 hover:text-red-400"
+                            title="Eliminar"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-white/10">
+                  <div className="px-4 py-3 border-b border-white/10 bg-white/5 flex items-center justify-between">
+                    <h3 className="font-display font-bold text-sm">Gastos extras del mes</h3>
+                    <span className="text-xs text-white/50">{presup.gastosExtra.length}</span>
+                  </div>
+                  <ul className="divide-y divide-white/5">
+                    {presup.gastosExtra.length === 0 && (
+                      <li className="px-4 py-3 text-sm text-white/40">Sin gastos puntuales en {monthShort(presupMes)}.</li>
+                    )}
+                    {presup.gastosExtra.map((g) => (
+                      <li key={g.id} className="px-4 py-2.5 flex items-center justify-between gap-2">
+                        <span className="text-sm">{g.nombre}</span>
+                        <span className="flex items-center gap-3">
+                          <span className="text-sm text-white/70">{formatPesos(g.monto)}</span>
+                          <button
+                            onClick={() => borrarGasto("extra", g.id)}
+                            className="text-xs text-red-400/70 hover:text-red-400"
+                            title="Eliminar"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* ===================== CUERPO TÉCNICO (separado, sin pagos) ===================== */}
       {tecnicos.length > 0 && (
         <div className="mt-8">
@@ -934,6 +1210,20 @@ export default function Dashboard() {
                   <span className="text-xs text-white/60">Tiene seguro/ficha hoy</span>
                 </label>
               </div>
+
+              {editing && form.role === "JUGADOR" && (
+                <label className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={cuentaPresupuesto}
+                    onChange={(e) => setCuentaPresupuesto(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-xs text-white/70">
+                    Cuenta para el <span className="text-primary-light font-semibold">presupuesto</span> (paga cuota)
+                  </span>
+                </label>
+              )}
 
               {formError && <p className="text-red-400 text-sm">{formError}</p>}
 
@@ -1097,7 +1387,80 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-    {/* ===================== MODAL IMPORTAR EXCEL ===================== */}
+    {/* ===================== MODAL CUOTA ===================== */}
+      {showQuotaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#1d1d1d] p-6">
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="font-display text-lg font-bold">Cuota mensual</h2>
+              <button onClick={() => setShowQuotaModal(false)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
+            </div>
+            <p className="text-xs text-white/50 mt-1">
+              La cuota por jugador de {presup?.categoria}. Dejalo vacío para quitar la cuota cargada.
+            </p>
+            <input
+              type="number"
+              min="0"
+              step="500"
+              value={quotaInput}
+              onChange={(e) => setQuotaInput(e.target.value)}
+              placeholder="Ej: 30000"
+              className="mt-4 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm"
+            />
+            <button
+              onClick={guardarQuota}
+              disabled={quotaSaving}
+              className="mt-4 w-full px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-light disabled:opacity-50"
+            >
+              {quotaSaving ? "Guardando..." : "Guardar cuota"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== MODAL GASTO ===================== */}
+      {gastoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#1d1d1d] p-6">
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="font-display text-lg font-bold">
+                {gastoModal.tipo === "fijo" ? "Nuevo gasto fijo" : `Gasto extra de ${monthShort(gastoModal.mes ?? mesActual())}`}
+              </h2>
+              <button onClick={() => setGastoModal(null)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
+            </div>
+            <p className="text-xs text-white/50 mt-1">
+              {gastoModal.tipo === "fijo"
+                ? "Se repite todos los meses (cancha, árbitros, viáticos...)."
+                : "Gasto puntual solo de este mes (cancha extra por lluvia, etc.)."}
+            </p>
+            <div className="mt-4 space-y-3">
+              <input
+                value={gastoForm.nombre}
+                onChange={(e) => setGastoForm((f) => ({ ...f, nombre: e.target.value }))}
+                placeholder="Nombre (ej: Cancha)"
+                className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm"
+              />
+              <input
+                type="number"
+                min="0"
+                value={gastoForm.monto}
+                onChange={(e) => setGastoForm((f) => ({ ...f, monto: e.target.value }))}
+                placeholder="Monto (ej: 45000)"
+                className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm"
+              />
+            </div>
+            <button
+              onClick={guardarGasto}
+              disabled={gastoSaving}
+              className="mt-4 w-full px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-light disabled:opacity-50"
+            >
+              {gastoSaving ? "Guardando..." : "Agregar gasto"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== MODAL IMPORTAR EXCEL ===================== */}
       {showImport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-[#1d1d1d] p-6">

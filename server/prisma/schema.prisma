@@ -36,6 +36,7 @@ model UserTeamAccess {
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@id([userId, teamId])
+  @@index([teamId])
 }
 
 // ---------------- Equipos / Categorías ----------------
@@ -48,10 +49,13 @@ model Team {
   category  String  // "C11", "C13", ..., "PRIMERA"
   tier      String? // "elite" | "primera_a" (solo en primeras)
   sheetName String  // Nombre exacto de la pestaña en el Drive
+  quota     Float?  // cuota mensual por jugador de esta categoría (presupuesto)
 
-  players PlayerTeam[]
-  matches Match[]
-  access  UserTeamAccess[]
+  players     PlayerTeam[]
+  matches     Match[]
+  access      UserTeamAccess[]
+  gastosFijos GastoFijo[]
+  gastosExtra GastoExtra[]
 }
 
 // Jugador único: identificado por DNI; validado/creado una sola vez.
@@ -79,11 +83,43 @@ model PlayerTeam {
   role      String  @default("JUGADOR") // JUGADOR | DT | AT | PF | DEL | ...
   jersey     Int?    // número de camiseta (opcional)
   position   String? // posición en cancha
+  // Presupuesto: false para casos excepcionales (ej. jugador que está
+  // regularizando y no juega todavía) — no cuenta en el ingreso por cuotas.
+  cuentaPresupuesto Boolean @default(true)
 
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
   team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, teamId])
+  @@index([teamId])
+}
+
+// ---------------- Presupuesto por categoría ----------------
+
+// Gasto recurrente todos los meses (cancha, árbitros, viáticos...).
+// Si un mes cambia, se agrega un GastoExtra puntual que lo reemplaza.
+model GastoFijo {
+  id     String @id @default(cuid())
+  teamId String
+  nombre String  // "Cancha", "Árbitros", "Viáticos"...
+  monto  Float
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+}
+
+// Gasto puntual de UN mes (ej. cancha extra por lluvia).
+model GastoExtra {
+  id     String @id @default(cuid())
+  teamId String
+  mes    String // "YYYY-MM"  ejemplo: "2026-08"
+  nombre String
+  monto  Float
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, mes])
 }
 
 // ---------------- Jugadores: modelo viejo eliminado (ver PlayerTeam) ----------------
@@ -138,6 +174,7 @@ model Match {
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([dateTime])
+  @@index([teamId, dateTime])
 }
 
 // Estado global de sincronizaciones (ej. última corrida de TIMBO)
