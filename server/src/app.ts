@@ -9,6 +9,7 @@ import playerRoutes from "./routes/players.js";
 import matchRoutes from "./routes/matches.js";
 import syncRoutes from "./routes/sync.js";
 import publicRoutes from "./routes/public.js";
+import poliRoutes from "./routes/poli.js";
 
 export const app = express();
 app.use(cors());
@@ -27,6 +28,7 @@ app.use("/api", playerRoutes);
 app.use("/api/matches", matchRoutes);
 app.use("/api/sync", syncRoutes);
 app.use("/api/public", publicRoutes);
+app.use("/api/poli", poliRoutes);
 
 app.use((_req, res) => res.status(404).json({ error: "Ruta no encontrada" }));
 

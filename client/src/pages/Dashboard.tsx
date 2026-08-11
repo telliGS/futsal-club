@@ -90,6 +90,62 @@ interface DelegadoAdmin {
   teamAccess: Array<{ team: Team }>;
 }
 
+// ---------- Poli (cronograma de entrenamiento) ----------
+interface PoliSlot {
+  id: string;
+  dayOfWeek: number; // 1=lun ... 7=dom
+  startTime: string;
+  endTime: string;
+  place: string;
+  teamId: string | null;
+  responsable: string | null;
+  note: string | null;
+  active: boolean;
+  team: { id: string; name: string } | null;
+}
+
+interface PoliBloque {
+  id: string;
+  tipo: "PLANTILLA" | "EXTRA";
+  startTime: string;
+  endTime: string;
+  place: string;
+  team: { id: string; name: string } | null;
+  responsable?: string | null;
+  note?: string | null;
+  excepcion?: {
+    id: string;
+    canceled: boolean;
+    place?: string;
+    startTime?: string;
+    endTime?: string;
+    note?: string;
+    slotId: string | null;
+  } | null;
+}
+
+interface PoliPartido {
+  id: string;
+  time: string;
+  rival: string;
+  isHome: boolean;
+  venue: string;
+  team: { id: string; name: string };
+}
+
+interface PoliDia {
+  fecha: string;
+  dia: string;
+  bloques: PoliBloque[];
+  partidos: PoliPartido[];
+}
+
+interface PoliSemana {
+  from: string;
+  to: string;
+  semana: PoliDia[];
+}
+
 // ---------- Presupuesto ----------
 interface GastoItem {
   id: string;
@@ -269,7 +325,7 @@ export default function Dashboard() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [view, setView] = useState<"lista" | "calendario" | "presupuesto" | "delegados">("lista");
+  const [view, setView] = useState<"lista" | "calendario" | "presupuesto" | "delegados" | "poli">("lista");
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [delegados, setDelegados] = useState<DelegadoAdmin[]>([]);
   const [delegadosLoading, setDelegadosLoading] = useState(false);
@@ -284,6 +340,36 @@ export default function Dashboard() {
   const [delegadoSaving, setDelegadoSaving] = useState(false);
   const [showDelegadoModal, setShowDelegadoModal] = useState(false);
   const [delegadoMsg, setDelegadoMsg] = useState("");
+
+  // ---------- Poli ----------
+  const [poliSemana, setPoliSemana] = useState<PoliDia[]>([]);
+  const [poliSlots, setPoliSlots] = useState<PoliSlot[]>([]);
+  const [poliLoading, setPoliLoading] = useState(false);
+  const [poliError, setPoliError] = useState("");
+  const [poliMsg, setPoliMsg] = useState("");
+  const [poliSemanaOffset, setPoliSemanaOffset] = useState(0); // 0 = semana actual
+  const [showPoliSlotModal, setShowPoliSlotModal] = useState(false);
+  const [poliSlotForm, setPoliSlotForm] = useState({
+    dayOfWeek: 1,
+    startTime: "19:00",
+    endTime: "20:30",
+    place: "Polideportivo",
+    teamId: "",
+    responsable: "",
+    note: "",
+  });
+  const [poliSlotEditingId, setPoliSlotEditingId] = useState<string | null>(null);
+  const [poliSlotSaving, setPoliSlotSaving] = useState(false);
+  const [showPoliExModal, setShowPoliExModal] = useState<{ fecha: string; bloque?: PoliBloque } | null>(null);
+  const [poliExForm, setPoliExForm] = useState({
+    place: "",
+    startTime: "",
+    endTime: "",
+    canceled: false,
+    note: "",
+    teamId: "",
+  });
+  const [poliExSaving, setPoliExSaving] = useState(false);
 
   // ---------- Alta / edición de jugadores ----------
   const [showForm, setShowForm] = useState(false);
@@ -977,6 +1063,199 @@ export default function Dashboard() {
     }
   }
 
+  // ===================== POLI (cronograma de entrenamiento) =====================
+
+  function lunesDeSemana(offset: number): Date {
+    // Lunes de la semana actual + offset semanas
+    const now = new Date();
+    const dow = now.getDay() === 0 ? 7 : now.getDay(); // 1=lun...7=dom
+    const lun = new Date(now);
+    lun.setDate(now.getDate() - (dow - 1) + offset * 7);
+    lun.setHours(0, 0, 0, 0);
+    return lun;
+  }
+
+  function fmtDay(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  async function cargarPoli() {
+    if (!token) return;
+    setPoliLoading(true);
+    setPoliError("");
+    try {
+      const lun = lunesDeSemana(poliSemanaOffset);
+      const dom = new Date(lun);
+      dom.setDate(lun.getDate() + 6);
+      const [sem, slots] = await Promise.all([
+        apiFetch<PoliSemana>(`/poli/week?from=${fmtDay(lun)}&to=${fmtDay(dom)}`, {}, token),
+        apiFetch<PoliSlot[]>("/poli/slots", {}, token),
+      ]);
+      setPoliSemana(sem.semana);
+      setPoliSlots(slots);
+    } catch (err) {
+      setPoliError((err as Error).message);
+    } finally {
+      setPoliLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (view === "poli") cargarPoli();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, token, poliSemanaOffset]);
+
+  function openNuevoPoliSlot() {
+    setPoliSlotEditingId(null);
+    setPoliSlotForm({
+      dayOfWeek: 1,
+      startTime: "19:00",
+      endTime: "20:30",
+      place: "Polideportivo",
+      teamId: allTeams[0]?.id ?? "",
+      responsable: "",
+      note: "",
+    });
+    setPoliError("");
+    setShowPoliSlotModal(true);
+  }
+
+  function startEditPoliSlot(s: PoliSlot) {
+    setPoliSlotEditingId(s.id);
+    setPoliSlotForm({
+      dayOfWeek: s.dayOfWeek,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      place: s.place,
+      teamId: s.teamId ?? "",
+      responsable: s.responsable ?? "",
+      note: s.note ?? "",
+    });
+    setPoliError("");
+    setShowPoliSlotModal(true);
+  }
+
+  async function savePoliSlot(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token) return;
+    setPoliSlotSaving(true);
+    setPoliError("");
+    try {
+      const payload = {
+        dayOfWeek: poliSlotForm.dayOfWeek,
+        startTime: poliSlotForm.startTime,
+        endTime: poliSlotForm.endTime,
+        place: poliSlotForm.place,
+        teamId: poliSlotForm.teamId || null,
+        responsable: poliSlotForm.responsable || null,
+        note: poliSlotForm.note || null,
+      };
+      if (poliSlotEditingId) {
+        await apiFetch(`/poli/slots/${poliSlotEditingId}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
+        setPoliMsg("Bloque actualizado.");
+      } else {
+        await apiFetch("/poli/slots", { method: "POST", body: JSON.stringify(payload) }, token);
+        setPoliMsg("Bloque semanal creado.");
+      }
+      setTimeout(() => setPoliMsg(""), 3000);
+      setShowPoliSlotModal(false);
+      cargarPoli();
+    } catch (err) {
+      setPoliError((err as Error).message);
+    } finally {
+      setPoliSlotSaving(false);
+    }
+  }
+
+  async function borrarPoliSlot(s: PoliSlot) {
+    if (!token) return;
+    if (!window.confirm(`¿Eliminar el bloque ${s.startTime}-${s.endTime} (${s.place})?`)) return;
+    try {
+      await apiFetch(`/poli/slots/${s.id}`, { method: "DELETE" }, token);
+      setPoliMsg("Bloque eliminado.");
+      setTimeout(() => setPoliMsg(""), 3000);
+      cargarPoli();
+    } catch (err) {
+      setPoliError((err as Error).message);
+    }
+  }
+
+  function abrirExcepcion(fecha: string, bloque?: PoliBloque) {
+    setPoliExForm({
+      place: bloque?.place ?? "",
+      startTime: bloque?.startTime ?? "",
+      endTime: bloque?.endTime ?? "",
+      canceled: false,
+      note: "",
+      teamId: bloque?.team?.id ?? "",
+    });
+    setPoliError("");
+    setShowPoliExModal({ fecha, bloque });
+  }
+
+  async function saveExcepcion(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token || !showPoliExModal) return;
+    setPoliExSaving(true);
+    setPoliError("");
+    try {
+      const bloque = showPoliExModal.bloque;
+      const esExtra = !bloque; // "+ Extra": entrenamiento puntual nuevo
+      const payload = {
+        date: showPoliExModal.fecha,
+        slotId: esExtra ? null : bloque.id,
+        // En un extra, teamId define la categoría que entrena; al modificar un
+        // slot de plantilla el equipo se hereda del slot (teamId null).
+        teamId: esExtra ? (poliExForm.teamId || null) : null,
+        place: poliExForm.canceled ? null : (poliExForm.place || null),
+        startTime: poliExForm.canceled ? null : (poliExForm.startTime || null),
+        endTime: poliExForm.canceled ? null : (poliExForm.endTime || null),
+        canceled: poliExForm.canceled,
+        note: poliExForm.note || null,
+      };
+      await apiFetch("/poli/exceptions", { method: "POST", body: JSON.stringify(payload) }, token);
+      setPoliMsg(poliExForm.canceled ? "Entrenamiento cancelado para ese día." : "Cambio aplicado para ese día.");
+      setTimeout(() => setPoliMsg(""), 3000);
+      setShowPoliExModal(null);
+      cargarPoli();
+    } catch (err) {
+      setPoliError((err as Error).message);
+    } finally {
+      setPoliExSaving(false);
+    }
+  }
+
+  const POLI_LUGARES_COLOR: Record<string, string> = {
+    "Polideportivo": "bg-primary/15 border-primary/40 text-green-300",
+    "La Toma": "bg-sky-500/10 border-sky-500/30 text-sky-300",
+    "Palermo": "bg-amber-500/10 border-amber-500/30 text-amber-300",
+    "Borja": "bg-purple-500/10 border-purple-500/30 text-purple-300",
+    "Gimnasio": "bg-orange-500/10 border-orange-500/30 text-orange-300",
+  };
+
+  function placeColor(place: string): string {
+    const base = POLI_LUGARES_COLOR[place];
+    if (base) return base;
+    if (/gym|gimnasio/i.test(place)) return POLI_LUGARES_COLOR["Gimnasio"];
+    return "bg-surface-2 border-outline text-white/70";
+  }
+
+  function moverSemana(delta: number) {
+    setPoliSemanaOffset((o) => o + delta);
+  }
+
+  async function togglePoliSlot(s: PoliSlot) {
+    if (!token) return;
+    try {
+      await apiFetch(`/poli/slots/${s.id}`, { method: "PATCH", body: JSON.stringify({ active: !s.active }) }, token);
+      setPoliMsg(s.active ? "Bloque suspendido." : "Bloque reactivado.");
+      setTimeout(() => setPoliMsg(""), 3000);
+      cargarPoli();
+    } catch (err) {
+      setPoliError((err as Error).message);
+    }
+  }
+
   async function toggleCuota(p: Player, month: string, paid: boolean) {
     if (!token) return;
     // Protección anti-accidente: quitar un pago ya registrado pide confirmación
@@ -1159,6 +1438,14 @@ export default function Dashboard() {
                   className={`px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${view === "delegados" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
                 >
                   Delegados
+                </button>
+              )}
+              {me?.role === "ADMIN" && (
+                <button
+                  onClick={() => setView("poli")}
+                  className={`px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${view === "poli" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+                >
+                  Cronograma
                 </button>
               )}
             </div>
@@ -1888,6 +2175,222 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* ===================== VISTA CRONOGRAMA DE ENTRENAMIENTO ===================== */}
+      {view === "poli" && me?.role === "ADMIN" && (
+        <div className="mt-8 rounded-lg border border-outline bg-surface-1 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-lg font-bold">Cronograma de entrenamiento</h2>
+              <p className="text-sm text-white/60 mt-1">
+                Horarios y lugares donde entrena cada categoría. La plantilla se repite todas las semanas; podés cambiar un día puntual con "Cambiar este día".
+              </p>
+            </div>
+            <button
+              onClick={openNuevoPoliSlot}
+              className="btn bg-primary text-white hover:bg-primary-light active:scale-95"
+            >
+              + Nuevo bloque
+            </button>
+          </div>
+
+          {poliMsg && (
+            <p className="mt-4 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-sm text-green-400">
+              {poliMsg}
+            </p>
+          )}
+          {poliError && <p className="mt-4 text-sm text-red-400">{poliError}</p>}
+
+          {/* Navegación de semana */}
+          <div className="mt-5 flex items-center justify-between gap-2">
+            <button
+              onClick={() => moverSemana(-1)}
+              className="px-3 py-1.5 rounded-lg text-sm bg-surface-2 border border-outline hover:bg-surface-1 text-white/80 transition-colors"
+            >
+              ← Semana anterior
+            </button>
+            <p className="text-sm text-white/60 font-mono">
+              {poliSemanaOffset === 0 ? "Esta semana" : poliSemanaOffset > 0 ? `En ${poliSemanaOffset} semana${poliSemanaOffset === 1 ? "" : "s"}` : `Hace ${-poliSemanaOffset} semana${-poliSemanaOffset === 1 ? "" : "s"}`}
+            </p>
+            <button
+              onClick={() => moverSemana(1)}
+              disabled={poliSemanaOffset >= 3}
+              className="px-3 py-1.5 rounded-lg text-sm bg-surface-2 border border-outline hover:bg-surface-1 text-white/80 transition-colors disabled:opacity-40"
+            >
+              Semana siguiente →
+            </button>
+          </div>
+
+          {poliLoading ? (
+            <p className="mt-6 text-white/60">Cargando cronograma...</p>
+          ) : (
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {poliSemana.length === 0 && (
+                <p className="text-sm text-white/40 md:col-span-2 xl:col-span-4">
+                  No se pudo cargar la semana.
+                </p>
+              )}
+              {poliSemana.map((d) => {
+                const hoy = new Date().toISOString().slice(0, 10) === d.fecha;
+                return (
+                  <div
+                    key={d.fecha}
+                    className={`rounded-lg border overflow-hidden ${hoy ? "border-primary/60 shadow-[0_0_18px_rgba(0,147,66,0.12)]" : "border-outline bg-surface"}`}
+                  >
+                    <div className="px-3 py-2 border-b border-outline bg-surface-1 flex items-center justify-between">
+                      <p className="font-display font-bold text-sm capitalize">
+                        {d.dia}
+                        {hoy && (
+                          <span className="ml-1.5 text-[9px] uppercase tracking-wider font-mono text-primary-light align-middle">
+                            · hoy
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-[10px] font-mono text-white/40">{d.fecha.slice(8, 10)}/{d.fecha.slice(5, 7)}</p>
+                    </div>
+                    <div className="p-2 space-y-1.5">
+                      {/* Partidos del club ese día */}
+                      {d.partidos.length > 0 && (
+                        <div className="px-2 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/25 text-[11px]">
+                          {d.partidos.map((p) => (
+                            <p key={p.id} className="text-amber-200/90">
+                              ⚽ {p.time} · {p.team.name} vs {p.rival} {p.isHome ? "(local)" : ""}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                      {d.bloques.length === 0 && d.partidos.length === 0 && (
+                        <div className="py-2 text-center">
+                          <p className="text-xs text-white/30">Sin actividad</p>
+                          <button
+                            onClick={() => abrirExcepcion(d.fecha)}
+                            className="mt-1.5 text-[11px] px-2 py-0.5 rounded bg-white/5 hover:bg-primary/15 hover:text-primary-light border border-outline hover:border-primary/40 transition-colors"
+                            title="Agregar un entrenamiento puntual este día"
+                          >
+                            + Agregar entrenamiento
+                          </button>
+                        </div>
+                      )}
+                      {d.bloques.map((b) => (
+                        <div
+                          key={b.id}
+                          className={`rounded-md border px-2.5 py-2 ${placeColor(b.place)}`}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <p className="font-mono text-xs font-semibold tabular-nums">
+                              {b.startTime}–{b.endTime}
+                            </p>
+                            <span className="text-[9px] uppercase tracking-wider opacity-70 font-mono">
+                              {b.tipo === "EXTRA" ? "Puntual" : b.excepcion ? "Modificado" : "Fijo"}
+                            </span>
+                          </div>
+                          <p className="text-sm font-semibold mt-0.5">{b.team?.name ?? "Actividad libre"}</p>
+                          <p className="text-[11px] opacity-80">{b.place}</p>
+                          {b.responsable && <p className="text-[11px] opacity-70">👤 {b.responsable}</p>}
+                          {b.note && <p className="text-[10px] italic opacity-70 mt-0.5">{b.note}</p>}
+                          <div className="mt-1.5 flex items-center gap-1.5">
+                            <button
+                              onClick={() => abrirExcepcion(d.fecha, b)}
+                              className="text-[11px] px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 transition-colors"
+                              title="Cambiar lugar/hora o cancelar para este día puntual"
+                            >
+                              Cambiar este día
+                            </button>
+                            <button
+                              onClick={() => abrirExcepcion(d.fecha)}
+                              className="text-[11px] px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 transition-colors"
+                              title="Agregar un entrenamiento puntual extra este día"
+                            >
+                              + Extra
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Plantilla semanal (lista de bloques fijos) */}
+          <div className="mt-8">
+            <h3 className="font-display font-bold text-sm flex items-center gap-2">
+              <span className="w-1.5 h-4 rounded-full bg-primary" />
+              Plantilla semanal (se repite todas las semanas)
+            </h3>
+            <p className="text-xs text-white/50 mt-1">
+              Acá se definen los bloques fijos. Usá "Cambiar este día" en la grilla para una excepción puntual.
+            </p>
+            {poliSlots.length === 0 ? (
+              <p className="mt-3 text-sm text-white/40">
+                Todavía no hay bloques cargados. Tocá "+ Nuevo bloque" para crear el primero (ej: lunes 21:00 JH NEGRO en Polideportivo).
+              </p>
+            ) : (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-white/50">
+                      <th className="py-2">Día</th>
+                      <th className="py-2">Horario</th>
+                      <th className="py-2">Lugar</th>
+                      <th className="py-2">Equipo</th>
+                      <th className="py-2">Responsable</th>
+                      <th className="py-2">Estado</th>
+                      <th className="py-2 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {poliSlots.map((s) => (
+                      <tr key={s.id} className={`border-t border-outline/60 ${s.active ? "" : "opacity-50"}`}>
+                        <td className="py-3 capitalize">
+                          {["", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"][s.dayOfWeek]}
+                        </td>
+                        <td className="py-3 font-mono tabular-nums">{s.startTime}–{s.endTime}</td>
+                        <td className="py-3">
+                          <span className={`px-2 py-0.5 rounded-full text-xs border ${placeColor(s.place)}`}>
+                            {s.place}
+                          </span>
+                        </td>
+                        <td className="py-3">{s.team?.name ?? "Actividad libre"}</td>
+                        <td className="py-3 text-white/70">{s.responsable ?? "—"}</td>
+                        <td className="py-3">
+                          <button
+                            onClick={() => togglePoliSlot(s)}
+                            className={`px-2.5 py-0.5 rounded-full text-xs border transition-colors ${
+                              s.active
+                                ? "bg-green-500/10 text-green-400 border-green-500/30 hover:bg-green-500/20"
+                                : "bg-white/5 text-white/50 border-outline hover:bg-surface-2"
+                            }`}
+                          >
+                            {s.active ? "Activo" : "Suspendido"}
+                          </button>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => startEditPoliSlot(s)}
+                              className="px-2.5 py-1 rounded-lg text-xs bg-surface-2 border border-outline hover:bg-surface-1 text-white/80 transition-colors"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => borrarPoliSlot(s)}
+                              className="px-2.5 py-1 rounded-lg text-xs bg-transparent text-red-400/40 border border-transparent hover:bg-red-400/10 hover:text-red-400 hover:border-red-400/30 transition-colors"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ===================== VISTA PRESUPUESTO ===================== */}
       {view === "presupuesto" && (
         <div className="mt-6">
@@ -2614,6 +3117,263 @@ export default function Dashboard() {
                   className="px-4 py-2 rounded-lg border border-outline text-white/70 text-sm hover:bg-surface-1"
                 >
                   Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== MODAL BLOQUE SEMANAL (POLI) ===================== */}
+      {showPoliSlotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-lg border border-outline bg-surface-2 p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="font-display text-lg font-bold">
+                {poliSlotEditingId ? "Editar bloque semanal" : "Nuevo bloque semanal"}
+              </h2>
+              <button onClick={() => setShowPoliSlotModal(false)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
+            </div>
+            <p className="text-xs text-white/50 mt-1">
+              Se repite todas las semanas hasta que lo cambies. Para un solo día usá "Cambiar este día" en la grilla.
+            </p>
+
+            <form onSubmit={savePoliSlot} className="mt-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-white/70 block mb-1">Día</label>
+                  <select
+                    value={poliSlotForm.dayOfWeek}
+                    onChange={(e) => setPoliSlotForm({ ...poliSlotForm, dayOfWeek: Number(e.target.value) })}
+                    className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                  >
+                    <option value={1}>Lunes</option>
+                    <option value={2}>Martes</option>
+                    <option value={3}>Miércoles</option>
+                    <option value={4}>Jueves</option>
+                    <option value={5}>Viernes</option>
+                    <option value={6}>Sábado</option>
+                    <option value={7}>Domingo</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-white/70 block mb-1">Lugar</label>
+                  <select
+                    value={poliSlotForm.place}
+                    onChange={(e) => setPoliSlotForm({ ...poliSlotForm, place: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                  >
+                    <option>Polideportivo</option>
+                    <option>La Toma</option>
+                    <option>Palermo</option>
+                    <option>Borja</option>
+                    <option>Gimnasio</option>
+                    <option>Cancha de césped</option>
+                    <option>Otro</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-white/70 block mb-1">Desde</label>
+                  <input
+                    type="time"
+                    value={poliSlotForm.startTime}
+                    onChange={(e) => setPoliSlotForm({ ...poliSlotForm, startTime: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-white/70 block mb-1">Hasta</label>
+                  <input
+                    type="time"
+                    value={poliSlotForm.endTime}
+                    onChange={(e) => setPoliSlotForm({ ...poliSlotForm, endTime: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-white/70 block mb-1">Equipo / actividad</label>
+                <select
+                  value={poliSlotForm.teamId}
+                  onChange={(e) => setPoliSlotForm({ ...poliSlotForm, teamId: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                >
+                  <option value="">Actividad libre (sin equipo)</option>
+                  {allTeams.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-white/70 block mb-1">Responsable (opcional)</label>
+                <input
+                  value={poliSlotForm.responsable}
+                  onChange={(e) => setPoliSlotForm({ ...poliSlotForm, responsable: e.target.value })}
+                  placeholder="Ej: DT Marcos"
+                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/70 block mb-1">Nota (opcional)</label>
+                <input
+                  value={poliSlotForm.note}
+                  onChange={(e) => setPoliSlotForm({ ...poliSlotForm, note: e.target.value })}
+                  placeholder="Ej: solo jugadores convocados"
+                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                />
+              </div>
+
+              {poliError && <p className="text-sm text-red-400">{poliError}</p>}
+
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPoliSlotModal(false)}
+                  className="px-4 py-2 rounded-lg border border-outline text-white/70 text-sm hover:bg-surface-1"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={poliSlotSaving}
+                  className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-light disabled:opacity-50"
+                >
+                  {poliSlotSaving ? "Guardando..." : poliSlotEditingId ? "Guardar cambios" : "Crear bloque"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== MODAL EXCEPCIÓN PUNTUAL (POLI) ===================== */}
+      {showPoliExModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-lg border border-outline bg-surface-2 p-6">
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="font-display text-lg font-bold">
+                {showPoliExModal.bloque ? "Cambiar entrenamiento del día" : "Agregar entrenamiento puntual"}
+              </h2>
+              <button onClick={() => setShowPoliExModal(null)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
+            </div>
+            <p className="text-xs text-white/50 mt-1">
+              {showPoliExModal.bloque
+                ? <>Aplica solo al <span className="text-white capitalize">{showPoliExModal.fecha}</span>. Si cancelás, ese día no se entrena.</>
+                : <>Entrenamiento único para el <span className="text-white capitalize">{showPoliExModal.fecha}</span> (no se repite las semanas siguientes).</>}
+            </p>
+
+            <form onSubmit={saveExcepcion} className="mt-5 space-y-4">
+              {showPoliExModal.bloque && (
+                <div className="rounded-lg bg-surface-1 border border-outline p-3 text-sm">
+                  <p className="text-white/80">
+                    <span className="text-white/50">De: </span>{showPoliExModal.bloque.team?.name ?? "Actividad libre"}
+                    <span className="text-white/40"> · </span>{showPoliExModal.bloque.startTime}–{showPoliExModal.bloque.endTime}
+                    <span className="text-white/40"> · </span>{showPoliExModal.bloque.place}
+                  </p>
+                </div>
+              )}
+
+              {showPoliExModal.bloque && (
+                <label className="flex items-center gap-2 text-sm text-white/80 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={poliExForm.canceled}
+                    onChange={(e) => setPoliExForm({ ...poliExForm, canceled: e.target.checked })}
+                    className="accent-red-500 w-4 h-4"
+                  />
+                  Cancelar el entrenamiento este día
+                </label>
+              )}
+
+              {!showPoliExModal.bloque && (
+                <div>
+                  <label className="text-xs text-white/70 block mb-1">Equipo / actividad</label>
+                  <select
+                    value={poliExForm.teamId}
+                    onChange={(e) => setPoliExForm({ ...poliExForm, teamId: e.target.value })}
+                    disabled={poliExForm.canceled}
+                    className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm disabled:opacity-50"
+                  >
+                    <option value="">Actividad libre (sin equipo)</option>
+                    {allTeams.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-white/70 block mb-1">Lugar</label>
+                  <select
+                    value={poliExForm.place}
+                    onChange={(e) => setPoliExForm({ ...poliExForm, place: e.target.value })}
+                    disabled={poliExForm.canceled}
+                    className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm disabled:opacity-50"
+                  >
+                    <option value="">Sin cambio</option>
+                    <option>Polideportivo</option>
+                    <option>La Toma</option>
+                    <option>Palermo</option>
+                    <option>Borja</option>
+                    <option>Gimnasio</option>
+                    <option>Cancha de césped</option>
+                    <option>Otro</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-white/70 block mb-1">Desde</label>
+                    <input
+                      type="time"
+                      value={poliExForm.startTime}
+                      onChange={(e) => setPoliExForm({ ...poliExForm, startTime: e.target.value })}
+                      disabled={poliExForm.canceled}
+                      className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/70 block mb-1">Hasta</label>
+                    <input
+                      type="time"
+                      value={poliExForm.endTime}
+                      onChange={(e) => setPoliExForm({ ...poliExForm, endTime: e.target.value })}
+                      disabled={poliExForm.canceled}
+                      className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-white/70 block mb-1">Nota (opcional)</label>
+                <input
+                  value={poliExForm.note}
+                  onChange={(e) => setPoliExForm({ ...poliExForm, note: e.target.value })}
+                  placeholder="Ej: cancha ocupada por lluvia"
+                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                />
+              </div>
+
+              {poliError && <p className="text-sm text-red-400">{poliError}</p>}
+
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPoliExModal(null)}
+                  className="px-4 py-2 rounded-lg border border-outline text-white/70 text-sm hover:bg-surface-1"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={poliExSaving}
+                  className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-light disabled:opacity-50"
+                >
+                  {poliExSaving ? "Guardando..." : showPoliExModal.bloque ? "Aplicar cambio" : "Agregar entrenamiento"}
                 </button>
               </div>
             </form>

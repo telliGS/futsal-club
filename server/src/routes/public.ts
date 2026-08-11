@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../config.js";
 import { calcularDocumentos, aptoParaJugar, labelTipo } from "../lib/ficha.js";
 import { weekendWindowArg } from "../lib/timbo.js";
+import { buildSemana, currentWeekArg } from "../lib/poli.js";
 
 const router = Router();
 
@@ -25,6 +26,32 @@ router.get("/status", async (req, res) => {
     },
   });
   if (!player) return res.status(404).json({ error: "No se encontró ningún jugador con ese DNI" });
+
+  // Equipos donde la persona es JUGADOR (los vínculos de técnico/delegado
+  // no definen cuota ni ficha). Si no juega en ninguno (puro técnico/DT),
+  // la cuota NO aplica: un DT que pone su DNI no puede salir "en deuda".
+  const equiposJugador = player.teams.filter((t) => t.role === "JUGADOR");
+  if (equiposJugador.length === 0) {
+    return res.json({
+      id: player.id,
+      fullName: `${player.firstName} ${player.lastName}`,
+      teams: player.teams.map((t) => t.team.name),
+      esTecnico: true,
+      sinCuota: true,
+      currentMonth: new Date().toISOString().slice(0, 7),
+      isPaid: false,
+      pendiente: false,
+      deudor: false,
+      puedeJugar: null,
+      motivo: null,
+      diasParaPagar: 0,
+      lastPayment: null,
+      unpaidMonths: [],
+      totalDeuda: 0,
+      fichas: [],
+      fichasDetalle: { electro: null, ergo: null, fichaMedica: null },
+    });
+  }
 
   // Regla del club: la cuota se paga del 1 al 10 de cada mes.
   // Desde el día 11 sin pagar el mes en curso → DEUDOR y sin permiso de jugar.
@@ -49,12 +76,8 @@ router.get("/status", async (req, res) => {
   const puedeJugarCuota = !deudor;
 
   // Fichas / estudios (regla por categoría: mayores → ergo, menores → electro).
-  // Solo cuentan los equipos donde la persona es JUGADOR (los vínculos de
-  // técnico/delegado no definen su cuota ni su ficha).
-  const equiposJugador = player.teams.filter((t) => t.role === "JUGADOR");
-  const categoriasFicha = equiposJugador.length > 0
-    ? equiposJugador.map((t) => t.team.category)
-    : player.teams.map((t) => t.team.category);
+  // Solo cuentan los equipos donde la persona es JUGADOR.
+  const categoriasFicha = equiposJugador.map((t) => t.team.category);
   const ficha = calcularDocumentos(
     player.documentos,
     new Date(),
@@ -63,16 +86,13 @@ router.get("/status", async (req, res) => {
   const apto = aptoParaJugar(puedeJugarCuota, ficha);
   const motivo = apto.razones.map((r) => r.replace(/^cuota adeudada$/, "cuota del mes sin pagar")).join(", ");
 
-  // Equipos donde juega (solo JUGADOR): si no juega en ninguno (puro técnico),
-  // mostramos sus equipos de todos modos para que el mensaje no quede vacío.
-  const equiposVisibles = equiposJugador.length > 0
-    ? equiposJugador
-    : player.teams;
+  // Equipos donde juega (solo JUGADOR)
+  const equiposVisibles = equiposJugador.map((t) => t.team.name);
 
   res.json({
     id: player.id,
     fullName: `${player.firstName} ${player.lastName}`,
-    teams: equiposVisibles.map((t) => t.team.name),
+    teams: equiposVisibles,
     currentMonth,
     isPaid,
     pendiente,
@@ -115,6 +135,14 @@ router.get("/stats", async (_req, res) => {
   ]);
   const jugadores = new Set(vínculos.map((v) => v.playerId)).size;
   res.json({ equipos, jugadores, partidosProximos: partidos });
+});
+
+// GET /api/public/schedule — cronograma de entrenamiento de la semana EN CURSO
+// (lunes→domingo en hora ARG), con bloques y partidos del club. Sin auth:
+// la idea es que todos vean dónde y cuándo entrena cada categoría.
+router.get("/schedule", async (_req, res) => {
+  const { from, to } = currentWeekArg();
+  res.json(await buildSemana(from, to));
 });
 
 export default router;

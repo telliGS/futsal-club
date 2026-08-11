@@ -47,6 +47,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   Mi cuota
                 </NavLink>
                 <NavLink
+                  to="/cronograma"
+                  className={({ isActive }) =>
+                    `link-underline px-3 py-2 rounded-lg ${isActive ? "active text-white" : "text-white/60 hover:text-white"}`
+                  }
+                >
+                  Cronograma
+                </NavLink>
+                <NavLink
                   to="/ingresar"
                   className={({ isActive }) =>
                     `link-underline px-3 py-2 rounded-lg ${isActive ? "active text-white" : "text-white/60 hover:text-white"}`
@@ -93,6 +101,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <ul className="mt-3 space-y-1.5 text-sm">
               <li><Link className="link-underline text-white/60 hover:text-white" to="/">Inicio</Link></li>
               <li><Link className="link-underline text-white/60 hover:text-white" to="/mi-cuota">Consultar mi cuota</Link></li>
+              <li><Link className="link-underline text-white/60 hover:text-white" to="/cronograma">Cronograma de entrenamiento</Link></li>
               <li><Link className="link-underline text-white/60 hover:text-white" to="/ingresar">Área de delegados</Link></li>
             </ul>
           </div>

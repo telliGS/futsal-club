@@ -20,6 +20,8 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 - **BORRADO EJECUTADO (11/08, BD real)**: se eliminaron los 12 delegados existentes (quedó solo `admin@josehernandez.futbol`). Guille crea los CORRECTOS desde el panel admin (pestaña Delegados).
 - **Credenciales de prueba**: `admin@josehernandez.futbol` / `admin1234`.
 - **Siguiente (11/08)**: crear delegados reales desde el panel + **ROADMAP MARUCHA** (ver sección abajo).
+- **[11/08] Cronograma de entrenamiento (LOCAL, SIN deploy)**: modelos `PoliSlot` (plantilla semanal: dayOfWeek 1-7, startTime/endTime "HH:MM", place, teamId?, responsable?, note?, active) + `PoliException` (puntual por fecha: date YYYY-MM-DD UTC, slotId?, **teamId?** (equipo del extra), place?, startTime?, endTime?, canceled, note?) en `server/prisma/schema.prisma` (db push aplicado). Rutas en `server/src/routes/poli.ts` (`/api/poli`): GET/POST/PATCH/DELETE `/slots` y `/exceptions` (admin), GET `/week?from&to`. **Lógica central en `server/src/lib/poli.ts` (`buildSemana`)** compartida con el público. **TODO en hora de Paraná (UTC-3)**: TIMBO manda date_iso con -03:00 y en BD queda UTC → agrupar/mostrar en UTC mostraba partidos del domingo 21:30 como "lunes 00:30" y dejaba los del lunes 22:00 fuera de la semana (fix 11/08). Rango de matches = from 00:00 ARG → to 23:59:59 ARG. **UI admin**: pestaña "Cronograma" en Dashboard (grilla lunes→domingo con colores por lugar, día actual resaltado "· hoy", partidos del club en ámbar, navegación de semanas, botones "Cambiar este día"/"+ Extra" por bloque Y "+ Agregar entrenamiento" en días vacíos, tabla de plantilla con toggle activo/editar/eliminar, modales slot y excepción puntual — el modal de extra permite elegir EQUIPO). **UI pública**: `GET /api/public/schedule` (semana EN CURSO sin auth) + **página propia `/cronograma`** (estilo Mi cuota: panel de marca + leyenda de lugares + grilla de la semana; link en la nav del Layout y footer). Verificado E2E local (slot + cancelación puntual + extra con equipo + limpieza; BD quedó 0 slots / 0 excepciones).
+- **[11/08] Fix consulta cuota para técnicos (LOCAL, SIN deploy)**: en `GET /api/public/status`, si la persona NO es JUGADOR en ningún equipo (puro técnico/DT, ej. Mauro Erben) ya no calcula deuda → devuelve `{ esTecnico: true, sinCuota: true, deudor: false, pendiente: false, puedeJugar: null }`. Antes un DT que ponía su DNI salía "en deuda" o "pendiente" (no tiene payments y el día 11+ lo marcaba deudor). Status.tsx muestra tarjeta neutra "Integrante del cuerpo técnico — la cuota no aplica" con símbolo "—".
 
 ## URLs en producción
 - Front: `https://jh-futsal.vercel.app` (project prj_qZUeIBA6zGaVWpDeI8xqxU1NTpK3, rootDirectory `client`)
@@ -47,7 +49,9 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 - `PATCH /api/auth/me/credentials` (usuario autenticado puede cambiar sus propias credenciales; actualmente usado como base para la gestión administrativa)
 - `GET /api/teams/:teamId/players` → jugadores con payments (take 24) + estadoCuota
 - `POST /api/players/:id/payments/:month` (body `{paid, amount}`), `GET /api/players/:id/payments`
-- `GET /api/public/status?document=X` (público, sin auth)
+- `GET /api/public/status?document=X` (público, sin auth; si es técnico → `esTecnico`/`sinCuota`)
+- `GET /api/public/schedule` (público, sin auth) — cronograma de la semana en curso (hora ARG)
+- `GET /api/poli/week?from&to` (auth) + CRUD `/poli/slots` y `/poli/exceptions` (admin)
 - `GET /api/health`
 
 ## Panel de delegado (`client/src/pages/Dashboard.tsx`)

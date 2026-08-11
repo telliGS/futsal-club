@@ -9,6 +9,8 @@ interface StatusResult {
   isPaid: boolean;
   pendiente: boolean;
   deudor: boolean;
+  esTecnico?: boolean;
+  sinCuota?: boolean;
   diasParaPagar: number;
   totalDeuda: number;
   unpaidMonths: Array<{ month: string; amount: number }>;
@@ -145,24 +147,28 @@ export default function Status() {
               {result && (
                 <div
                   className={`mt-6 rounded-2xl p-6 border bg-surface-1 animate-fade-up ${
-                    result.isPaid
-                      ? "border-green-500/40"
-                      : result.pendiente
-                        ? "border-amber-500/40"
-                        : "border-red-500/40"
+                    result.esTecnico
+                      ? "border-outline"
+                      : result.isPaid
+                        ? "border-green-500/40"
+                        : result.pendiente
+                          ? "border-amber-500/40"
+                          : "border-red-500/40"
                   }`}
                 >
                   <div className="flex items-start gap-4">
                     <span
                       className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-xl font-bold ${
-                        result.isPaid
-                          ? "bg-green-500/20 text-green-400"
-                          : result.pendiente
-                            ? "bg-amber-500/20 text-amber-300"
-                            : "bg-red-500/20 text-red-400"
+                        result.esTecnico
+                          ? "bg-surface-2 text-white/70"
+                          : result.isPaid
+                            ? "bg-green-500/20 text-green-400"
+                            : result.pendiente
+                              ? "bg-amber-500/20 text-amber-300"
+                              : "bg-red-500/20 text-red-400"
                       }`}
                     >
-                      {result.isPaid ? "✓" : result.pendiente ? "⏳" : "✕"}
+                      {result.esTecnico ? "—" : result.isPaid ? "✓" : result.pendiente ? "⏳" : "✕"}
                     </span>
                     <div className="min-w-0">
                       <p className="font-display text-xl font-bold truncate">{result.fullName}</p>
@@ -171,7 +177,15 @@ export default function Status() {
                   </div>
 
                   <div className="mt-5">
-                    {result.isPaid ? (
+                    {result.esTecnico ? (
+                      <div>
+                        <p className="text-white/80 font-semibold">Integrante del cuerpo técnico</p>
+                        <p className="mt-2 text-xs text-white/60 leading-relaxed">
+                          Estás registrado en {result.teams.join(" · ")} como técnico, no como jugador.
+                          La cuota no aplica para el cuerpo técnico, así que no tenés deuda ni estado de pago.
+                        </p>
+                      </div>
+                    ) : result.isPaid ? (
                       <div>
                         <p className="text-green-400 font-semibold">Estás al día ({result.currentMonth})</p>
                         <div className="mt-3 text-xs text-white/60 bg-surface-2 rounded-lg px-3 py-2.5">

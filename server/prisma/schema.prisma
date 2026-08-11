@@ -56,6 +56,8 @@ model Team {
   access      UserTeamAccess[]
   gastosFijos GastoFijo[]
   gastosExtra GastoExtra[]
+  poliSlots   PoliSlot[]
+  poliExceptions PoliException[]
 }
 
 // Jugador único: identificado por DNI; validado/creado una sola vez.
@@ -188,4 +190,48 @@ model SyncState {
   key       String   @unique // "timbo" | ...
   value     Json
   updatedAt DateTime @updatedAt
+}
+
+// ---------------- Cronograma de entrenamiento (poli) ----------------
+
+// Plantilla SEMANAL fija: se repite todas las semanas en el mismo día y hora.
+// dayOfWeek: 1 = lunes ... 7 = domingo. Lugar default = Polideportivo del club.
+model PoliSlot {
+  id          String   @id @default(cuid())
+  dayOfWeek   Int      // 1=lun ... 7=dom
+  startTime   String   // "21:00" (HH:MM)
+  endTime     String   // "22:30" (HH:MM)
+  place       String   // "Polideportivo", "La Toma", "Palermo", "Borja", "Gimnasio"...
+  teamId      String?  // categoría que entrena (null = actividad libre: reunión, etc.)
+  responsable String?  // profe / DT a cargo (texto libre por ahora)
+  note        String?  // ej. "solo si no hay partido el lunes"
+  active      Boolean  @default(true) // suspendido sin borrar
+  createdAt   DateTime @default(now())
+
+  team       Team?            @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  exceptions PoliException[]
+
+  @@index([dayOfWeek])
+}
+
+// Excepción PUNTUAL por fecha concreta: sobrescribe un slot de la plantilla
+// para UN día (ej. "viernes 14/08 se entrena en La Toma"). canceled=true = no hay.
+// Si no tiene slotId es un bloque EXTRA (entrenamiento puntual nuevo ese día)
+// y puede llevar su propio teamId (categoría que entrena).
+model PoliException {
+  id        String    @id @default(cuid())
+  date      DateTime  // fecha concreta (solo la parte de día importa)
+  slotId    String?   // si sobrescribe un slot de la plantilla; null = bloque extra
+  teamId    String?   // equipo del entrenamiento (extra); si null → se hereda del slot
+  place     String?   // lugar reemplazado (si null → se mantiene el del slot)
+  startTime String?   // hora reemplazada (si null → se mantiene la del slot)
+  endTime   String?   // hora reemplazada (si null → se mantiene la del slot)
+  canceled  Boolean   @default(false) // true = ese día no se entrena
+  note      String?   // ej. "cambio por lluvia"
+  createdAt DateTime  @default(now())
+
+  slot PoliSlot? @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  team Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([date])
 }
