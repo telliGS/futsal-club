@@ -234,55 +234,55 @@ export default function Home() {
             </div>
           )}
 
-          {/* Próximo partido: ficha de partido + cuenta regresiva */}
+          {/* Próximo partido: ficha discreta + cuenta regresiva */}
           {!loading && destacado && restante && (
             <div
-              className="mt-10 max-w-lg rounded-xl border border-outline bg-surface-1/80 backdrop-blur-sm overflow-hidden animate-fade-up"
+              className="mt-8 max-w-md rounded-lg border border-outline bg-surface-1/60 overflow-hidden animate-fade-up"
               style={{ animationDelay: "0.2s" }}
             >
-              {/* Barra superior: indicador live + fecha corta */}
-              <div className="flex items-center justify-between px-5 py-2.5 border-b border-outline/70 bg-surface-1">
-                <div className="flex items-center gap-2.5">
-                  <span className="relative flex w-2 h-2">
+              {/* Barra superior: indicador live + categoría */}
+              <div className="flex items-center justify-between px-4 py-2 border-b border-outline/60 bg-surface-1/40">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex w-1.5 h-1.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-action-green opacity-60" />
-                    <span className="relative inline-flex rounded-full w-2 h-2 bg-action-green" />
+                    <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-action-green" />
                   </span>
-                  <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-white/60">
+                  <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/50">
                     Próximo partido
                   </p>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-primary/15 border border-primary/25 text-primary-light text-[11px] font-mono uppercase tracking-wider">
+                <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary-light text-[10px] font-mono uppercase tracking-wider">
                   {destacado.team.name}
                 </span>
               </div>
 
               {/* Marcador: J.H. vs rival */}
-              <div className="px-5 py-5">
+              <div className="px-4 py-3.5">
                 <div className="flex items-center justify-between gap-4">
-                  <p className="font-display font-bold text-2xl md:text-3xl leading-tight">
+                  <p className="font-display font-bold text-lg md:text-xl leading-tight">
                     {destacado.isHome ? "J.H." : destacado.rival}
                   </p>
-                  <span className="font-mono text-white/40 text-sm uppercase tracking-widest">vs</span>
-                  <p className="font-display font-bold text-2xl md:text-3xl leading-tight text-right">
+                  <span className="font-mono text-white/35 text-[11px] uppercase tracking-widest">vs</span>
+                  <p className="font-display font-bold text-lg md:text-xl leading-tight text-right">
                     {destacado.isHome ? destacado.rival : "J.H."}
                   </p>
                 </div>
 
                 {/* Detalle: fecha · hora · cancha */}
-                <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/60">
-                  <span className="text-white/85">{formatFechaLegible(destacado.dateTime)}</span>
-                  <span className="text-white/30">·</span>
-                  <span className="text-white/85">{formatHora(destacado.dateTime)}</span>
-                  <span className="text-white/30">·</span>
-                  <span className="text-white/75">{destacado.venue}</span>
+                <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[13px] text-white/55">
+                  <span className="text-white/80">{formatFechaLegible(destacado.dateTime)}</span>
+                  <span className="text-white/25">·</span>
+                  <span className="text-white/80">{formatHora(destacado.dateTime)}</span>
+                  <span className="text-white/25">·</span>
+                  <span className="text-white/70">{destacado.venue}</span>
                 </div>
               </div>
 
               {/* Cuenta regresiva */}
-              <div className="px-5 py-3 bg-surface-2 border-t border-outline/70 flex items-center justify-between">
-                <p className="text-[11px] font-mono uppercase tracking-wider text-white/40">Cuenta regresiva</p>
+              <div className="px-4 py-2 bg-surface-2/60 border-t border-outline/60 flex items-center justify-between">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-white/35">Cuenta regresiva</p>
                 <p
-                  className="font-mono text-primary-light tabular-nums font-semibold"
+                  className="font-mono text-[13px] text-primary-light/90 tabular-nums"
                   title={new Date(destacado.dateTime).toLocaleString("es-AR")}
                 >
                   {restante.dias > 0
