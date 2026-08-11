@@ -33,10 +33,18 @@ export async function apiFetch<T>(
 }
 
 export function getToken(): string | null {
-  return localStorage.getItem("jh_token");
+  try {
+    return localStorage.getItem("jh_token");
+  } catch {
+    return null;
+  }
 }
 
 export function setToken(token: string | null) {
-  if (token) localStorage.setItem("jh_token", token);
-  else localStorage.removeItem("jh_token");
+  try {
+    if (token) localStorage.setItem("jh_token", token);
+    else localStorage.removeItem("jh_token");
+  } catch {
+    // noop
+  }
 }

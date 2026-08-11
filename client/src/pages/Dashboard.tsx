@@ -81,6 +81,14 @@ interface MeData {
   teams: Team[];
 }
 
+interface DelegadoAdmin {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  teamAccess: Array<{ team: Team }>;
+}
+
 // ---------- Presupuesto ----------
 interface GastoItem {
   id: string;
@@ -260,7 +268,19 @@ export default function Dashboard() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [view, setView] = useState<"lista" | "calendario" | "presupuesto">("lista");
+  const [view, setView] = useState<"lista" | "calendario" | "presupuesto" | "delegados">("lista");
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
+  const [delegados, setDelegados] = useState<DelegadoAdmin[]>([]);
+  const [delegadosLoading, setDelegadosLoading] = useState(false);
+  const [delegadosError, setDelegadosError] = useState("");
+  const [delegadoForm, setDelegadoForm] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    teamIds: [] as string[],
+  });
+  const [delegadoEditingId, setDelegadoEditingId] = useState<string | null>(null);
+  const [delegadoSaving, setDelegadoSaving] = useState(false);
 
   // ---------- Alta / edición de jugadores ----------
   const [showForm, setShowForm] = useState(false);
@@ -811,20 +831,39 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (!token) {
+    const currentToken = getToken();
+    if (!currentToken) {
+      setToken(null);
       window.location.href = "/ingresar";
       return;
     }
-    apiFetch<MeData>("/auth/me", {}, token)
+
+    apiFetch<MeData>("/auth/me", {}, currentToken)
       .then((m) => {
         setMe(m);
-        setTeamId(m.role === "ADMIN" && m.teams.length === 0 ? "" : m.teams[0]?.id ?? "");
+        setTeamId((prev) => prev || (m.role === "ADMIN" && m.teams.length === 0 ? "" : m.teams[0]?.id ?? ""));
       })
       .catch(() => {
         setToken(null);
         window.location.href = "/ingresar";
       })
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!token || me?.role !== "ADMIN") return;
+    setDelegadosLoading(true);
+    apiFetch<DelegadoAdmin[]>("/auth/delegados", {}, token)
+      .then(setDelegados)
+      .catch(() => setDelegadosError("No se pudo cargar la lista de delegados"))
+      .finally(() => setDelegadosLoading(false));
+  }, [token, me?.role]);
+
+  useEffect(() => {
+    if (!token) return;
+    apiFetch<Team[]>("/teams", {}, token)
+      .then(setAllTeams)
+      .catch(() => setAllTeams([]));
   }, [token]);
 
   useEffect(() => {
@@ -836,6 +875,47 @@ export default function Dashboard() {
         setError("No se pudo cargar el plantel");
       });
   }, [teamId, token]);
+
+  async function saveDelegado(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token) return;
+    setDelegadoSaving(true);
+    setDelegadosError("");
+    try {
+      const payload = {
+        fullName: delegadoForm.fullName,
+        email: delegadoForm.email,
+        password: delegadoForm.password || undefined,
+        teamIds: delegadoForm.teamIds,
+      };
+
+      if (delegadoEditingId) {
+        await apiFetch(`/auth/delegados/${delegadoEditingId}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
+      } else {
+        await apiFetch("/auth/delegados", { method: "POST", body: JSON.stringify(payload) }, token);
+      }
+
+      const refreshed = await apiFetch<DelegadoAdmin[]>("/auth/delegados", {}, token);
+      setDelegados(refreshed);
+      setDelegadoForm({ fullName: "", email: "", password: "", teamIds: [] });
+      setDelegadoEditingId(null);
+    } catch (err) {
+      setDelegadosError((err as Error).message);
+    } finally {
+      setDelegadoSaving(false);
+    }
+  }
+
+  function startEditDelegado(d: DelegadoAdmin) {
+    setDelegadoEditingId(d.id);
+    setDelegadoForm({
+      fullName: d.fullName,
+      email: d.email,
+      password: "",
+      teamIds: d.teamAccess.map((a) => a.team.id),
+    });
+    setView("delegados");
+  }
 
   async function toggleCuota(p: Player, month: string, paid: boolean) {
     if (!token) return;
@@ -1013,6 +1093,14 @@ export default function Dashboard() {
               >
                 Presupuesto
               </button>
+              {me?.role === "ADMIN" && (
+                <button
+                  onClick={() => setView("delegados")}
+                  className={`px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${view === "delegados" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+                >
+                  Delegados
+                </button>
+              )}
             </div>
             <button
               onClick={openNuevo}
@@ -1616,6 +1704,117 @@ export default function Dashboard() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* ===================== VISTA DELEGADOS ===================== */}
+      {view === "delegados" && me?.role === "ADMIN" && (
+        <div className="mt-8 rounded-lg border border-outline bg-surface-1 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-lg font-bold">Administración de delegados</h2>
+              <p className="text-sm text-white/60 mt-1">Creá cuentas, asigná equipos y cambiá email/contraseña.</p>
+            </div>
+          </div>
+
+          <form onSubmit={saveDelegado} className="mt-6 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="text-sm text-white/70 block mb-1.5">Nombre</label>
+              <input
+                value={delegadoForm.fullName}
+                onChange={(e) => setDelegadoForm({ ...delegadoForm, fullName: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-outline text-white"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm text-white/70 block mb-1.5">Email</label>
+              <input
+                type="email"
+                value={delegadoForm.email}
+                onChange={(e) => setDelegadoForm({ ...delegadoForm, email: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-outline text-white"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm text-white/70 block mb-1.5">Contraseña {delegadoEditingId ? "(opcional para no cambiar)" : ""}</label>
+              <input
+                type="password"
+                value={delegadoForm.password}
+                onChange={(e) => setDelegadoForm({ ...delegadoForm, password: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-outline text-white"
+                required={!delegadoEditingId}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-white/70 block mb-1.5">Equipos</label>
+              <select
+                multiple
+                value={delegadoForm.teamIds}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
+                  setDelegadoForm({ ...delegadoForm, teamIds: selected });
+                }}
+                className="w-full h-32 px-3 py-2 rounded-lg bg-surface-2 border border-outline text-white"
+                required
+              >
+                {allTeams.map((team) => (
+                  <option key={team.id} value={team.id}>{team.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-2 flex flex-wrap gap-3">
+              <button type="submit" className="px-4 py-2 rounded-lg bg-primary text-white" disabled={delegadoSaving}>
+                {delegadoSaving ? "Guardando..." : delegadoEditingId ? "Guardar cambios" : "Crear delegado"}
+              </button>
+              {delegadoEditingId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDelegadoEditingId(null);
+                    setDelegadoForm({ fullName: "", email: "", password: "", teamIds: [] });
+                  }}
+                  className="px-4 py-2 rounded-lg border border-outline text-white/70"
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </form>
+
+          {delegadosError && <p className="mt-4 text-sm text-red-400">{delegadosError}</p>}
+
+          {delegadosLoading ? (
+            <p className="mt-6 text-white/60">Cargando delegados...</p>
+          ) : (
+            <div className="mt-6 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-white/50">
+                    <th className="py-2">Nombre</th>
+                    <th className="py-2">Email</th>
+                    <th className="py-2">Equipos</th>
+                    <th className="py-2">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {delegados.map((d) => (
+                    <tr key={d.id} className="border-t border-outline/60">
+                      <td className="py-3">{d.fullName}</td>
+                      <td className="py-3">{d.email}</td>
+                      <td className="py-3">{d.teamAccess.map((a) => a.team.name).join(", ")}</td>
+                      <td className="py-3">
+                        <button onClick={() => startEditDelegado(d)} className="text-primary-light hover:underline">
+                          Editar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

@@ -44,10 +44,17 @@ npm run dev
 
 Acceso al área de delegados: `http://localhost:5173/ingresar`
 
-- **Admin:** `admin@josefernandez.futbol` / `admin1234`
+- **Admin (prod):** `admin@josehernandez.futbol` / `admin1234`
 - **Delegado de ejemplo:** email de delegado / `delegado1234`
 
 > Cambiar contraseñas antes de un uso real en producción.
+
+## Estado de producción actual
+
+- Frontend: https://jh-futsal.vercel.app
+- Backend/API: https://server-tellig.vercel.app
+- Health check: https://server-tellig.vercel.app/api/health
+- Último commit deployado: `1977f1c` (`Deploy club features and fixes`)
 
 ## Datos: migración desde el Drive
 

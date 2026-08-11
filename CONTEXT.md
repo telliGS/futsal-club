@@ -10,6 +10,15 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 - **Repo**: `https://github.com/telliGS/futsal-club.git` (branch `master`).
   - Identidad git OBLIGATORIA: `telliGS` / `tellig270@gmail.com` (email viejo `guille@josehernandez.futbol` causa `BLOCKED` en Vercel).
 
+## Estado actual (10/08/2026 — local + panel admin operativo)
+- **Deploy actual**: frontend en `https://jh-futsal.vercel.app`, backend en `https://server-tellig.vercel.app`.
+- **Verificaciones ejecutadas**: build del cliente OK, build del servidor OK, health check del backend responde `{"ok":true}`.
+- **Credenciales de prueba**: `admin@josehernandez.futbol` / `admin1234`.
+- **Última mejora implementada**: gestión de delegados desde el panel del administrador. El admin puede crear cuentas, asignar email/contraseña y vincular uno o varios equipos/categorías.
+- **Última mejora implementada**: la sesión del panel ya no se pierde al volver atrás ni al navegar entre vistas.
+- **Flujo actual de autenticación**: login solo para cuentas existentes; no se usa registro abierto desde la UI. El acceso está controlado por el admin.
+- **Para seguir**: seguir con la administración de delegados y la normalización de usuarios/equipos desde esta base sin hacer deploys innecesarios. Si se modifica el frontend, dejar que el auto-deploy de Vercel lo publique después del push.
+
 ## URLs en producción
 - Front: `https://jh-futsal.vercel.app` (project prj_qZUeIBA6zGaVWpDeI8xqxU1NTpK3, rootDirectory `client`)
 - API: `https://server-tellig.vercel.app` (alias; tmb `server-telligs-tellig.vercel.app`). Proyecto server, deploy manual CLI.
@@ -32,6 +41,8 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 
 ## API (endpoints clave)
 - `POST /api/auth/login`, `GET /api/auth/me` (ADMIN ve 10 equipos)
+- `POST /api/auth/delegados` y `PATCH /api/auth/delegados/:id` (admin crea/edita delegados con email, contraseña y equipos asignados)
+- `PATCH /api/auth/me/credentials` (usuario autenticado puede cambiar sus propias credenciales; actualmente usado como base para la gestión administrativa)
 - `GET /api/teams/:teamId/players` → jugadores con payments (take 24) + estadoCuota
 - `POST /api/players/:id/payments/:month` (body `{paid, amount}`), `GET /api/players/:id/payments`
 - `GET /api/public/status?document=X` (público, sin auth)
@@ -41,6 +52,8 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 - Selector de equipo + toggle **Lista ⇄ Calendario de cuotas** (rango 13 meses: Ene actual (2026-01) → Ene siguiente (2027-01), columnas dinámicas; celdas ✓ pago, ✗ deuda; solo clicables los meses ≥ actual).
 - Cuerpo técnico **separado** (rol != JUGADOR, ej DT Marcos Vittor) mostrado debajo **sin opciones de pago**.
 - Badge "DEUDOR — NO puede jugar ✕" en filas con deuda.
+- **Vista nueva para admin**: pestaña “Delegados” en el dashboard para crear/editar cuentas, emails, contraseñas y equipos asignados.
+- **Sesión persistente**: el panel mantiene la autenticación al navegar entre vistas y volver atrás.
 
 ## Commands
 - Build client: `npm run build` (client/) → tsc + vite
