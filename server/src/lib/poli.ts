@@ -69,6 +69,9 @@ export interface SemanaResult {
   to: string;
   semana: SemanaDia[];
   teamById: Record<string, string>;
+  /** Fecha de HOY en hora ARG ("YYYY-MM-DD") para resaltar el día actual
+   *  sin depender de la zona horaria del navegador (toISOString() usa UTC). */
+  hoy: string;
 }
 
 const DIAS = ["", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"] as const;
@@ -208,5 +211,7 @@ export async function buildSemana(from: string, to: string): Promise<SemanaResul
     };
   });
 
-  return { from, to, semana, teamById };
+  const hoy = dayStr(argDate(new Date()));
+
+  return { from, to, semana, teamById, hoy };
 }

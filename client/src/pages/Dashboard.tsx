@@ -144,6 +144,7 @@ interface PoliSemana {
   from: string;
   to: string;
   semana: PoliDia[];
+  hoy?: string;
 }
 
 // ---------- Presupuesto ----------
@@ -348,6 +349,7 @@ export default function Dashboard() {
   const [poliError, setPoliError] = useState("");
   const [poliMsg, setPoliMsg] = useState("");
   const [poliSemanaOffset, setPoliSemanaOffset] = useState(0); // 0 = semana actual
+  const [poliHoy, setPoliHoy] = useState<string | undefined>(); // "YYYY-MM-DD" en hora ARG (del server)
   const [showPoliSlotModal, setShowPoliSlotModal] = useState(false);
   const [poliSlotForm, setPoliSlotForm] = useState({
     dayOfWeek: 1,
@@ -1092,6 +1094,7 @@ export default function Dashboard() {
         apiFetch<PoliSlot[]>("/poli/slots", {}, token),
       ]);
       setPoliSemana(sem.semana);
+      setPoliHoy(sem.hoy);
       setPoliSlots(slots);
     } catch (err) {
       setPoliError((err as Error).message);
@@ -2230,7 +2233,7 @@ export default function Dashboard() {
                 </p>
               )}
               {poliSemana.map((d) => {
-                const hoy = new Date().toISOString().slice(0, 10) === d.fecha;
+                const hoy = poliHoy === d.fecha;
                 return (
                   <div
                     key={d.fecha}
