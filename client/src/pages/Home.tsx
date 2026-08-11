@@ -251,12 +251,16 @@ export default function Home() {
               </div>
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <p className="font-display font-bold text-xl md:text-2xl">
+                  <span className="text-primary-light text-sm font-mono uppercase tracking-wider mr-2 align-middle">
+                    {destacado.team.name}
+                  </span>
                   {destacado.isHome ? "J.H." : destacado.rival}
                   <span className="text-white/40 font-light mx-2 text-base">vs</span>
                   {destacado.isHome ? destacado.rival : "J.H."}
                 </p>
                 <p className="text-sm text-white/60">
-                  {formatFechaLegible(destacado.dateTime)} · {formatHora(destacado.dateTime)}
+                  {formatFechaLegible(destacado.dateTime)} · {formatHora(destacado.dateTime)} ·{" "}
+                  <span className="text-white/75">{destacado.venue}</span>
                 </p>
               </div>
               <p
