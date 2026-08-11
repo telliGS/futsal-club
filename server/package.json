@@ -11,6 +11,8 @@
     "db:push": "prisma db push",
     "db:seed": "tsx src/scripts/seed.ts",
     "db:import": "tsx src/scripts/import-drive.ts",
+    "db:diagnostico-rls": "tsx src/scripts/diagnostico-rls.ts",
+    "db:blindaje": "tsx src/scripts/blindaje-rls.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

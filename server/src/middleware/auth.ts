@@ -40,6 +40,13 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+export function requireAdminOrDelegado(req: Request, res: Response, next: NextFunction) {
+  if (req.user?.role === "ADMIN" || req.user?.role === "DELEGADO") {
+    return next();
+  }
+  return res.status(403).json({ error: "Acción reservada al administrador o delegado" });
+}
+
 /** Verifica que un delegado tenga acceso a un equipo concreto */
 export async function canAccessTeam(
   userId: string,

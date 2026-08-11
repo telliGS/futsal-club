@@ -1,7 +1,7 @@
-import { Router } from "express";
+import { Router, Request } from "express";
 import { z } from "zod";
 import { prisma } from "../config.js";
-import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import { requireAuth, requireAdminOrDelegado, canAccessTeam } from "../middleware/auth.js";
 import { buildSemana } from "../lib/poli.js";
 
 const router = Router();
@@ -40,6 +40,30 @@ function dayStr(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+async function delegateTeamAccessError(
+  req: Request,
+  teamId: string | null | undefined
+): Promise<string | undefined> {
+  if (req.user?.role !== "DELEGADO") return;
+  if (!teamId) return "Los delegados solo pueden operar sobre sus equipos";
+  if (!(await canAccessTeam(req.user.id, teamId))) return "Sin acceso a ese equipo";
+}
+
+async function resolveExceptionTeamId(
+  args: { slotId?: string | null; teamId?: string | null },
+  existing?: { slotId?: string | null; teamId?: string | null }
+): Promise<string | null> {
+  const slotId = args.slotId === undefined ? existing?.slotId : args.slotId;
+  const teamId = args.teamId === undefined ? existing?.teamId : args.teamId;
+  if (teamId) return teamId;
+  if (!slotId) return null;
+  const slot = await prisma.poliSlot.findUnique({
+    where: { id: slotId },
+    select: { teamId: true },
+  });
+  return slot?.teamId ?? null;
+}
+
 // ---------- Plantilla (slots semanales) ----------
 
 // GET /api/poli/slots — plantilla semanal completa
@@ -51,13 +75,17 @@ router.get("/slots", requireAuth, async (_req, res) => {
   res.json(slots);
 });
 
-// POST /api/poli/slots — (admin) crear slot de plantilla
-router.post("/slots", requireAuth, requireAdmin, async (req, res) => {
+// POST /api/poli/slots — (admin o delegado) crear slot de plantilla
+router.post("/slots", requireAuth, requireAdminOrDelegado, async (req, res) => {
   const parsed = slotSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
   }
   const { teamId, ...rest } = parsed.data;
+  const delegateError = await delegateTeamAccessError(req, teamId ?? null);
+  if (delegateError) {
+    return res.status(403).json({ error: delegateError });
+  }
   const slot = await prisma.poliSlot.create({
     data: { ...rest, teamId: teamId ?? null },
     include: { team: { select: { id: true, name: true } } },
@@ -65,13 +93,22 @@ router.post("/slots", requireAuth, requireAdmin, async (req, res) => {
   res.status(201).json(slot);
 });
 
-// PATCH /api/poli/slots/:id — (admin) editar slot de plantilla
-router.patch("/slots/:id", requireAuth, requireAdmin, async (req, res) => {
+// PATCH /api/poli/slots/:id — (admin o delegado) editar slot de plantilla
+router.patch("/slots/:id", requireAuth, requireAdminOrDelegado, async (req, res) => {
   const parsed = slotSchema.partial().safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
   }
   const { teamId, ...rest } = parsed.data;
+  const existing = await prisma.poliSlot.findUnique({ where: { id: req.params.id }, select: { teamId: true } });
+  if (!existing) {
+    return res.status(404).json({ error: "Slot no encontrado" });
+  }
+  const updatedTeamId = teamId === undefined ? existing.teamId : teamId;
+  const delegateError = await delegateTeamAccessError(req, updatedTeamId ?? null);
+  if (delegateError) {
+    return res.status(403).json({ error: delegateError });
+  }
   const slot = await prisma.poliSlot.update({
     where: { id: req.params.id },
     data: { ...rest, teamId: teamId === undefined ? undefined : (teamId ?? null) },
@@ -80,8 +117,16 @@ router.patch("/slots/:id", requireAuth, requireAdmin, async (req, res) => {
   res.json(slot);
 });
 
-// DELETE /api/poli/slots/:id — (admin) eliminar slot (cascade borra sus excepciones)
-router.delete("/slots/:id", requireAuth, requireAdmin, async (req, res) => {
+// DELETE /api/poli/slots/:id — (admin o delegado) eliminar slot (cascade borra sus excepciones)
+router.delete("/slots/:id", requireAuth, requireAdminOrDelegado, async (req, res) => {
+  const existing = await prisma.poliSlot.findUnique({ where: { id: req.params.id }, select: { teamId: true } });
+  if (!existing) {
+    return res.status(404).json({ error: "Slot no encontrado" });
+  }
+  const delegateError = await delegateTeamAccessError(req, existing.teamId ?? null);
+  if (delegateError) {
+    return res.status(403).json({ error: delegateError });
+  }
   await prisma.poliSlot.delete({ where: { id: req.params.id } });
   res.json({ ok: true });
 });
@@ -106,13 +151,18 @@ router.get("/exceptions", requireAuth, async (req, res) => {
   res.json(ex);
 });
 
-// POST /api/poli/exceptions — (admin) crear excepción puntual
-router.post("/exceptions", requireAuth, requireAdmin, async (req, res) => {
+// POST /api/poli/exceptions — (admin o delegado) crear excepción puntual
+router.post("/exceptions", requireAuth, requireAdminOrDelegado, async (req, res) => {
   const parsed = exceptionSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
   }
   const { date, slotId, teamId, ...rest } = parsed.data;
+  const effectiveTeamId = await resolveExceptionTeamId({ slotId, teamId });
+  const delegateError = await delegateTeamAccessError(req, effectiveTeamId);
+  if (delegateError) {
+    return res.status(403).json({ error: delegateError });
+  }
   const ex = await prisma.poliException.create({
     data: { ...rest, date: dateUTC(date), slotId: slotId ?? null, teamId: teamId ?? null },
     include: {
@@ -123,13 +173,25 @@ router.post("/exceptions", requireAuth, requireAdmin, async (req, res) => {
   res.status(201).json(ex);
 });
 
-// PATCH /api/poli/exceptions/:id — (admin) editar excepción
-router.patch("/exceptions/:id", requireAuth, requireAdmin, async (req, res) => {
+// PATCH /api/poli/exceptions/:id — (admin o delegado) editar excepción
+router.patch("/exceptions/:id", requireAuth, requireAdminOrDelegado, async (req, res) => {
   const parsed = exceptionSchema.partial().safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
   }
+  const existing = await prisma.poliException.findUnique({
+    where: { id: req.params.id },
+    select: { slotId: true, teamId: true },
+  });
+  if (!existing) {
+    return res.status(404).json({ error: "Excepción no encontrada" });
+  }
   const { date, slotId, teamId, ...rest } = parsed.data;
+  const effectiveTeamId = await resolveExceptionTeamId({ slotId, teamId }, existing);
+  const delegateError = await delegateTeamAccessError(req, effectiveTeamId);
+  if (delegateError) {
+    return res.status(403).json({ error: delegateError });
+  }
   const ex = await prisma.poliException.update({
     where: { id: req.params.id },
     data: {
@@ -146,8 +208,20 @@ router.patch("/exceptions/:id", requireAuth, requireAdmin, async (req, res) => {
   res.json(ex);
 });
 
-// DELETE /api/poli/exceptions/:id — (admin) eliminar excepción
-router.delete("/exceptions/:id", requireAuth, requireAdmin, async (req, res) => {
+// DELETE /api/poli/exceptions/:id — (admin o delegado) eliminar excepción
+router.delete("/exceptions/:id", requireAuth, requireAdminOrDelegado, async (req, res) => {
+  const existing = await prisma.poliException.findUnique({
+    where: { id: req.params.id },
+    select: { slotId: true, teamId: true },
+  });
+  if (!existing) {
+    return res.status(404).json({ error: "Excepción no encontrada" });
+  }
+  const effectiveTeamId = await resolveExceptionTeamId(existing, existing);
+  const delegateError = await delegateTeamAccessError(req, effectiveTeamId);
+  if (delegateError) {
+    return res.status(403).json({ error: delegateError });
+  }
   await prisma.poliException.delete({ where: { id: req.params.id } });
   res.json({ ok: true });
 });
