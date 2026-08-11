@@ -128,11 +128,11 @@ router.get("/stats", async (_req, res) => {
       where: { role: "JUGADOR", player: { status: { not: "INACTIVO" } } },
       select: { playerId: true },
     }),
-    // Partidos aún por jugarse (>= ahora), los mismos que muestra la
-    // sección "Próximos partidos" del home (así la tarjeta nunca
-    // contradice la lista: antes contaba solo el finde en curso y
-    // daba 0 el lunes a la noche con la lista llena del finde que viene).
-    prisma.match.count({ where: { dateTime: { gte: new Date() } } }),
+    // Partidos aún por jugarse (>= ahora) los mismos que muestra la
+    // sección "Próximos partidos" del home. Se cuentan también los que
+    // están EN CURSO (empezados hace < 2 h) para que la tarjeta no baje
+    // mientras se juegan (misma ventana que /matches/upcoming).
+    prisma.match.count({ where: { dateTime: { gte: new Date(Date.now() - 2 * 3_600_000) } } }),
   ]);
   const jugadores = new Set(vínculos.map((v) => v.playerId)).size;
   res.json({ equipos, jugadores, partidosProximos: partidos });

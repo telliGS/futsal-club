@@ -49,6 +49,32 @@ function colorEquipo(tipo: string): string {
   return tipo === "FORMATIVA" ? "bg-primary/15 border-primary/30" : "bg-surface-1 border-outline";
 }
 
+// Estado de un partido según la hora actual:
+// - "proximo": todavía no arrancó
+// - "en_curso": ya empezó pero hace menos de ~2 h (ventana del server)
+// - "terminado": empezó hace más de ~2 h (el server ya no lo manda; igual lo protegemos)
+const EN_CURSO_WINDOW_MS = 2 * 3_600_000;
+function estadoPartido(m: Match): "proximo" | "en_curso" | "terminado" {
+  const inicio = new Date(m.dateTime).getTime();
+  const ahora = Date.now();
+  if (inicio > ahora) return "proximo";
+  if (ahora - inicio < EN_CURSO_WINDOW_MS) return "en_curso";
+  return "terminado";
+}
+
+// Badge "En curso" con pulso (verde live, mismo lenguaje que el hero)
+function BadgeEnCurso() {
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-action-green/10 border border-action-green/30 text-[11px] font-mono uppercase tracking-wider text-action-green">
+      <span className="relative flex w-1.5 h-1.5">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-action-green opacity-60" />
+        <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-action-green" />
+      </span>
+      En curso
+    </span>
+  );
+}
+
 export default function Home() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [teams, setTeams] = useState<EquipoPublico[]>([]);
@@ -234,65 +260,81 @@ export default function Home() {
             </div>
           )}
 
-          {/* Próximo partido: ficha discreta + cuenta regresiva */}
-          {!loading && destacado && restante && (
-            <div
-              className="mt-8 max-w-md rounded-lg border border-outline bg-surface-1/60 overflow-hidden animate-fade-up"
-              style={{ animationDelay: "0.2s" }}
-            >
-              {/* Barra superior: indicador live + categoría */}
-              <div className="flex items-center justify-between px-4 py-2 border-b border-outline/60 bg-surface-1/40">
-                <div className="flex items-center gap-2">
-                  <span className="relative flex w-1.5 h-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-action-green opacity-60" />
-                    <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-action-green" />
-                  </span>
-                  <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/50">
-                    Próximo partido
-                  </p>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary-light text-[10px] font-mono uppercase tracking-wider">
-                  {destacado.team.name}
-                </span>
-              </div>
-
-              {/* Marcador: J.H. vs rival */}
-              <div className="px-4 py-3.5">
-                <div className="flex items-center justify-between gap-4">
-                  <p className="font-display font-bold text-lg md:text-xl leading-tight">
-                    {destacado.isHome ? "J.H." : destacado.rival}
-                  </p>
-                  <span className="font-mono text-white/35 text-[11px] uppercase tracking-widest">vs</span>
-                  <p className="font-display font-bold text-lg md:text-xl leading-tight text-right">
-                    {destacado.isHome ? destacado.rival : "J.H."}
-                  </p>
-                </div>
-
-                {/* Detalle: fecha · hora · cancha */}
-                <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[13px] text-white/55">
-                  <span className="text-white/80">{formatFechaLegible(destacado.dateTime)}</span>
-                  <span className="text-white/25">·</span>
-                  <span className="text-white/80">{formatHora(destacado.dateTime)}</span>
-                  <span className="text-white/25">·</span>
-                  <span className="text-white/70">{destacado.venue}</span>
-                </div>
-              </div>
-
-              {/* Cuenta regresiva */}
-              <div className="px-4 py-2 bg-surface-2/60 border-t border-outline/60 flex items-center justify-between">
-                <p className="text-[10px] font-mono uppercase tracking-wider text-white/35">Cuenta regresiva</p>
-                <p
-                  className="font-mono text-[13px] text-primary-light/90 tabular-nums"
-                  title={new Date(destacado.dateTime).toLocaleString("es-AR")}
+          {/* Partido destacado: ficha discreta. Si está EN CURSO muestra el
+              badge live y la hora de inicio (en vez de cuenta regresiva);
+              recién cuando termina (~2 h) sale del listado y del hero. */}
+          {!loading && destacado && (
+            (() => {
+              const estado = estadoPartido(destacado);
+              const enCurso = estado === "en_curso";
+              return (
+                <div
+                  className="mt-8 max-w-md rounded-lg border border-outline bg-surface-1/60 overflow-hidden animate-fade-up"
+                  style={{ animationDelay: "0.2s" }}
                 >
-                  {restante.dias > 0
-                    ? `en ${restante.dias} día${restante.dias === 1 ? "" : "s"} ${restante.horas} h`
-                    : restante.horas > 0
-                      ? `en ${restante.horas} h ${restante.mins} min`
-                      : `en ${restante.mins} min`}
-                </p>
-              </div>
-            </div>
+                  {/* Barra superior: indicador live + categoría */}
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-outline/60 bg-surface-1/40">
+                    <div className="flex items-center gap-2">
+                      {enCurso ? (
+                        <BadgeEnCurso />
+                      ) : (
+                        <>
+                          <span className="relative flex w-1.5 h-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-action-green opacity-60" />
+                            <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-action-green" />
+                          </span>
+                          <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/50">
+                            Próximo partido
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary-light text-[10px] font-mono uppercase tracking-wider">
+                      {destacado.team.name}
+                    </span>
+                  </div>
+
+                  {/* Marcador: J.H. vs rival */}
+                  <div className="px-4 py-3.5">
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="font-display font-bold text-lg md:text-xl leading-tight">
+                        {destacado.isHome ? "J.H." : destacado.rival}
+                      </p>
+                      <span className="font-mono text-white/35 text-[11px] uppercase tracking-widest">vs</span>
+                      <p className="font-display font-bold text-lg md:text-xl leading-tight text-right">
+                        {destacado.isHome ? destacado.rival : "J.H."}
+                      </p>
+                    </div>
+
+                    {/* Detalle: fecha · hora · cancha */}
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[13px] text-white/55">
+                      <span className="text-white/80">{formatFechaLegible(destacado.dateTime)}</span>
+                      <span className="text-white/25">·</span>
+                      <span className="text-white/80">{formatHora(destacado.dateTime)}</span>
+                      <span className="text-white/25">·</span>
+                      <span className="text-white/70">{destacado.venue}</span>
+                    </div>
+                  </div>
+
+                  {/* Cuenta regresiva (solo para próximos; en curso no aplica) */}
+                  {!enCurso && restante && (
+                    <div className="px-4 py-2 bg-surface-2/60 border-t border-outline/60 flex items-center justify-between">
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-white/35">Cuenta regresiva</p>
+                      <p
+                        className="font-mono text-[13px] text-primary-light/90 tabular-nums"
+                        title={new Date(destacado.dateTime).toLocaleString("es-AR")}
+                      >
+                        {restante.dias > 0
+                          ? `en ${restante.dias} día${restante.dias === 1 ? "" : "s"} ${restante.horas} h`
+                          : restante.horas > 0
+                            ? `en ${restante.horas} h ${restante.mins} min`
+                            : `en ${restante.mins} min`}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()
           )}
         </div>
       </header>
@@ -348,14 +390,22 @@ export default function Home() {
                             <span className="text-white/40 font-light">vs</span>{" "}
                             {m.isHome ? m.rival : "J.H."}
                           </p>
-                          <p className="text-sm text-white/60 mt-1">
-                            {m.team.name} · {m.venue}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                            <p className="text-sm text-white/60">
+                              {m.team.name} · {m.venue}
+                            </p>
+                            {estadoPartido(m) === "en_curso" && <BadgeEnCurso />}
+                          </div>
                         </div>
                         <div className="shrink-0 text-right">
-                          <p className="font-display font-bold text-2xl tabular-nums transition-colors duration-200 group-hover:text-primary-light">
+                          <p className={`font-display font-bold text-2xl tabular-nums transition-colors duration-200 group-hover:text-primary-light ${estadoPartido(m) === "en_curso" ? "text-action-green" : ""}`}>
                             {formatHora(m.dateTime)}
                           </p>
+                          {estadoPartido(m) === "en_curso" && (
+                            <p className="text-[10px] font-mono uppercase tracking-wider text-action-green/80 mt-0.5">
+                              jugándose
+                            </p>
+                          )}
                         </div>
                       </div>
                     </article>

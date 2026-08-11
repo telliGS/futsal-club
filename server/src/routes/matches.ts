@@ -27,14 +27,25 @@ router.get("/", async (req, res) => {
 // Con weekend=2 devuelve el finde EN CURSO + el SIGUIENTE (el home muestra ambos
 // para que la sección nunca quede vacía cuando se juegan los partidos del finde).
 // Sin parámetro, próximos desde ahora (comportamiento anterior).
+// GET /api/matches/upcoming?weekend=1 — partidos del próximo finde (viernes→lunes, hora ARG)
+// Con weekend=true devuelve TODOS los del viernes→lunes (el home los agrupa por categoría).
+// Con weekend=2 devuelve el finde EN CURSO + el SIGUIENTE (el home muestra ambos
+// para que la sección nunca quede vacía cuando se juegan los partidos del finde).
+// Sin parámetro, próximos desde ahora (comportamiento anterior).
+//
+// IMPORTANTE (11/08): la ventana arranca 2 HORAS antes de ahora (no en "ahora")
+// para que un partido QUE YA EMPEZÓ pero todavía puede estar en curso NO desaparezca
+// del listado ni del hero: el front lo marca como "En curso". Recién a las ~2 h de
+// iniciado (partido de futsal terminado) se cae solo de la ventana.
+const PARTIDO_EN_CURSO_WINDOW_MS = 2 * 3_600_000;
+
 router.get("/upcoming", async (req, res) => {
   const { weekend } = req.query;
+  const desdeEnCurso = new Date(Date.now() - PARTIDO_EN_CURSO_WINDOW_MS);
   if (weekend === "1" || weekend === "true") {
     const { end } = weekendWindowArg(new Date());
-    // Solo partidos aún por jugarse (>= ahora) del finde en curso,
-    // para que no aparezcan los ya disputados ni la fecha siguiente.
     const matches = await prisma.match.findMany({
-      where: { dateTime: { gte: new Date(), lte: end } },
+      where: { dateTime: { gte: desdeEnCurso, lte: end } },
       include: { team: true },
       orderBy: [{ dateTime: "asc" }],
     });
@@ -46,14 +57,14 @@ router.get("/upcoming", async (req, res) => {
     const { start, end } = weekendWindowArg(new Date());
     const finalFindeSiguiente = new Date(end.getTime() + 7 * 86_400_000);
     const matches = await prisma.match.findMany({
-      where: { dateTime: { gte: new Date(), lte: finalFindeSiguiente } },
+      where: { dateTime: { gte: desdeEnCurso, lte: finalFindeSiguiente } },
       include: { team: true },
       orderBy: [{ dateTime: "asc" }],
     });
     return res.json(matches);
   }
   const matches = await prisma.match.findMany({
-    where: { dateTime: { gte: new Date() } },
+    where: { dateTime: { gte: desdeEnCurso } },
     include: { team: true },
     orderBy: { dateTime: "asc" },
     take: 10,
