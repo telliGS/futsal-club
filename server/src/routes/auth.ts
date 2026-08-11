@@ -137,13 +137,14 @@ router.patch("/delegados/:id", requireAuth, requireAdmin, async (req, res) => {
     email: z.string().email().optional(),
     password: z.string().min(6).optional(),
     teamIds: z.array(z.string()).min(1).optional(),
+    active: z.boolean().optional(),
   }).safeParse(req.body);
 
   if (!parsed.success) {
     return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
   }
 
-  const { fullName, email, password, teamIds } = parsed.data;
+  const { fullName, email, password, teamIds, active } = parsed.data;
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user || user.role !== "DELEGADO") {
     return res.status(404).json({ error: "Delegado no encontrado" });
@@ -165,6 +166,7 @@ router.patch("/delegados/:id", requireAuth, requireAdmin, async (req, res) => {
         fullName: fullName ?? user.fullName,
         email: email ?? user.email,
         passwordHash: hash ?? user.passwordHash,
+        active: active ?? user.active,
       },
     });
 
@@ -188,6 +190,24 @@ router.get("/delegados", requireAuth, requireAdmin, async (_req, res) => {
     include: { teamAccess: { include: { team: true } } },
   });
   res.json(users.map((u) => ({ ...u, passwordHash: undefined })));
+});
+
+// DELETE /api/auth/delegados — (admin) elimina TODOS los delegados (deja solo el admin)
+router.delete("/delegados", requireAuth, requireAdmin, async (_req, res) => {
+  const { count } = await prisma.user.deleteMany({ where: { role: "DELEGADO" } });
+  res.json({ ok: true, eliminados: count });
+});
+
+// DELETE /api/auth/delegados/:id — (admin) elimina un delegado
+router.delete("/delegados/:id", requireAuth, requireAdmin, async (req, res) => {
+  const id = req.params.id;
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user || user.role !== "DELEGADO") {
+    return res.status(404).json({ error: "Delegado no encontrado" });
+  }
+  // userTeamAccess se borra en cascada (relación onDelete: Cascade)
+  await prisma.user.delete({ where: { id } });
+  res.json({ ok: true });
 });
 
 export default router;

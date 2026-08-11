@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiFetch, setToken } from "../lib/api";
+import { apiFetch, getToken, setToken } from "../lib/api";
 import Layout from "../components/Layout";
 
 interface LoginResponse {
@@ -22,6 +22,11 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Si ya hay sesión guardada, no pedir credenciales de nuevo: ir directo al panel.
+  useEffect(() => {
+    if (getToken()) navigate("/delegado", { replace: true });
+  }, [navigate]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

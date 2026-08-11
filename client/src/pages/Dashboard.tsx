@@ -86,6 +86,7 @@ interface DelegadoAdmin {
   fullName: string;
   email: string;
   role: string;
+  active: boolean;
   teamAccess: Array<{ team: Team }>;
 }
 
@@ -281,6 +282,8 @@ export default function Dashboard() {
   });
   const [delegadoEditingId, setDelegadoEditingId] = useState<string | null>(null);
   const [delegadoSaving, setDelegadoSaving] = useState(false);
+  const [showDelegadoModal, setShowDelegadoModal] = useState(false);
+  const [delegadoMsg, setDelegadoMsg] = useState("");
 
   // ---------- Alta / edición de jugadores ----------
   const [showForm, setShowForm] = useState(false);
@@ -899,11 +902,21 @@ export default function Dashboard() {
       setDelegados(refreshed);
       setDelegadoForm({ fullName: "", email: "", password: "", teamIds: [] });
       setDelegadoEditingId(null);
+      setShowDelegadoModal(false);
+      setDelegadoMsg(delegadoEditingId ? "Cambios guardados." : "Delegado creado.");
+      setTimeout(() => setDelegadoMsg(""), 3000);
     } catch (err) {
       setDelegadosError((err as Error).message);
     } finally {
       setDelegadoSaving(false);
     }
+  }
+
+  function openNuevoDelegado() {
+    setDelegadoEditingId(null);
+    setDelegadoForm({ fullName: "", email: "", password: "", teamIds: [] });
+    setDelegadosError("");
+    setShowDelegadoModal(true);
   }
 
   function startEditDelegado(d: DelegadoAdmin) {
@@ -914,7 +927,54 @@ export default function Dashboard() {
       password: "",
       teamIds: d.teamAccess.map((a) => a.team.id),
     });
-    setView("delegados");
+    setDelegadosError("");
+    setShowDelegadoModal(true);
+  }
+
+  async function toggleDelegadoActive(d: DelegadoAdmin) {
+    if (!token) return;
+    const activando = !d.active;
+    const nombre = d.fullName;
+    if (!activando && !window.confirm(`¿Desactivar a ${nombre}? No podrá entrar al panel hasta reactivarlo.`)) return;
+    try {
+      await apiFetch(`/auth/delegados/${d.id}`, { method: "PATCH", body: JSON.stringify({ active: activando }) }, token);
+      setDelegados((prev) => prev.map((x) => (x.id === d.id ? { ...x, active: activando } : x)));
+      setDelegadoMsg(activando ? `${nombre} reactivado.` : `${nombre} desactivado.`);
+      setTimeout(() => setDelegadoMsg(""), 3000);
+    } catch (err) {
+      setDelegadosError((err as Error).message);
+    }
+  }
+
+  async function eliminarDelegado(d: DelegadoAdmin) {
+    if (!token) return;
+    if (!window.confirm(`¿Eliminar la cuenta de ${d.fullName} (${d.email})? Esta acción no se puede deshacer.`)) return;
+    try {
+      await apiFetch(`/auth/delegados/${d.id}`, { method: "DELETE" }, token);
+      setDelegados((prev) => prev.filter((x) => x.id !== d.id));
+      setDelegadoMsg(`Cuenta de ${d.fullName} eliminada.`);
+      setTimeout(() => setDelegadoMsg(""), 3000);
+    } catch (err) {
+      setDelegadosError((err as Error).message);
+    }
+  }
+
+  async function eliminarTodosDelegados() {
+    if (!token) return;
+    if (delegados.length === 0) return;
+    if (!window.confirm(
+      `¿Eliminar TODAS las cuentas de delegado (${delegados.length})?\n\n` +
+      "Quedará solo la cuenta de administrador. Esta acción no se puede deshacer."
+    )) return;
+    if (!window.confirm("Confirmación final: ¿borrar todas las cuentas de delegado?")) return;
+    try {
+      const res = await apiFetch<{ eliminados: number }>("/auth/delegados", { method: "DELETE" }, token);
+      setDelegados([]);
+      setDelegadoMsg(`${res.eliminados} cuenta${res.eliminados === 1 ? "" : "s"} de delegado eliminadas.`);
+      setTimeout(() => setDelegadoMsg(""), 4000);
+    } catch (err) {
+      setDelegadosError((err as Error).message);
+    }
   }
 
   async function toggleCuota(p: Player, month: string, paid: boolean) {
@@ -1712,81 +1772,43 @@ export default function Dashboard() {
         <div className="mt-8 rounded-lg border border-outline bg-surface-1 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="font-display text-lg font-bold">Administración de delegados</h2>
-              <p className="text-sm text-white/60 mt-1">Creá cuentas, asigná equipos y cambiá email/contraseña.</p>
+              <h2 className="font-display text-lg font-bold">Delegados</h2>
+              <p className="text-sm text-white/60 mt-1">
+                Cada delegado entra al panel con su email y contraseña, y ve solo los equipos que le asignás.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {delegados.length > 0 && (
+                <button
+                  onClick={eliminarTodosDelegados}
+                  className="btn bg-transparent text-red-400/70 border border-red-400/30 hover:bg-red-400/10 hover:text-red-400 active:scale-95"
+                >
+                  Eliminar todos
+                </button>
+              )}
+              <button
+                onClick={openNuevoDelegado}
+                className="btn bg-primary text-white hover:bg-primary-light active:scale-95"
+              >
+                + Nuevo delegado
+              </button>
             </div>
           </div>
 
-          <form onSubmit={saveDelegado} className="mt-6 grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm text-white/70 block mb-1.5">Nombre</label>
-              <input
-                value={delegadoForm.fullName}
-                onChange={(e) => setDelegadoForm({ ...delegadoForm, fullName: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-outline text-white"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-sm text-white/70 block mb-1.5">Email</label>
-              <input
-                type="email"
-                value={delegadoForm.email}
-                onChange={(e) => setDelegadoForm({ ...delegadoForm, email: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-outline text-white"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-sm text-white/70 block mb-1.5">Contraseña {delegadoEditingId ? "(opcional para no cambiar)" : ""}</label>
-              <input
-                type="password"
-                value={delegadoForm.password}
-                onChange={(e) => setDelegadoForm({ ...delegadoForm, password: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-outline text-white"
-                required={!delegadoEditingId}
-              />
-            </div>
-            <div>
-              <label className="text-sm text-white/70 block mb-1.5">Equipos</label>
-              <select
-                multiple
-                value={delegadoForm.teamIds}
-                onChange={(e) => {
-                  const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
-                  setDelegadoForm({ ...delegadoForm, teamIds: selected });
-                }}
-                className="w-full h-32 px-3 py-2 rounded-lg bg-surface-2 border border-outline text-white"
-                required
-              >
-                {allTeams.map((team) => (
-                  <option key={team.id} value={team.id}>{team.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="md:col-span-2 flex flex-wrap gap-3">
-              <button type="submit" className="px-4 py-2 rounded-lg bg-primary text-white" disabled={delegadoSaving}>
-                {delegadoSaving ? "Guardando..." : delegadoEditingId ? "Guardar cambios" : "Crear delegado"}
-              </button>
-              {delegadoEditingId && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDelegadoEditingId(null);
-                    setDelegadoForm({ fullName: "", email: "", password: "", teamIds: [] });
-                  }}
-                  className="px-4 py-2 rounded-lg border border-outline text-white/70"
-                >
-                  Cancelar
-                </button>
-              )}
-            </div>
-          </form>
+          {delegadoMsg && (
+            <p className="mt-4 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-sm text-green-400">
+              {delegadoMsg}
+            </p>
+          )}
 
           {delegadosError && <p className="mt-4 text-sm text-red-400">{delegadosError}</p>}
 
           {delegadosLoading ? (
             <p className="mt-6 text-white/60">Cargando delegados...</p>
+          ) : delegados.length === 0 ? (
+            <p className="mt-6 text-sm text-white/40">
+              Todavía no hay delegados. Tocá "Nuevo delegado" para crear la primera cuenta.
+            </p>
           ) : (
             <div className="mt-6 overflow-x-auto">
               <table className="w-full text-sm">
@@ -1795,19 +1817,63 @@ export default function Dashboard() {
                     <th className="py-2">Nombre</th>
                     <th className="py-2">Email</th>
                     <th className="py-2">Equipos</th>
-                    <th className="py-2">Acciones</th>
+                    <th className="py-2">Estado</th>
+                    <th className="py-2 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {delegados.map((d) => (
-                    <tr key={d.id} className="border-t border-outline/60">
+                    <tr key={d.id} className={`border-t border-outline/60 ${d.active ? "" : "opacity-50"}`}>
                       <td className="py-3">{d.fullName}</td>
                       <td className="py-3">{d.email}</td>
-                      <td className="py-3">{d.teamAccess.map((a) => a.team.name).join(", ")}</td>
                       <td className="py-3">
-                        <button onClick={() => startEditDelegado(d)} className="text-primary-light hover:underline">
-                          Editar
-                        </button>
+                        <div className="flex flex-wrap gap-1.5">
+                          {d.teamAccess.length === 0 && <span className="text-white/40 text-xs">Sin equipos</span>}
+                          {d.teamAccess.map((a) => (
+                            <span key={a.team.id} className="px-2 py-0.5 rounded-full bg-surface-2 border border-outline text-xs">
+                              {a.team.name}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                            d.active
+                              ? "bg-green-500/10 text-green-400 border border-green-500/30"
+                              : "bg-white/5 text-white/50 border border-outline"
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${d.active ? "bg-green-400" : "bg-white/40"}`} />
+                          {d.active ? "Activo" : "Inactivo"}
+                        </span>
+                      </td>
+                      <td className="py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => startEditDelegado(d)}
+                            className="px-2.5 py-1 rounded-lg text-xs bg-surface-2 border border-outline hover:bg-surface-1 text-white/80 transition-colors"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => toggleDelegadoActive(d)}
+                            className={`px-2.5 py-1 rounded-lg text-xs border transition-colors ${
+                              d.active
+                                ? "bg-transparent text-red-400/70 border-red-400/30 hover:bg-red-400/10 hover:text-red-400"
+                                : "bg-green-500/10 text-green-400 border-green-500/30 hover:bg-green-500/20"
+                            }`}
+                          >
+                            {d.active ? "Desactivar" : "Reactivar"}
+                          </button>
+                          <button
+                            onClick={() => eliminarDelegado(d)}
+                            className="px-2.5 py-1 rounded-lg text-xs bg-transparent text-red-400/40 border border-transparent hover:bg-red-400/10 hover:text-red-400 hover:border-red-400/30 transition-colors"
+                            title="Eliminar cuenta (no se puede deshacer)"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1815,6 +1881,10 @@ export default function Dashboard() {
               </table>
             </div>
           )}
+
+          <p className="mt-4 text-xs text-white/40">
+            La cuenta admin (todos los equipos) no aparece acá. Para cambiarla, usá el panel de credenciales.
+          </p>
         </div>
       )}
 
@@ -2438,7 +2508,120 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-    {/* ===================== MODAL CUOTA ===================== */}
+    {/* ===================== MODAL DELEGADO ===================== */}
+      {showDelegadoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-lg border border-outline bg-surface-2 p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="font-display text-lg font-bold">
+                {delegadoEditingId ? "Editar delegado" : "Nuevo delegado"}
+              </h2>
+              <button onClick={() => setShowDelegadoModal(false)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
+            </div>
+            <p className="text-xs text-white/50 mt-1">
+              {delegadoEditingId
+                ? "Cambiá los datos y guardá. Dejá la contraseña vacía para no modificarla."
+                : "Creá una cuenta para que el delegado gestione sus equipos."}
+            </p>
+
+            <form onSubmit={saveDelegado} className="mt-5 space-y-4">
+              <div>
+                <label className="text-xs text-white/70 block mb-1">Nombre y apellido</label>
+                <input
+                  value={delegadoForm.fullName}
+                  onChange={(e) => setDelegadoForm({ ...delegadoForm, fullName: e.target.value })}
+                  placeholder="Ej: Juan Pérez"
+                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/70 block mb-1">Email de acceso</label>
+                <input
+                  type="email"
+                  value={delegadoForm.email}
+                  onChange={(e) => setDelegadoForm({ ...delegadoForm, email: e.target.value })}
+                  placeholder="delegado@josehernandez.futbol"
+                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/70 block mb-1">
+                  Contraseña {delegadoEditingId && "(dejala vacía para no cambiarla)"}
+                </label>
+                <input
+                  type="password"
+                  value={delegadoForm.password}
+                  onChange={(e) => setDelegadoForm({ ...delegadoForm, password: e.target.value })}
+                  placeholder={delegadoEditingId ? "••••••••" : "Mínimo 6 caracteres"}
+                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                  required={!delegadoEditingId}
+                  minLength={6}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/70 block mb-1.5">Equipos asignados</label>
+                <p className="text-[11px] text-white/40 mb-2">
+                  Marcá las categorías que va a poder gestionar.
+                </p>
+                <div className="grid grid-cols-2 gap-1.5 max-h-44 overflow-y-auto rounded-lg border border-outline bg-surface-1 p-2">
+                  {allTeams.length === 0 && (
+                    <p className="text-xs text-white/40 col-span-2 p-2">Cargando equipos...</p>
+                  )}
+                  {allTeams.map((team) => {
+                    const checked = delegadoForm.teamIds.includes(team.id);
+                    return (
+                      <label
+                        key={team.id}
+                        className={`flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer text-sm transition-colors ${
+                          checked ? "bg-primary/15 text-white border border-primary/30" : "hover:bg-surface-2 text-white/80 border border-transparent"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            setDelegadoForm((f) => ({
+                              ...f,
+                              teamIds: e.target.checked
+                                ? [...f.teamIds, team.id]
+                                : f.teamIds.filter((id) => id !== team.id),
+                            }));
+                          }}
+                          className="accent-[#008f39]"
+                        />
+                        {team.name}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {delegadosError && <p className="text-sm text-red-400">{delegadosError}</p>}
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="submit"
+                  disabled={delegadoSaving}
+                  className="flex-1 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-light disabled:opacity-50"
+                >
+                  {delegadoSaving ? "Guardando..." : delegadoEditingId ? "Guardar cambios" : "Crear delegado"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDelegadoModal(false)}
+                  className="px-4 py-2 rounded-lg border border-outline text-white/70 text-sm hover:bg-surface-1"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== MODAL CUOTA ===================== */}
       {showQuotaModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-sm rounded-lg border border-outline bg-surface-2 p-6">
