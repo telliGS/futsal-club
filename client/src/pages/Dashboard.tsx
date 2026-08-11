@@ -78,6 +78,7 @@ interface MeData {
   fullName: string;
   email: string;
   role: string;
+  canChangeCredentials?: boolean;
   teams: Team[];
 }
 
@@ -87,6 +88,7 @@ interface DelegadoAdmin {
   email: string;
   role: string;
   active: boolean;
+  canChangeCredentials?: boolean;
   teamAccess: Array<{ team: Team }>;
 }
 
@@ -341,6 +343,12 @@ export default function Dashboard() {
   const [delegadoSaving, setDelegadoSaving] = useState(false);
   const [showDelegadoModal, setShowDelegadoModal] = useState(false);
   const [delegadoMsg, setDelegadoMsg] = useState("");
+
+  // ---------- Cambio de credenciales propio (1 sola vez) ----------
+  const [showCredModal, setShowCredModal] = useState(false);
+  const [credForm, setCredForm] = useState({ email: "", password: "", currentPassword: "" });
+  const [credSaving, setCredSaving] = useState(false);
+  const [credMsg, setCredMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   // ---------- Poli ----------
   const [poliSemana, setPoliSemana] = useState<PoliDia[]>([]);
@@ -950,6 +958,30 @@ export default function Dashboard() {
       .finally(() => setDelegadosLoading(false));
   }, [token, me?.role]);
 
+  // Guarda el cambio de email/contraseña propio (solo si canChangeCredentials).
+  // El server lo marca como usado → esta es la única vez que puede autocambiarse.
+  async function guardarCredenciales() {
+    if (!token || !me) return;
+    setCredSaving(true);
+    setCredMsg(null);
+    try {
+      const res = await apiFetch<{ ok: boolean; email: string }>(
+        "/auth/me/credentials",
+        { method: "PATCH", body: JSON.stringify(credForm) },
+        token
+      );
+      setCredMsg({ ok: true, text: `Listo. Tus credenciales se actualizaron (email: ${res.email}).` });
+      // Recargar el /me para que refleje el canChangeCredentials: false
+      const m = await apiFetch<MeData>("/auth/me", {}, token);
+      setMe(m);
+      setTimeout(() => setShowCredModal(false), 1800);
+    } catch (err) {
+      setCredMsg({ ok: false, text: (err as Error).message });
+    } finally {
+      setCredSaving(false);
+    }
+  }
+
   useEffect(() => {
     if (!token) return;
     apiFetch<Team[]>("/teams", {}, token)
@@ -1028,6 +1060,20 @@ export default function Dashboard() {
       await apiFetch(`/auth/delegados/${d.id}`, { method: "PATCH", body: JSON.stringify({ active: activando }) }, token);
       setDelegados((prev) => prev.map((x) => (x.id === d.id ? { ...x, active: activando } : x)));
       setDelegadoMsg(activando ? `${nombre} reactivado.` : `${nombre} desactivado.`);
+      setTimeout(() => setDelegadoMsg(""), 3000);
+    } catch (err) {
+      setDelegadosError((err as Error).message);
+    }
+  }
+
+  // El delegado usó su único autocambio → el admin puede habilitarle otro.
+  async function reactivarCredenciales(d: DelegadoAdmin) {
+    if (!token) return;
+    if (!window.confirm(`¿Volver a habilitar el cambio de credenciales de ${d.fullName}?`)) return;
+    try {
+      await apiFetch(`/auth/delegados/${d.id}`, { method: "PATCH", body: JSON.stringify({ canChangeCredentials: true }) }, token);
+      setDelegados((prev) => prev.map((x) => (x.id === d.id ? { ...x, canChangeCredentials: true } : x)));
+      setDelegadoMsg(`${d.fullName} puede volver a cambiar sus credenciales.`);
       setTimeout(() => setDelegadoMsg(""), 3000);
     } catch (err) {
       setDelegadosError((err as Error).message);
@@ -1390,12 +1436,22 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => { setToken(null); window.location.href = "/"; }}
-          className="text-sm text-white/60 hover:text-red-400 border border-outline px-3 py-1.5 rounded-lg transition-all duration-200 hover:border-red-400/50 hover:bg-surface-2 active:scale-95"
-        >
-          Salir
-        </button>
+        <div className="flex items-center gap-2">
+          {me?.role !== "ADMIN" && me?.canChangeCredentials && (
+            <button
+              onClick={() => { setCredForm({ email: me?.email ?? "", password: "", currentPassword: "" }); setCredMsg(null); setShowCredModal(true); }}
+              className="text-sm text-white/70 hover:text-primary-light border border-outline px-3 py-1.5 rounded-lg transition-all duration-200 hover:border-primary/50 hover:bg-surface-2 active:scale-95"
+            >
+              Cambiar credenciales
+            </button>
+          )}
+          <button
+            onClick={() => { setToken(null); window.location.href = "/"; }}
+            className="text-sm text-white/60 hover:text-red-400 border border-outline px-3 py-1.5 rounded-lg transition-all duration-200 hover:border-red-400/50 hover:bg-surface-2 active:scale-95"
+          >
+            Salir
+          </button>
+        </div>
       </div>
 
       {/* selector de equipo */}
@@ -2108,6 +2164,7 @@ export default function Dashboard() {
                     <th className="py-2">Email</th>
                     <th className="py-2">Equipos</th>
                     <th className="py-2">Estado</th>
+                    <th className="py-2">Credenciales</th>
                     <th className="py-2 text-right">Acciones</th>
                   </tr>
                 </thead>
@@ -2137,6 +2194,21 @@ export default function Dashboard() {
                           <span className={`w-1.5 h-1.5 rounded-full ${d.active ? "bg-green-400" : "bg-white/40"}`} />
                           {d.active ? "Activo" : "Inactivo"}
                         </span>
+                      </td>
+                      <td className="py-3">
+                        {d.canChangeCredentials ? (
+                          <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary-light border border-primary/25 text-xs">
+                            Puede autocambiarse
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => reactivarCredenciales(d)}
+                            className="px-2.5 py-1 rounded-lg text-xs bg-transparent text-primary-light/80 border border-primary/25 hover:bg-primary/10 transition-colors"
+                            title="Volver a permitirle cambiar su email/contraseña una vez"
+                          >
+                            Reactivar cambio
+                          </button>
+                        )}
                       </td>
                       <td className="py-3">
                         <div className="flex items-center justify-end gap-2">
@@ -3015,6 +3087,81 @@ export default function Dashboard() {
         </div>
       )}
     {/* ===================== MODAL DELEGADO ===================== */}
+      {showCredModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-lg border border-outline bg-surface-2 p-6">
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="font-display text-lg font-bold">Cambiar mis credenciales</h2>
+              <button onClick={() => setShowCredModal(false)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
+            </div>
+            <p className="text-xs text-white/50 mt-1">
+              Es tu único cambio de email/contraseña. Después, si necesitás otro, pedilo al administrador.
+            </p>
+
+            <form
+              onSubmit={(e) => { e.preventDefault(); guardarCredenciales(); }}
+              className="mt-5 space-y-4"
+            >
+              <div>
+                <label className="text-xs text-white/70 block mb-1">Email de acceso</label>
+                <input
+                  type="email"
+                  value={credForm.email}
+                  onChange={(e) => setCredForm({ ...credForm, email: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/70 block mb-1">Contraseña actual</label>
+                <input
+                  type="password"
+                  value={credForm.currentPassword}
+                  onChange={(e) => setCredForm({ ...credForm, currentPassword: e.target.value })}
+                  placeholder="Necesaria para cambiar la contraseña"
+                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                  minLength={1}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/70 block mb-1">
+                  Contraseña nueva (dejala vacía para no cambiarla)
+                </label>
+                <input
+                  type="password"
+                  value={credForm.password}
+                  onChange={(e) => setCredForm({ ...credForm, password: e.target.value })}
+                  placeholder="Mínimo 6 caracteres"
+                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                  minLength={6}
+                />
+              </div>
+
+              {credMsg && (
+                <p className={`text-sm ${credMsg.ok ? "text-emerald-400" : "text-red-400"}`}>{credMsg.text}</p>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="submit"
+                  disabled={credSaving}
+                  className="flex-1 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {credSaving ? "Guardando..." : "Guardar cambios"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCredModal(false)}
+                  className="px-4 py-2 rounded-lg border border-outline text-sm text-white/70 hover:bg-surface-2 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {showDelegadoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-md rounded-lg border border-outline bg-surface-2 p-6 max-h-[90vh] overflow-y-auto">

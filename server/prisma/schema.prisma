@@ -22,6 +22,11 @@ model User {
   passwordHash String
   role         String   @default("DELEGADO") // "ADMIN" | "DELEGADO"
   active       Boolean  @default(true)
+  // Cambio de credenciales UNA vez por cuenta creada por admin: el delegado
+  // cambia su email/contraseña temporales al entrar por primera vez y después
+  // solo el admin puede tocarle credenciales (PATCH /delegados/:id).
+  // true = todavía puede autocambiarse; false = ya usó su único cambio.
+  canChangeCredentials Boolean @default(true)
   createdAt    DateTime @default(now())
 
   teamAccess UserTeamAccess[]

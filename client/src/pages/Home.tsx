@@ -128,10 +128,13 @@ export default function Home() {
     porDia.set(dia, grupo);
   }
 
-  // La sección lista TODO menos el destacado del hero, agrupado por día
-  // con su fecha (el finde actual + el que viene, para que nunca quede vacía).
+  // La sección lista TODOS los partidos agrupados por día con su fecha
+  // (el finde actual + el que viene, para que nunca quede vacía).
+  // Antes se usaba matches.slice(1) para no repetir el destacado del hero,
+  // pero así se perdía información (p.ej. el C13 destacado no figuraba abajo
+  // y no se entendía qué categoría jugaba).
   const restoPorDia = new Map<string, Match[]>();
-  for (const m of matches.slice(1)) {
+  for (const m of matches) {
     const dia = m.dateTime.slice(0, 10);
     const grupo = restoPorDia.get(dia) ?? [];
     grupo.push(m);
@@ -279,7 +282,7 @@ export default function Home() {
             Próximos partidos
             {!loading && matches.length > 1 && (
               <span className="text-xs font-mono bg-primary/15 text-primary-light px-2.5 py-1 rounded-full">
-                {matches.length - 1}
+                {matches.length}
               </span>
             )}
           </h2>
@@ -295,9 +298,9 @@ export default function Home() {
           </div>
         )}
 
-        {/* El destacado ya vive en el HERO (cuenta regresiva): acá el resto del
-            finde actual + el que viene, agrupados por día con su fecha */}
-        {restoPorDia.size > 0 && matches.length > 1 && (
+        {/* Todos los partidos del finde actual + el que viene, agrupados
+            por día con su fecha (incluido el destacado del hero) */}
+        {restoPorDia.size > 0 && matches.length >= 1 && (
           <div className="mt-4 space-y-6">
             {[...restoPorDia.entries()].map(([dia, parts]) => (
               <div key={dia}>

@@ -52,6 +52,7 @@ router.get("/me", requireAuth, async (req, res) => {
     fullName: user.fullName,
     email: user.email,
     role: user.role,
+    canChangeCredentials: user.canChangeCredentials,
     teams: user.teamAccess.map((a) => a.team),
   });
 });
@@ -88,6 +89,9 @@ router.post("/delegados", requireAuth, requireAdmin, async (req, res) => {
 });
 
 // PATCH /api/auth/me/credentials — el usuario cambia su propio email/contraseña
+// Regla (11/08): cada delegado creado por el admin puede autocambiarse credenciales
+// UNA sola vez (canChangeCredentials). Después, si quiere volver a cambiar, debe
+// pedirlo al admin (PATCH /auth/delegados/:id). El admin (role ADMIN) no tiene límite.
 router.patch("/me/credentials", requireAuth, async (req, res) => {
   const parsed = updateCredentialsSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -97,6 +101,12 @@ router.patch("/me/credentials", requireAuth, async (req, res) => {
   const { email, password, currentPassword } = parsed.data;
   const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
   if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+
+  if (user.role !== "ADMIN" && !user.canChangeCredentials) {
+    return res.status(403).json({
+      error: "Ya usaste tu único cambio de credenciales. Pedile al administrador que lo haga.",
+    });
+  }
 
   if (password) {
     if (!currentPassword) {
@@ -123,10 +133,12 @@ router.patch("/me/credentials", requireAuth, async (req, res) => {
     data: {
       email: nextEmail,
       passwordHash: nextPasswordHash,
+      // Si el delegado usó su único cambio, lo marcamos como usado.
+      canChangeCredentials: user.role === "ADMIN" ? user.canChangeCredentials : false,
     },
   });
 
-  res.json({ ok: true, email: nextEmail });
+  res.json({ ok: true, email: nextEmail, canChangeCredentials: user.role === "ADMIN" });
 });
 
 // PATCH /api/auth/delegados/:id — (admin) actualiza email/contraseña/equipos de un delegado
@@ -138,13 +150,15 @@ router.patch("/delegados/:id", requireAuth, requireAdmin, async (req, res) => {
     password: z.string().min(6).optional(),
     teamIds: z.array(z.string()).min(1).optional(),
     active: z.boolean().optional(),
+    // Reactiva el cambio de credenciales del delegado (si pidió un segundo cambio).
+    canChangeCredentials: z.boolean().optional(),
   }).safeParse(req.body);
 
   if (!parsed.success) {
     return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
   }
 
-  const { fullName, email, password, teamIds, active } = parsed.data;
+  const { fullName, email, password, teamIds, active, canChangeCredentials } = parsed.data;
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user || user.role !== "DELEGADO") {
     return res.status(404).json({ error: "Delegado no encontrado" });
@@ -167,6 +181,7 @@ router.patch("/delegados/:id", requireAuth, requireAdmin, async (req, res) => {
         email: email ?? user.email,
         passwordHash: hash ?? user.passwordHash,
         active: active ?? user.active,
+        canChangeCredentials: canChangeCredentials ?? user.canChangeCredentials,
       },
     });
 
