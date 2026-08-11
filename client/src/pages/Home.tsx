@@ -45,6 +45,17 @@ function formatFechaLegible(iso: string) {
   return `${formatDia(iso).charAt(0).toUpperCase()}${formatDia(iso).slice(1)} ${dia}`;
 }
 
+// Clave de día basada en la fecha local (YYYY-MM-DD).
+// Evita que partidos con timestamps en UTC/offset distinto se agrupen
+// en fechas distintas aunque su representación local sea el mismo día.
+function diaKeyLocal(iso: string) {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
 function colorEquipo(tipo: string): string {
   return tipo === "FORMATIVA" ? "bg-primary/15 border-primary/30" : "bg-surface-1 border-outline";
 }
@@ -148,7 +159,7 @@ export default function Home() {
   // Agrupar los partidos del equipo por día
   const porDia = new Map<string, Match[]>();
   for (const m of teamMatches ?? []) {
-    const dia = m.dateTime.slice(0, 10);
+    const dia = diaKeyLocal(m.dateTime);
     const grupo = porDia.get(dia) ?? [];
     grupo.push(m);
     porDia.set(dia, grupo);
@@ -161,7 +172,7 @@ export default function Home() {
   // y no se entendía qué categoría jugaba).
   const restoPorDia = new Map<string, Match[]>();
   for (const m of matches) {
-    const dia = m.dateTime.slice(0, 10);
+    const dia = diaKeyLocal(m.dateTime);
     const grupo = restoPorDia.get(dia) ?? [];
     grupo.push(m);
     restoPorDia.set(dia, grupo);
