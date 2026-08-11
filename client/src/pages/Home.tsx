@@ -234,45 +234,64 @@ export default function Home() {
             </div>
           )}
 
-          {/* Próximo partido: cuándo juega el club (+ cuenta regresiva) */}
+          {/* Próximo partido: ficha de partido + cuenta regresiva */}
           {!loading && destacado && restante && (
             <div
-              className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4 animate-fade-up"
+              className="mt-10 max-w-lg rounded-xl border border-outline bg-surface-1/80 backdrop-blur-sm overflow-hidden animate-fade-up"
               style={{ animationDelay: "0.2s" }}
             >
-              <div className="flex items-center gap-3">
-                <span className="relative flex w-2.5 h-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-action-green opacity-60" />
-                  <span className="relative inline-flex rounded-full w-2.5 h-2.5 bg-action-green" />
-                </span>
-                <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-white/60">
-                  Próximo partido
-                </p>
-              </div>
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <p className="font-display font-bold text-xl md:text-2xl">
-                  <span className="text-primary-light text-sm font-mono uppercase tracking-wider mr-2 align-middle">
-                    {destacado.team.name}
+              {/* Barra superior: indicador live + fecha corta */}
+              <div className="flex items-center justify-between px-5 py-2.5 border-b border-outline/70 bg-surface-1">
+                <div className="flex items-center gap-2.5">
+                  <span className="relative flex w-2 h-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-action-green opacity-60" />
+                    <span className="relative inline-flex rounded-full w-2 h-2 bg-action-green" />
                   </span>
-                  {destacado.isHome ? "J.H." : destacado.rival}
-                  <span className="text-white/40 font-light mx-2 text-base">vs</span>
-                  {destacado.isHome ? destacado.rival : "J.H."}
-                </p>
-                <p className="text-sm text-white/60">
-                  {formatFechaLegible(destacado.dateTime)} · {formatHora(destacado.dateTime)} ·{" "}
+                  <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-white/60">
+                    Próximo partido
+                  </p>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-primary/15 border border-primary/25 text-primary-light text-[11px] font-mono uppercase tracking-wider">
+                  {destacado.team.name}
+                </span>
+              </div>
+
+              {/* Marcador: J.H. vs rival */}
+              <div className="px-5 py-5">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="font-display font-bold text-2xl md:text-3xl leading-tight">
+                    {destacado.isHome ? "J.H." : destacado.rival}
+                  </p>
+                  <span className="font-mono text-white/40 text-sm uppercase tracking-widest">vs</span>
+                  <p className="font-display font-bold text-2xl md:text-3xl leading-tight text-right">
+                    {destacado.isHome ? destacado.rival : "J.H."}
+                  </p>
+                </div>
+
+                {/* Detalle: fecha · hora · cancha */}
+                <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/60">
+                  <span className="text-white/85">{formatFechaLegible(destacado.dateTime)}</span>
+                  <span className="text-white/30">·</span>
+                  <span className="text-white/85">{formatHora(destacado.dateTime)}</span>
+                  <span className="text-white/30">·</span>
                   <span className="text-white/75">{destacado.venue}</span>
+                </div>
+              </div>
+
+              {/* Cuenta regresiva */}
+              <div className="px-5 py-3 bg-surface-2 border-t border-outline/70 flex items-center justify-between">
+                <p className="text-[11px] font-mono uppercase tracking-wider text-white/40">Cuenta regresiva</p>
+                <p
+                  className="font-mono text-primary-light tabular-nums font-semibold"
+                  title={new Date(destacado.dateTime).toLocaleString("es-AR")}
+                >
+                  {restante.dias > 0
+                    ? `en ${restante.dias} día${restante.dias === 1 ? "" : "s"} ${restante.horas} h`
+                    : restante.horas > 0
+                      ? `en ${restante.horas} h ${restante.mins} min`
+                      : `en ${restante.mins} min`}
                 </p>
               </div>
-              <p
-                className="font-mono text-sm text-primary-light tabular-nums"
-                title={new Date(destacado.dateTime).toLocaleString("es-AR")}
-              >
-                {restante.dias > 0
-                  ? `en ${restante.dias} día${restante.dias === 1 ? "" : "s"} ${restante.horas} h`
-                  : restante.horas > 0
-                    ? `en ${restante.horas} h ${restante.mins} min`
-                    : `en ${restante.mins} min`}
-              </p>
             </div>
           )}
         </div>
