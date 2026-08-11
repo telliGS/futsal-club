@@ -10,18 +10,16 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 - **Repo**: `https://github.com/telliGS/futsal-club.git` (branch `master`).
   - Identidad git OBLIGATORIA: `telliGS` / `tellig270@gmail.com` (email viejo `guille@josehernandez.futbol` causa `BLOCKED` en Vercel).
 
-## Estado actual (11/08/2026 — local, mejoras SIN commitear)
+## Estado actual (11/08/2026 — TODO EN PROD ✅)
 - **Deploy actual**: frontend en `https://jh-futsal.vercel.app`, backend en `https://server-tellig.vercel.app`.
-- **Último commit**: `264aabe` (`Admin: gestion de delegados (...) + sesion persistente + PATCH credentials`) — commit 1977f1c (`Deploy club features and fixes`) ya en prod: presupuesto, regla nativo, resultados, rediseño Pitch Dominance, RLS, etc.
-- **Mejoras de hoy (LOCAL, SIN commitear)** — TODO junto para UN commit+deploy con OK del usuario:
+- **Último commit**: `3725e52` (`Admin delegados: rediseno con modal+checkboxes de equipos, toggle activo, borrado individual y masivo (DELETE), fix sesion al volver al sitio`) — **DEPLOYADO a prod** (server `server-62uksmsj3` + alias, front `jh-futsal-e2li41fv0` + alias, verificados: health OK + HTTP 200).
+- **Bloque deployado hoy (11/08)**:
   1) **Rediseño pestaña Delegados** (ver sección Panel de delegado): form en MODAL con checkboxes de equipos, toggle Activo/Inactivo con confirmación, feedback de éxito, estado vacío, badges.
-  2) **Borrado de usuarios**: `DELETE /api/auth/delegados/:id` (uno) y `DELETE /api/auth/delegados` (TODOS, deja solo admin; cascade borra userTeamAccess). UI: botón "Eliminar" por fila (confirm) + botón "Eliminar todos" (doble confirm). Verificado E2E en server local.
-  3) **Fix sesión al volver al sitio**: `Login.tsx` ahora con `useEffect` → si `getToken()` existe, `navigate("/delegado")` (antes al tocar "Delegados"/"Área delegados" pedía loguear de nuevo aunque hubiera sesión).
-- **BORRADO EJECUTADO (11/08, BD real)**: se eliminaron los 12 delegados existentes con el endpoint nuevo (quedó solo `admin@josehernandez.futbol`). Guille va a crear los CORRECTOS desde el panel admin (pestaña Delegados). Server local reiniciado con el código nuevo (PID distinto).
+  2) **Borrado de usuarios**: `DELETE /api/auth/delegados/:id` (uno) y `DELETE /api/auth/delegados` (TODOS, deja solo admin; cascade borra userTeamAccess). UI: botón "Eliminar" por fila (confirm) + botón "Eliminar todos" (doble confirm).
+  3) **Fix sesión al volver al sitio**: `Login.tsx` con `useEffect` → si `getToken()` existe, `navigate("/delegado")`.
+- **BORRADO EJECUTADO (11/08, BD real)**: se eliminaron los 12 delegados existentes (quedó solo `admin@josehernandez.futbol`). Guille crea los CORRECTOS desde el panel admin (pestaña Delegados).
 - **Credenciales de prueba**: `admin@josehernandez.futbol` / `admin1234`.
-- **Flujo actual de autenticación**: login solo para cuentas existentes; el acceso está controlado por el admin.
-- **Para seguir (11/08)**: Guille crea los delegados reales desde http://localhost:5173 → /delegado pestaña "Delegados" (server en :4000, client en :5173). Luego juntar TODO y hacer UN commit + UN deploy (auto front via push, manual server con `--scope team_u0...`).
-- **NOTA procesos**: el frontend usa proxy de Vite `{ "/api": "http://localhost:4000" }`; para dev local hay que tener el server corriendo (`npx tsx src/index.ts` en server/) y el client (`npm run dev` en client/). ATENCION: parar procesos node con `Stop-Process` mata TAMBIÉN el Vite del usuario → matar SOLO el PID del server (puerto 4000) si hace falta reiniciarlo.
+- **Siguiente (11/08)**: crear delegados reales desde el panel + **ROADMAP MARUCHA** (ver sección abajo).
 
 ## URLs en producción
 - Front: `https://jh-futsal.vercel.app` (project prj_qZUeIBA6zGaVWpDeI8xqxU1NTpK3, rootDirectory `client`)
