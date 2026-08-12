@@ -1,17 +1,21 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 
 export default function Historia() {
-  // Datos de ejemplo para la línea de tiempo
+  // Scroll al inicio
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const hitos = [
-    { año: "1985", descripcion: "Fundación del club en el barrio de la Toma" },
-    { año: "2016", descripcion: "Campeones de la Copa de Oro Norte en Corrientes" },
-    { año: "2023", descripcion: "Campeones del Torneo Apertura APFS" },
-    { año: "2024", descripcion: "Segundo título oficial y consagración" },
-    { año: "2026", descripcion: "10 equipos, más de 100 jugadores y creciendo" },
+    { año: "1985", descripcion: "Fundación del club en el barrio de la Toma", icon: "🏠" },
+    { año: "2016", descripcion: "Campeones de la Copa de Oro Norte en Corrientes", icon: "🏆" },
+    { año: "2023", descripcion: "Campeones del Torneo Apertura APFS", icon: "🥇" },
+    { año: "2024", descripcion: "Segundo título oficial y consagración", icon: "🏅" },
+    { año: "2026", descripcion: "10 equipos, más de 100 jugadores y creciendo", icon: "📈" },
   ];
 
-  // Testimonios (podés reemplazarlos con reales después)
   const testimonios = [
     {
       nombre: "Juan Pérez",
@@ -27,54 +31,106 @@ export default function Historia() {
 
   return (
     <Layout>
-      <div className="max-w-5xl mx-auto px-6 py-12 md:py-16">
-        {/* Encabezado */}
-        <div className="mb-12">
-          <h1 className="font-display text-4xl md:text-5xl font-bold flex items-center gap-3">
-            <span className="inline-block w-2 h-10 bg-primary rounded-full" />
-            Nuestra historia
+      {/* ========== ENCABEZADO CON GRADIENTE ========== */}
+      <div className="relative bg-gradient-to-b from-primary-dark to-surface overflow-hidden border-b border-outline">
+        {/* Halo verde */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(120% 90% at 50% 110%, rgba(0,147,66,0.30) 0%, rgba(0,99,43,0.12) 38%, transparent 72%)",
+          }}
+        />
+        <div className="relative max-w-5xl mx-auto px-6 py-20 md:py-28 text-center">
+          <h1 className="font-display text-5xl md:text-6xl font-bold">
+            Nuestra <span className="text-primary-light">historia</span>
           </h1>
-          <p className="mt-4 text-white/70 text-lg max-w-2xl leading-relaxed">
+          <p className="mt-4 text-white/70 text-lg max-w-2xl mx-auto leading-relaxed">
             Conocé el camino del Club José Hernández: desde sus orígenes en el barrio
             hasta los títulos que nos llenan de orgullo.
           </p>
+          <div className="mt-6 flex justify-center gap-4 text-sm text-white/40">
+            <span>🏠 1985</span>
+            <span>·</span>
+            <span>🏆 2016</span>
+            <span>·</span>
+            <span>🥇 2023</span>
+          </div>
         </div>
+      </div>
 
-        {/* Historia completa */}
-        <section className="prose prose-invert max-w-none">
-          <p className="text-white/80 leading-relaxed text-lg">
-            Somos el Club José Hernández. Nacimos en un barrio de Paraná, con una
-            pelota y un sueño. Perdimos finales, pero nunca bajamos los brazos.
-            En 2016 dimos la vuelta: campeones de la Copa de Oro Norte en Corrientes.
-            Después llegaron el Apertura, el segundo título oficial, y más festejos.
-            Hoy somos 10 equipos, más de 100 jugadores, y seguimos siendo un club
-            de barrio: familia, esfuerzo y pasión por la camiseta verde. Somos JH Futsal.
-          </p>
+      <div className="max-w-5xl mx-auto px-6 py-16">
+        {/* ========== HISTORIA COMPLETA ========== */}
+        <section className="grid md:grid-cols-2 gap-8 items-start">
+          <div>
+            <h2 className="font-display text-2xl font-bold flex items-center gap-3">
+              <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
+              Cómo empezó todo
+            </h2>
+            <p className="mt-4 text-white/80 leading-relaxed text-lg">
+              Somos el Club José Hernández. Nacimos en un barrio de Paraná, con una
+              pelota y un sueño. Perdimos finales, pero nunca bajamos los brazos.
+            </p>
+            <p className="mt-4 text-white/70 leading-relaxed">
+              En 2016 dimos la vuelta: campeones de la Copa de Oro Norte en Corrientes.
+              Después llegaron el Apertura, el segundo título oficial, y más festejos.
+            </p>
+            <p className="mt-4 text-white/70 leading-relaxed">
+              Hoy somos 10 equipos, más de 100 jugadores, y seguimos siendo un club
+              de barrio: familia, esfuerzo y pasión por la camiseta verde. Somos JH Futsal.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a
+                href="https://www.instagram.com/josehernandezfs/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary inline-flex items-center gap-2"
+              >
+                📸 Seguinos en Instagram
+              </a>
+              <Link
+                to="/"
+                className="btn bg-surface-2 border border-outline text-white hover:border-primary/40 hover:bg-surface-1 inline-flex items-center gap-2"
+              >
+                ← Volver al inicio
+              </Link>
+            </div>
+          </div>
+          <div className="rounded-xl overflow-hidden border border-outline bg-surface-1 flex items-center justify-center aspect-[4/3]">
+            <div className="text-center p-8">
+              <span className="text-7xl block mb-2">🏆</span>
+              <p className="text-white/40 text-sm">Fotos del club muy pronto</p>
+            </div>
+          </div>
         </section>
 
-        {/* Línea de tiempo */}
-        <section className="mt-16">
+        {/* ========== LÍNEA DE TIEMPO ========== */}
+        <section className="mt-20">
           <h2 className="font-display text-2xl font-bold flex items-center gap-3">
             <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
             Línea de tiempo
           </h2>
-          <div className="mt-6 space-y-4">
+          <div className="mt-8 space-y-6">
             {hitos.map((hito, index) => (
               <div
                 key={index}
-                className="flex items-start gap-4 border-l-2 border-primary/40 pl-6 pb-6 last:pb-0"
+                className="flex items-start gap-6 border-l-2 border-primary/40 pl-6 pb-6 last:pb-0"
               >
-                <span className="shrink-0 font-display text-2xl font-bold text-primary-light tabular-nums">
-                  {hito.año}
-                </span>
-                <p className="text-white/70">{hito.descripcion}</p>
+                <span className="shrink-0 text-3xl">{hito.icon}</span>
+                <div>
+                  <span className="font-display text-2xl font-bold text-primary-light tabular-nums block">
+                    {hito.año}
+                  </span>
+                  <p className="text-white/70">{hito.descripcion}</p>
+                </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Galería (placeholder) */}
-        <section className="mt-16">
+        {/* ========== GALERÍA ========== */}
+        <section className="mt-20">
           <h2 className="font-display text-2xl font-bold flex items-center gap-3">
             <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
             Galería de fotos
@@ -83,9 +139,9 @@ export default function Historia() {
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
-                className="aspect-square rounded-xl border border-outline bg-surface-1 flex items-center justify-center"
+                className="aspect-square rounded-xl border border-outline bg-surface-1 flex items-center justify-center hover:border-primary/40 transition-colors"
               >
-                <span className="text-4xl">🏆</span>
+                <span className="text-5xl">🏆</span>
               </div>
             ))}
           </div>
@@ -103,8 +159,8 @@ export default function Historia() {
           </p>
         </section>
 
-        {/* Testimonios */}
-        <section className="mt-16">
+        {/* ========== TESTIMONIOS ========== */}
+        <section className="mt-20">
           <h2 className="font-display text-2xl font-bold flex items-center gap-3">
             <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
             Lo que dicen de nosotros
@@ -124,8 +180,8 @@ export default function Historia() {
           </div>
         </section>
 
-        {/* Redes y llamado a la acción */}
-        <section className="mt-16 border-t border-outline pt-12 text-center">
+        {/* ========== CIERRE CON REDES ========== */}
+        <section className="mt-20 border-t border-outline pt-12 text-center">
           <p className="text-white/60 text-sm">
             Seguinos en nuestras redes para estar al día con todo lo que pasa en el club.
           </p>
@@ -149,12 +205,6 @@ export default function Historia() {
               👍
             </a>
           </div>
-          <Link
-            to="/"
-            className="mt-6 inline-flex items-center gap-2 btn bg-surface-2 border border-outline text-white hover:border-primary/40 hover:bg-surface-1"
-          >
-            ← Volver al inicio
-          </Link>
         </section>
       </div>
     </Layout>
