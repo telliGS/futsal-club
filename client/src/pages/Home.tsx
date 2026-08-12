@@ -266,7 +266,7 @@ export default function Home() {
       </div>
     </div>
 
-    {/* Stats del club - Más grandes y con mejor separación */}
+    {/* Stats del club - Más grandes */}
     {!loading && stats && (
       <div
         className="mt-16 grid grid-cols-3 gap-6 max-w-lg animate-fade-up"
@@ -285,11 +285,78 @@ export default function Home() {
       </div>
     )}
 
-    {/* Partido destacado - La tarjeta se mantiene igual pero con mejor espaciado */}
+    {/* Partido destacado - con countdown (usando restante) */}
     {!loading && destacado && (
-      <div className="mt-10 max-w-md animate-fade-up" style={{ animationDelay: "0.2s" }}>
-        {/* ... el mismo contenido del partido destacado que ya tenés ... */}
-      </div>
+      (() => {
+        const estado = estadoPartido(destacado);
+        const enCurso = estado === "en_curso";
+        return (
+          <div
+            className="mt-10 max-w-md rounded-lg border border-outline bg-surface-1/60 overflow-hidden animate-fade-up"
+            style={{ animationDelay: "0.2s" }}
+          >
+            {/* Barra superior */}
+            <div className="flex items-center justify-between px-4 py-2 border-b border-outline/60 bg-surface-1/40">
+              <div className="flex items-center gap-2">
+                {enCurso ? (
+                  <BadgeEnCurso />
+                ) : (
+                  <>
+                    <span className="relative flex w-1.5 h-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-action-green opacity-60" />
+                      <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-action-green" />
+                    </span>
+                    <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/50">
+                      Próximo partido
+                    </p>
+                  </>
+                )}
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary-light text-[10px] font-mono uppercase tracking-wider">
+                {destacado.team.name}
+              </span>
+            </div>
+
+            {/* Marcador */}
+            <div className="px-4 py-3.5">
+              <div className="flex items-center justify-between gap-4">
+                <p className="font-display font-bold text-lg md:text-xl leading-tight">
+                  {destacado.isHome ? "J.H." : destacado.rival}
+                </p>
+                <span className="font-mono text-white/35 text-[11px] uppercase tracking-widest">vs</span>
+                <p className="font-display font-bold text-lg md:text-xl leading-tight text-right">
+                  {destacado.isHome ? destacado.rival : "J.H."}
+                </p>
+              </div>
+
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[13px] text-white/55">
+                <span className="text-white/80">{formatFechaLegible(destacado.dateTime)}</span>
+                <span className="text-white/25">·</span>
+                <span className="text-white/80">{formatHora(destacado.dateTime)}</span>
+                <span className="text-white/25">·</span>
+                <span className="text-white/70">{destacado.venue}</span>
+              </div>
+            </div>
+
+            {/* Cuenta regresiva (usa restante) */}
+            {!enCurso && restante && (
+              <div className="px-4 py-2 bg-surface-2/60 border-t border-outline/60 flex items-center justify-between">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-white/35">Cuenta regresiva</p>
+                <p
+                  className="font-mono text-[13px] text-primary-light/90 tabular-nums"
+                  title={new Date(destacado.dateTime).toLocaleString("es-AR")}
+                >
+                  {restante.dias > 0
+                    ? `en ${restante.dias} día${restante.dias === 1 ? "" : "s"} ${restante.horas} h`
+                    : restante.horas > 0
+                      ? `en ${restante.horas} h ${restante.mins} min`
+                      : `en ${restante.mins} min`}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })()
     )}
   </div>
 </header>
