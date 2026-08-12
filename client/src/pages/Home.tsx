@@ -251,18 +251,18 @@ export default function Home() {
       </div>
 
       <div className="flex flex-wrap gap-3 animate-fade-up md:flex-col md:items-end" style={{ animationDelay: "0.1s" }}>
-        <Link
-          to="/mi-cuota"
-          className="btn bg-primary text-white hover:bg-primary-light text-base px-6 py-3"
-        >
-          Consultar mi cuota
+       <Link
+        to="/mi-cuota"
+         className="btn-primary"
+         >
+           Consultar mi cuota
         </Link>
         <Link
-          to="/ingresar"
-          className="btn bg-surface-2 text-white border border-outline hover:border-white/40 hover:bg-surface-1"
-        >
-          Área delegados
-        </Link>
+  to="/ingresar"
+  className="btn-secondary"
+>
+  Área delegados
+</Link>
       </div>
     </div>
 
@@ -507,21 +507,21 @@ export default function Home() {
         de barrio: familia, esfuerzo y pasión por la camiseta verde. Somos JH Futsal.
       </p>
       <div className="mt-6 flex flex-wrap gap-4">
-        <Link
-          to="/historia"
-          className="inline-flex items-center gap-2 btn bg-primary text-white hover:bg-primary-light"
-        >
-          Conocé más
-          <span aria-hidden>→</span>
-        </Link>
+       <Link
+  to="/historia"
+  className="btn-primary inline-flex items-center gap-2"
+>
+  Conocé más
+  <span aria-hidden>→</span>
+</Link>
         <a
-          href="https://www.instagram.com/josehernandezfs/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 btn bg-surface-2 border border-outline text-white hover:border-primary/40 hover:bg-surface-1"
-        >
-          📸 Seguinos en Instagram
-        </a>
+  href="https://www.instagram.com/josehernandezfs/"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="btn-secondary inline-flex items-center gap-2"
+>
+  📸 Seguinos en Instagram
+</a>
       </div>
     </div>
     <div className="rounded-xl overflow-hidden border border-outline shadow-xl bg-surface-1 flex items-center justify-center aspect-[4/3]">

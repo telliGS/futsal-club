@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 html {
-  /* desplazamiento suave entre secciones/anclas */
   scroll-behavior: smooth;
 }
 
@@ -11,9 +10,8 @@ body {
   @apply bg-surface text-white font-body antialiased;
 }
 
-/* ---------- Micro-interacciones globales (mate, sin neon) ---------- */
+/* ---------- Micro-interacciones globales ---------- */
 
-/* Botones: sólidos, radio moderado (8px), respuesta táctil sin sombras */
 .btn {
   @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold
          transition-all duration-200 ease-out-soft
@@ -23,24 +21,21 @@ body {
   @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-surface;
 }
 
-/* Card: superficie sólida level 1, sin sombras; el hover solo ilumina el borde */
+/* Card: con textura sutil y borde que se ilumina al hover */
 .card {
-  @apply rounded-lg border border-outline bg-surface-1
-         transition-all duration-200 ease-out-soft
-         hover:-translate-y-0.5 hover:border-primary/60;
+  @apply rounded-lg border border-outline bg-surface-1 bg-noise transition-all duration-200 ease-out-soft hover:border-primary/60;
 }
 .card:active {
   @apply translate-y-0;
 }
 
-/* Card destacada (Data Card): bastón verde de 4px al costado izquierdo,
-   como el borde del área — resalta una tarjeta "activa/actual" sin glow */
+/* Card destacada: con bastón verde lateral (cinta de campeón) */
 .card--lead {
   @apply rounded-lg border border-outline bg-surface-1 border-l-4 border-l-primary
          transition-all duration-200 ease-out-soft;
 }
 
-/* Enlaces del menú / acciones: subrayado mate que crece */
+/* Enlaces con subrayado que crece */
 .link-underline {
   @apply relative transition-colors duration-200;
 }
@@ -54,18 +49,18 @@ body {
   @apply w-full;
 }
 
-/* Escudo / logo: reacción suave al hover (escala + inclinación leve) */
+/* Logo con efecto sutil */
 .logo-hover {
   @apply transition-all duration-300 ease-out-soft
          hover:scale-110 hover:-rotate-3;
 }
 
-/* Tabla: filas con hover mate (sin resplandores) */
+/* Tablas */
 tbody tr {
   transition: background-color 0.15s ease;
 }
 
-/* Inputs: superficie sólida level 1 + borde outline; foco con borde primary */
+/* Inputs */
 input, select, textarea {
   @apply transition-all duration-200;
 }
@@ -78,28 +73,67 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 
 /* ---------- Utilidades del panel (Dashboard) ---------- */
-
-/* Encabezado de tabla: superficie sólida + texto en mayúsculas */
 .panel-th {
   @apply text-left px-3 py-2.5 text-[10px] uppercase tracking-wider text-white/50
          bg-surface-1 border-b border-outline font-mono;
 }
-
-/* Filas de tabla: hover sólido hacia surface-2 + separadores */
 .panel-tr {
   @apply border-b border-white/5 transition-colors duration-150 hover:bg-surface-2/60;
 }
-
-/* Avatar circular con inicial del jugador (mate) */
 .avatar {
   @apply w-9 h-9 shrink-0 rounded-full bg-primary/15 border border-primary/30
          flex items-center justify-center font-display font-bold text-sm text-primary select-none;
 }
-
-/* Grupo de acciones: aparecen con opacidad alta en hover de la fila */
 .row-actions {
   @apply flex items-center justify-end gap-1 opacity-60 transition-opacity duration-150;
 }
 tr:hover .row-actions {
   @apply opacity-100;
+}
+
+/* ---------- TEXTURAS (nuevas) ---------- */
+/* Ruido granulado para fondos (mate) */
+.bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Líneas de cancha (sutil) para fondos especiales */
+.bg-pitch {
+  background-image: 
+    linear-gradient(45deg, rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(-45deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+/* Botón primario con efecto de cinta (crece de abajo) */
+.btn-primary {
+  @apply relative overflow-hidden bg-primary text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300;
+}
+
+.btn-primary::after {
+  content: "";
+  @apply absolute bottom-0 left-0 h-0.5 w-0 bg-white transition-all duration-300 ease-out-soft;
+}
+
+.btn-primary:hover::after {
+  @apply w-full;
+}
+
+.btn-primary:hover {
+  @apply bg-primary-light;
+}
+
+/* Botón secundario con efecto similar pero en verde claro */
+.btn-secondary {
+  @apply relative overflow-hidden bg-surface-2 text-white border border-outline px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:border-primary/40 hover:bg-surface-1;
+}
+
+.btn-secondary::after {
+  content: "";
+  @apply absolute bottom-0 left-0 h-0.5 w-0 bg-primary-light transition-all duration-300 ease-out-soft;
+}
+
+.btn-secondary:hover::after {
+  @apply w-full;
 }
