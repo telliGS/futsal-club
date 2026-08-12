@@ -614,6 +614,20 @@ export default function Dashboard() {
   // Categoría del equipo seleccionado (para la regla ergo 2 años / electro 1 año)
   const categoriaActual = me?.teams.find((t) => t.id === teamId)?.category ?? null;
 
+  // Equipos que el usuario puede operar en el cronograma:
+  // el admin ve/edita todo; el delegado solo sus equipos (me.teams).
+  // Los bloques "actividad libre" (sin equipo) siempre son de admin.
+  const esAdmin = me?.role === "ADMIN";
+  const equiposPoliEditables = esAdmin ? allTeams : (me?.teams ?? []);
+
+  // ¿El usuario puede editar/borrar/activar un slot o bloque del cronograma?
+  function puedeOperarPoli(teamIdSlot: string | null | undefined): boolean {
+    if (esAdmin) return true;
+    // Delegado: solo bloques de SUS equipos (un bloque sin equipo es de admin)
+    if (!teamIdSlot) return false;
+    return (me?.teams ?? []).some((t) => t.id === teamIdSlot);
+  }
+
   function vigenciaHint(): string {
     const esMayor = esCategoriaMayor(categoriaActual);
     if (docForm.tipo === "ERGONOMETRIA") {
@@ -856,9 +870,9 @@ export default function Dashboard() {
       .finally(() => setPresupLoading(false));
   }, [teamId, token, presupMes]);
 
-  // Total del club: solo el admin y cargado on-demand
+  // Total del club: cargado on-demand (admin o delegado autenticado)
   useEffect(() => {
-    if (!verTotal || !token || me?.role !== "ADMIN") return;
+    if (!verTotal || !token) return;
     setTotalLoading(true);
     setTotalError("");
     apiFetch<TotalPresupuesto>(`/teams/presupuesto/total?mes=${presupMes}`, {}, token)
@@ -1499,14 +1513,12 @@ export default function Dashboard() {
                   Delegados
                 </button>
               )}
-              {me?.role === "ADMIN" && (
-                <button
-                  onClick={() => setView("poli")}
-                  className={`px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${view === "poli" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
-                >
-                  Cronograma
-                </button>
-              )}
+              <button
+                onClick={() => setView("poli")}
+                className={`px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${view === "poli" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+              >
+                Cronograma
+              </button>
             </div>
             <button
               onClick={openNuevo}
@@ -2251,7 +2263,7 @@ export default function Dashboard() {
       )}
 
       {/* ===================== VISTA CRONOGRAMA DE ENTRENAMIENTO ===================== */}
-      {view === "poli" && me?.role === "ADMIN" && (
+      {view === "poli" && (
         <div className="mt-8 rounded-lg border border-outline bg-surface-1 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -2365,8 +2377,9 @@ export default function Dashboard() {
                           <div className="mt-1.5 flex items-center gap-1.5">
                             <button
                               onClick={() => abrirExcepcion(d.fecha, b)}
-                              className="text-[11px] px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 transition-colors"
-                              title="Cambiar lugar/hora o cancelar para este día puntual"
+                              disabled={!puedeOperarPoli(b.team?.id)}
+                              className="text-[11px] px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                              title={puedeOperarPoli(b.team?.id) ? "Cambiar lugar/hora o cancelar para este día puntual" : "Solo el admin o el encargado de este equipo"}
                             >
                               Cambiar este día
                             </button>
@@ -2415,7 +2428,9 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {poliSlots.map((s) => (
+                    {poliSlots.map((s) => {
+                      const operable = puedeOperarPoli(s.team?.id);
+                      return (
                       <tr key={s.id} className={`border-t border-outline/60 ${s.active ? "" : "opacity-50"}`}>
                         <td className="py-3 capitalize">
                           {["", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"][s.dayOfWeek]}
@@ -2431,7 +2446,8 @@ export default function Dashboard() {
                         <td className="py-3">
                           <button
                             onClick={() => togglePoliSlot(s)}
-                            className={`px-2.5 py-0.5 rounded-full text-xs border transition-colors ${
+                            disabled={!operable}
+                            className={`px-2.5 py-0.5 rounded-full text-xs border transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                               s.active
                                 ? "bg-green-500/10 text-green-400 border-green-500/30 hover:bg-green-500/20"
                                 : "bg-white/5 text-white/50 border-outline hover:bg-surface-2"
@@ -2444,20 +2460,23 @@ export default function Dashboard() {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => startEditPoliSlot(s)}
-                              className="px-2.5 py-1 rounded-lg text-xs bg-surface-2 border border-outline hover:bg-surface-1 text-white/80 transition-colors"
+                              disabled={!operable}
+                              className="px-2.5 py-1 rounded-lg text-xs bg-surface-2 border border-outline hover:bg-surface-1 text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               Editar
                             </button>
                             <button
                               onClick={() => borrarPoliSlot(s)}
-                              className="px-2.5 py-1 rounded-lg text-xs bg-transparent text-red-400/40 border border-transparent hover:bg-red-400/10 hover:text-red-400 hover:border-red-400/30 transition-colors"
+                              disabled={!operable}
+                              className="px-2.5 py-1 rounded-lg text-xs bg-transparent text-red-400/40 border border-transparent hover:bg-red-400/10 hover:text-red-400 hover:border-red-400/30 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               Eliminar
                             </button>
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -2484,8 +2503,7 @@ export default function Dashboard() {
                 onChange={(e) => setPresupMes(e.target.value || mesActual())}
                 className="px-2.5 py-1.5 rounded-lg bg-surface-1 border border-outline text-sm [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
-              {me?.role === "ADMIN" && (
-                <button
+              <button
                   onClick={() => setVerTotal(!verTotal)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 active:scale-95 ${
                     verTotal ? "bg-primary text-white" : "bg-surface-1 text-white/60 hover:text-white hover:bg-surface-2"
@@ -2493,7 +2511,6 @@ export default function Dashboard() {
                 >
                   {verTotal ? "Ocultar total" : "Total del club"}
                 </button>
-              )}
             </div>
           </div>
 
@@ -2639,7 +2656,7 @@ export default function Dashboard() {
               </div>
 
               {/* ===== TOTAL DEL CLUB (ADMIN) ===== */}
-              {verTotal && me?.role === "ADMIN" && (
+              {verTotal && (
                 <div className="mt-8">
                   {totalError && <p className="text-red-400 text-sm">{totalError}</p>}
                   {totalLoading && <p className="text-white/50">Cargando total del club...</p>}
@@ -3352,8 +3369,8 @@ export default function Dashboard() {
                   onChange={(e) => setPoliSlotForm({ ...poliSlotForm, teamId: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                 >
-                  <option value="">Actividad libre (sin equipo)</option>
-                  {allTeams.map((t) => (
+                  {esAdmin && <option value="">Actividad libre (sin equipo)</option>}
+                  {equiposPoliEditables.map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
@@ -3448,8 +3465,8 @@ export default function Dashboard() {
                     disabled={poliExForm.canceled}
                     className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm disabled:opacity-50"
                   >
-                    <option value="">Actividad libre (sin equipo)</option>
-                    {allTeams.map((t) => (
+                    {esAdmin && <option value="">Actividad libre (sin equipo)</option>}
+                    {equiposPoliEditables.map((t) => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
                   </select>

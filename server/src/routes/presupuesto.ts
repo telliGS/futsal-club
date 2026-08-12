@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../config.js";
-import { requireAuth, requireAdmin, canAccessTeam } from "../middleware/auth.js";
+import { requireAuth, canAccessTeam } from "../middleware/auth.js";
 import { calcularPresupuesto } from "../lib/presupuesto.js";
 import { pagaCuotaEnEquipo } from "../lib/nativo.js";
 import { calcularEstadoCuota } from "../lib/cuota.js";
@@ -148,11 +148,11 @@ router.delete("/:teamId/gastos/extras/:id", requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// GET /api/teams/presupuesto/total — TOTAL del club (solo ADMIN)
+// GET /api/teams/presupuesto/total — TOTAL del club (admin o delegado autenticado)
 // Por equipo: jugadores que pagan (regla nativo), cuota, ingreso, gastos
 // del mes, balance, deuda. Orden alfabético por categoría.
 // Totales generales para discriminar dónde está la pérdida.
-router.get("/presupuesto/total", requireAuth, requireAdmin, async (req, res) => {
+router.get("/presupuesto/total", requireAuth, async (req, res) => {
   const fecha = new Date();
   const mes = (req.query.mes as string) || fecha.toISOString().slice(0, 7);
 
