@@ -567,10 +567,11 @@ router.post("/players/:id/documents", requireAuth, async (req, res) => {
 
   const emision = fechaEmision ? new Date(fechaEmision) : null;
   // La fecha que manda: la explícita si vino; si no, la regla del club
-  // (ergo 2 años / electro 1 año desde la emisión)
+  // (ergo 2 años / electro 1 año desde la emisión).
+  // FICHA_MEDICA y OTRO: sin vencimiento automático (solo referencia).
   const vence =
     fechaVencimiento ? new Date(fechaVencimiento)
-    : vencimientoPorRegla(tipo, emision, categoria) ?? emision;
+    : vencimientoPorRegla(tipo, emision, categoria);
 
   const doc = await prisma.jugadorDocumento.create({
     data: {
