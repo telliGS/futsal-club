@@ -4,137 +4,91 @@
 Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio público informativo + panel de delegado para gestión de planteles y cuotas mensuales. MVP en producción con backend serverless en Vercel y frontend Vite.
 
 ## Stack
-- **Frontend**: React 18 + Vite 6 + TypeScript + Tailwind, paleta del club (primary `#068938`, dark `#0D0D0D`), fuentes Epilogue/Montserrat/JetBrains Mono. Carpeta `client/`.
+- **Frontend**: React 18 + Vite 6 + TypeScript + Tailwind, paleta del club (primary `#008f39`, dark `#121414`), fuentes Epilogue/Montserrat/JetBrains Mono. Carpeta `client/`.
 - **Backend**: Express + Prisma + PostgreSQL (Supabase), serverless en Vercel. Carpeta `server/`.
 - **Despliegue**: Vercel (GitHub auto-deploy para client; CLI manual para server).
 - **Repo**: `https://github.com/telliGS/futsal-club.git` (branch `master`).
-  - Identidad git OBLIGATORIA: `telliGS` / `tellig270@gmail.com` (email viejo `guille@josehernandez.futbol` causa `BLOCKED` en Vercel).
+  - Identidad git OBLIGATORIA: `telliGS` / `tellig270@gmail.com`
 
-## Estado actual (12/08/2026 — TODO EN PROD ✅)
-- **Deploy actual**: frontend en `https://jh-futsal.vercel.app`, backend en `https://server-tellig.vercel.app`.
-- **Últimos commits PUSHEADOS a master (12/08, `b53742a` = HEAD)**:
-  - `b53742a` — **Delegados pueden modificar cronograma de SUS equipos** (antes era solo admin): `requireAdminOrDelegado` + `delegateTeamAccessError`/`resolveExceptionTeamId` en `poli.ts` (POST/PATCH/DELETE slots y excepciones validan acceso al equipo, 403 en ajenos) + script RLS en package.json (`db:blindaje`, `db:diagnostico-rls`).
-  - `3003bff` — **fix(home) "Sábado aparece dos veces"**: agrupar partidos por día con `diaKeyLocal(m.dateTime)` (fecha LOCAL/ARG, YYYY-MM-DD) en vez de `dateTime.slice(0,10)` (fecha UTC — un partido de 21:00 ARG se guarda como `T00:00:00Z` del día siguiente y rompía el grupo). Aplica en las dos agrupaciones de Home.tsx.
-  - `32bdb12` — **Partidos EN CURSO**: el server mantiene en la ventana los iniciados hace <2 h (`PARTIDO_EN_CURSO_WINDOW_MS` en `matches.ts`/`public.ts`, antes se caían al empezar); el front los marca con **badge "En curso"** (hero + lista, hora en `action-green`), la cuenta regresiva solo para próximos; terminados (>2 h) salen solos. Verificado E2E local (partido hace 30 min → aparece; hace 3 h → no aparece).
-  - `16fd8b1` / `5cff715` / `4900bd7` — **Hero Home**: ficha del próximo partido rediseñada (tarjeta discreta con badge de categoría, marcador J.H. vs rival, fecha·hora·cancha y cuenta regresiva separada; antes solo "J.H. vs rival").
-- **Deploys anteriores (11/08)**:
-  - `3ad9430` — Fix día actual en hora ARG (`buildSemana` devuelve `hoy`; antes el Dashboard usaba `toISOString()` UTC y marcaba "· hoy" en martes cuando en ARG era lunes) + contador "Partidos por jugar" alineado a la lista de próximos (antes contaba solo el finde en curso y daba 0 el lunes a la noche). Server: `server-1bclmwewg` + alias.
-  - `28dd484` — **Delegados reales creados (7 cuentas)** + flag `canChangeCredentials` (un solo autocambio de email/contraseña) + UI modal cambio credenciales en el panel + columna "Credenciales" en pestaña Delegados + **fix Home**: la lista "Próximos partidos" muestra TODOS (antes `slice(1)` ocultaba el destacado, ej. el C13 del hero no figuraba abajo). Server: `server-udd1r1aa7` + alias. Front: `dpl_BeXS` (sha 28dd484) READY.
-- **7 delegados reales CREADOS en BD real (11/08)** — credenciales temporales (cada uno las cambia UNA vez desde el panel; después el admin reactiva vía botón "Reactivar cambio"):
-  - `rodrigo.vergara@josehernandez.futbol` / `Jh2026#RV42` → JH ELITE + JH C (Rodrigo Vergara Aranda)
-  - `stefano.cavenaghi@josehernandez.futbol` / `Jh2026#SC17` → JH NEGRO (Stefano Cavenaghi)
-  - `tomas.fornes@josehernandez.futbol` / `Jh2026#TF08` → C20 (Tomás Fornes)
-  - `santiago.domingorena@josehernandez.futbol` / `Jh2026#SD23` → C17 (Santiago Domingorena)
-  - `alan.fernandez@josehernandez.futbol` / `Jh2026#AF31` → C15 (Alan Fernández)
-  - `valentino.cavenaghi@josehernandez.futbol` / `Jh2026#VC56` → C13 + C11 (Valentino Cavenaghi)
-  - `marcos.ruiz@josehernandez.futbol` / `Jh2026#MR74` → 1ra Fem + C20 FEM (Marcos Ruiz Diaz)
-  - Verificado en prod: 7 logins OK con equipos correctos, 403 en equipos ajenos, 200 en propios.
-- **Regla cambio de credenciales (11/08)**: modelo `User.canChangeCredentials` (default true, db push aplicado). `PATCH /auth/me/credentials` → si el delegado ya usó su cambio → **403**; tras el primer autocambio pasa a `false` (el admin no tiene límite). El admin reactiva con `PATCH /auth/delegados/:id { canChangeCredentials: true }` (botón "Reactivar cambio" en la pestaña Delegados). `/me` y `/auth/delegados` exponen el flag. Verificado E2E en local y prod (incluida la restauración de Alan a su estado inicial).
-- **Credenciales de prueba**: `admin@josehernandez.futbol` / `admin1234`.
-- **[11/08] Cronograma de entrenamiento (EN PROD)**: modelos `PoliSlot` (plantilla semanal: dayOfWeek 1-7, startTime/endTime "HH:MM", place, teamId?, responsable?, note?, active) + `PoliException` (puntual por fecha: date YYYY-MM-DD UTC, slotId?, **teamId?** (equipo del extra), place?, startTime?, endTime?, canceled, note?) en `server/prisma/schema.prisma` (db push aplicado). Rutas en `server/src/routes/poli.ts` (`/api/poli`): GET/POST/PATCH/DELETE `/slots` y `/exceptions` (admin **o delegado con acceso al equipo** desde `b53742a`), GET `/week?from&to`. **Lógica central en `server/src/lib/poli.ts` (`buildSemana`)** compartida con el público. **TODO en hora de Paraná (UTC-3)**: TIMBO manda date_iso con -03:00 y en BD queda UTC → agrupar/mostrar en UTC mostraba partidos del domingo 21:30 como "lunes 00:30" y dejaba los del lunes 22:00 fuera de la semana (fix 11/08). Rango de matches = from 00:00 ARG → to 23:59:59 ARG. `buildSemana` devuelve además `hoy` (fecha ARG) para el resaltado "· hoy" sin depender de `toISOString()` UTC del navegador (fix 11/08, commit `3ad9430`). **UI admin**: pestaña "Cronograma" en Dashboard (grilla lunes→domingo con colores por lugar, día actual resaltado "· hoy", partidos del club en ámbar, navegación de semanas, botones "Cambiar este día"/"+ Extra" por bloque Y "+ Agregar entrenamiento" en días vacíos, tabla de plantilla con toggle activo/editar/eliminar, modales slot y excepción puntual — el modal de extra permite elegir EQUIPO). **UI pública**: `GET /api/public/schedule` (semana EN CURSO sin auth) + **página propia `/cronograma`** (estilo Mi cuota: panel de marca + leyenda de lugares + grilla de la semana; link en la nav del Layout y footer). Verificado E2E local (slot + cancelación puntual + extra con equipo + limpieza; BD quedó 0 slots / 0 excepciones).
-- **[11/08] Fix consulta cuota para técnicos (EN PROD)**: en `GET /api/public/status`, si la persona NO es JUGADOR en ningún equipo (puro técnico/DT, ej. Mauro Erben) ya no calcula deuda → devuelve `{ esTecnico: true, sinCuota: true, deudor: false, pendiente: false, puedeJugar: null }`. Antes un DT que ponía su DNI salía "en deuda" o "pendiente" (no tiene payments y el día 11+ lo marcaba deudor). Status.tsx muestra tarjeta neutra "Integrante del cuerpo técnico — la cuota no aplica" con símbolo "—".
+---
 
 ## URLs en producción
-- Front: `https://jh-futsal.vercel.app` (project prj_qZUeIBA6zGaVWpDeI8xqxU1NTpK3, rootDirectory `client`)
-- API: `https://server-tellig.vercel.app` (alias; tmb `server-telligs-tellig.vercel.app`). Proyecto server, deploy manual CLI.
-- Admin: `admin@josehernandez.futbol` / `admin1234` (solo seed; cambiar en prod cuando haya más usuarios)
+- Front: `https://jh-futsal.vercel.app`
+- API: `https://server-tellig.vercel.app`
+- Admin: `admin@josehernandez.futbol` / `admin1234`
 
-## Base de datos (Supabase)
-- Host: `aws-0-ca-central-1.pooler.supabase.com` — puerto **6543** para serverless (`?pgbouncer=true&connection_limit=1`), **5432** para scripts locales.
-- `server/.env` local usa 5432; env de Vercel usa 6543+pgbouncer.
-- Modelos: Player, Team, PlayerTeam (rol JUGADOR/técnico, posición, N°), Payment (playerId+month+paid+amount), User (admin/delegados) + UserTeam.
-- Scripts de mantenimiento (local, con DATABASE_URL 5432): `server/src/scripts/seed.ts`, `assign-admin-teams.ts`, `fix-telli.ts`.
+---
 
-## Reglas de negocio (cuotas)
-- La cuota se paga del **1 al 10 de cada mes**. Se paga el mes CALENDARIO en curso.
-- Desde el **día 11** sin pagar el mes en curso (o con meses anteriores impagos) → jugador **DEUDOR** → **no tiene permiso de jugar**.
-- Lógica centralizada: `server/src/lib/cuota.ts` → `calcularEstadoCuota(payments, now)` devuelve `{ deudor, alDia, pendiente, puedeJugar, mesesDebe }`. Se expone en `GET /api/teams/:id/players` (campo `estadoCuota` por jugador) y en `GET /api/public/status?document=X` (`deudor`, `puedeJugar`, `diasParaPagar`).
-- **Status sincronizado automático**: `POST /api/players/:id/payments/:month` recalcula la regla tras guardar y actualiza el campo `status` del jugador en BD (al marcar/sacar un pago): con deuda → `DEUDA`; sin deuda y estaba ACTIVO/DEUDA → `ACTIVO` (respeta INACTIVO manual). Devuelve `{ payment, estadoCuota, status }` y el panel aplica esa respuesta directo (refactor 09/08).
-- El client recalcula en `Dashboard.tsx` (`estadoLocal`) solo como fallback si el server no trae `estadoCuota`.
-- Quitar un pago ya registrado (marcar como impago) pide `window.confirm` (anti-accidente).
-- La columna principal del panel es SIEMPRE el mes en curso (dinámico); los meses anteriores pasan solo al calendario (historial).
+## Estado actual (12/08/2026 — después de mejoras visuales)
 
-## API (endpoints clave)
-- `POST /api/auth/login`, `GET /api/auth/me` (ADMIN ve 10 equipos)
-- `POST /api/auth/delegados`, `PATCH /api/auth/delegados/:id` (admin crea/edita delegados con email, contraseña, equipos asignados, `active` y `canChangeCredentials`), `DELETE /api/auth/delegados/:id` (uno) y `DELETE /api/auth/delegados` (TODOS — deja solo admin, cascade borra userTeamAccess)
-- `PATCH /api/auth/me/credentials` (usuario autenticado cambia sus propias credenciales; para DELEGADO solo si `canChangeCredentials` → tras el primer cambio pasa a `false` y da **403**; el admin no tiene límite)
-- `GET /api/teams/:teamId/players` → jugadores con payments (take 24) + estadoCuota
-- `POST /api/players/:id/payments/:month` (body `{paid, amount}`), `GET /api/players/:id/payments`
-- `GET /api/public/status?document=X` (público, sin auth; si es técnico → `esTecnico`/`sinCuota`)
-- `GET /api/public/schedule` (público, sin auth) — cronograma de la semana en curso (hora ARG)
-- `GET /api/poli/week?from&to` (auth) + CRUD `/poli/slots` y `/poli/exceptions` (admin **o delegado con acceso al equipo** desde `b53742a`)
-- `GET /api/health`
+### Frontend: Cambios visuales y de contenido (commits recientes)
+- **Sección "Historia" en el Home**: bloque con texto emotivo, foto placeholder (🏆), botón "Conocé más" y enlace a Instagram.
+- **Página `/historia`**: creada con línea de tiempo, galería placeholder (6 fotos), testimonios de ejemplo y enlaces a redes sociales.
+- **Footer**: agregada columna "Seguinos" con enlaces a Instagram y Facebook.
+- **Botón "Compartir mi estado"** en la consulta de cuota pública (`Status.tsx`): permite compartir el estado de la cuota (al día/pendiente/deuda) por WhatsApp o copiar al portapapeles.
+- **Badge "¡Este finde!"** en el primer partido de la lista de próximos partidos (Home).
+- **Hero rediseñado**: 
+  - Título cambiado a "Futsal de Paraná" con verde en "Paraná".
+  - Subtítulo: "10 equipos · más de 100 jugadores · una pasión".
+  - Tamaño del escudo y texto aumentados.
+  - Padding y espaciado mejorados.
+  - Fondo con patrón de líneas sutiles (cancha).
+  - Botón "Consultar mi cuota" más grande.
+- **Placeholder para fotos**: se usa 🏆 en las secciones donde aún no hay imágenes reales.
 
-## Panel de delegado (`client/src/pages/Dashboard.tsx`)
-- Selector de equipo + toggle **Lista ⇄ Calendario de cuotas** (rango 13 meses: Ene actual (2026-01) → Ene siguiente (2027-01), columnas dinámicas; celdas ✓ pago, ✗ deuda; solo clicables los meses ≥ actual).
-- Cuerpo técnico **separado** (rol != JUGADOR, ej DT Marcos Vittor) mostrado debajo **sin opciones de pago**.
-- Badge "DEUDOR — NO puede jugar ✕" en filas con deuda.
-- **Vista nueva para admin**: pestaña "Delegados" en el dashboard para crear/editar cuentas, emails, contraseñas y equipos asignados. Catálogo con badges de equipos, estado Activo/Inactivo con toggle (el login valida `active` → desactivado no puede entrar), y formulario en **modal** con checkboxes de equipos (antes select múltiple nativo) + feedback de éxito. `DelegadoAdmin.active` incluido en el GET. **Columna "Credenciales"** (11/08): muestra "Puede autocambiarse" o botón **"Reactivar cambio"** cuando el delegado ya usó su único autocambio.
-- **Cambio de credenciales propio (11/08)**: los delegados con `canChangeCredentials` ven el botón **"Cambiar credenciales"** en el header del panel → modal con email, contraseña actual y contraseña nueva (única vez; el server lo marca como usado y el botón desaparece). El admin no tiene límite.
-- **Sesión persistente**: el panel mantiene la autenticación al navegar entre vistas y volver atrás. **Fix 11/08**: `Login.tsx` redirige a `/delegado` si `getToken()` existe → tocar "Delegados"/"Área delegados" con sesión activa ya no pide loguear de nuevo.
+### Backend (sin cambios relevantes en este bloque)
+- Todo lo documentado en versiones anteriores se mantiene: delegados, cronograma, presupuesto, fichas médicas, TIMBO, RLS, etc.
 
-## Commands
-- Build client: `npm run build` (client/) → tsc + vite
-- Deploy client: commit+push a master → auto-deploy GitHub (rootDirectory `client`); luego alias al nuevo deploy: `vercel alias <url-nuevo>.vercel.app jh-futsal.vercel.app`
-- Deploy server: `vercel deploy --prod --yes --no-wait --scope team_u0Xf2d5IqhLVBFQ92tKX7u4h` (en server/) → poll API hasta READY → `vercel alias <url> server-tellig.vercel.app`. **IMPORTANTE**: sin `--scope` da "Not authorized" (el CLI resuelve al scope personal `tellig`); con `--scope team_u0...` funciona. El alias también con `--scope`.
-- Token Vercel: `C:\Users\Guille\AppData\Roaming\xdg.data\com.vercel.cli\auth.json`; API para polls: `https://api.vercel.com/...` con `team_u0Xf2d5IqhLVBFQ92tKX7u4h`.
-- **LIMITACION DE DEPLOYS (importante)**: el plan Hobby tiene cupo diario de deployments. GitHub auto-deploy por cada commit a master también los consume. ESTRATEGIA: NO commitear por feature — juntar todo el bloque de trabajo y hacer UN commit + UN deploy (auto o manual) al final, con OK del usuario.
-- PowerShell: añadir `$env:Path = ("C:\Program Files\nodejs;$env:APPDATA\npm") + ';' + $env:Path` para node/npx/vercel.
+---
 
-## Estado actual (07/08/2026)
-- **En prod**: panel con calendario Ene→Ene, cuerpo técnico separado, regla de cuota 1–10 (verificada con prueba controlada deudor/no-jugar y restaurada), confirmación anti-accidente de pago, endpoint público con `diasParaPagar`.
-- **[08/08] Ficha médica/estudios (EN PROD, commit `3f51cba`)**: modelado `JugadorDocumento` (tipo, fileName, mime, size, `data Bytes`, fechaEmision, fechaVencimiento, subidoPor) + endpoints del panel (subir/listar/descargar/borrar) + badges por jugador + modal de subida con fecha de emisión. **Regla por categoría**: mayores (C20+/PRIMERA/ELITE/1ra) → solo ERGO exige (vence 2 años de la emisión); menores (C17-) → solo ELECTRO (vence 1 año). Un jugador en varias categorías → manda la MENOR (ej. C17+C20+JH C → electro). Ficha médica y OTRO = referencia, no bloquean. Lógica central en `server/src/lib/ficha.ts` (`tiposBloqueantes`, `tiposBloqueantesMulti`, `vencimientoPorRegla`, `calcularDocumentos`). Estado expuesto en `GET /teams/:id/players` (campo `fichas` + `apto`) y `GET /api/public/status`.
-- **[08/08] Plantilla Excel + import masivo (EN PROD, commit `3f51cba`)**: `GET /api/teams/:teamId/template` (xlsx con headers + fila ejemplo + hoja de instrucciones) y `POST /api/teams/:teamId/import` (idempotente por DNI; rol técnico por aliases; fecha dd/mm/aaaa o aaaa-mm-dd; errores por fila). `server/src/lib/import.ts` + `routes/import.ts` (usa `exceljs` ya instalado). UI: botones "Plantilla" / "Importar Excel" en el Dashboard.
-- **Fix (08/08)**: `express.json({ limit: "10mb" })` — el default de 100 KB rompía las subidas de carpetas de documentos/Excel con "Error de red" (413).
-- **Formato de hora 24h** en Home (partidos) con `hour12: false` (evitaba que el browser pusiera "p. m.").
-- **Investigación TIMBO CERRADA (07/08)**: torneo APFS de Paraná localizado (`competencia-oficial-apfs`), API pública con base `admin.timbo.futbol/api` + headers `Rav`/`Api-Version: 99999999999`, categorías e IDs mapeados, partidos del club verificados (C9–C20, Elite masc/fem, 2da Div con JH A/C/NEGRO). Ver sección "Integración TIMBO".
-- **[09/08] Status sincronizado automático**: `POST /players/:id/payments/:month` recalcula la regla y actualiza `status` (DEUDA↔ACTIVO) en BD; devuelve `{payment, estadoCuota, status}` y el panel aplica esa respuesta (solo como fuente de verdad). Verificado end-to-end (impago mes anterior → DEUDA/no juega; pago → ACTIVO; impago del mes en curso antes del día 11 → PENDIENTE no deudor).
-- **[09/08] Columna principal = mes en curso** con nombre legible ("Ago 2026 — pagó / cuota del mes en curso"); meses anteriores solo quedan en el calendario.
-- **Usuarios de prueba**:
-  - `admin@josehernandez.futbol` / `admin1234` (ADMIN, 10 equipos)
-  - `delegado@josehernandez.futbol` / `delegado1234` (DELEGADO, solo C11, del seed)
-  - `delegado.elite@josehernandez.futbol` / `Elite1234567` (DELEGADO de prueba, solo JH ELITE — creado con `server/src/scripts/create-delegado-elite.ts`). Credenciales verificadas en prod, 403 en otros equipos.
-  - JH ELITE en prod: 17 jugadores + 3 técnicos (DT Mauro Erben, PF Marcos Ruiz Diaz, AT Mauro Schroeder).
-- **[10/08] Presupuesto por categoría/equipo (EN MASTER, deployado en bloque `1977f1c`/`d5b509d`)**: cuota mensual editable por delegado (`Team.quota`), gastos **fijos** (todos los meses: cancha, árbitros...) y **extras** por mes (`GastoExtra.mes` "YYYY-MM": cancha por lluvia...). Cálculo en `server/src/lib/presupuesto.ts`: ingreso = jugadores que cuentan × cuota; gastos = fijos + extras del mes; balance; **cuota recomendada** = (gastos÷jugadores) + 10% margen, redondeada a $500 (`redondearARedondo`). Excepciones: `PlayerTeam.cuentaPresupuesto=false` para jugadores que no pagan (ej. regularizando) — checkbox en modal editar jugador. Endpoints en `server/src/routes/presupuesto.ts`: `GET /teams/:id/presupuesto?mes=YYYY-MM`, `PUT /teams/:id/quota`, CRUD `/teams/:id/gastos/fijos` y `/gastos/extras` (POST/DELETE). UI: vista "Presupuesto" en el Dashboard (tarjetas ingreso/gastos/balance/cuota recomendada, selector de mes, modales cuota/gasto). Verificado E2E local (C11 y JH ELITE) — backend + marca + 403.
-- **[10/08] REGLA NATIVO/FORMATIVA v2 = CATEGORÍA NATIVA (EN MASTER)**: un jugador paga la cuota SOLO en su categoría **nativa**: la formativa de **MENOR edad** entre las que juega (C17 + C20 + JH NEGRO → paga C17) — en las demás formativas y primeras aparece en el plantel con la sección separada "Pagan en su categoría formativa" (badge muestra la nativa, ej. "C17"). Sin vínculo formativo → paga en todos sus equipos. **Ficha médica multi**: el panel de CADA equipo calcula los bloqueantes con las categorías del jugador (manda la menor; C17+C20+PRIMERA → solo ELECTRO en todos los paneles) — `players.ts` ya no usa la categoría del equipo; el modal y el público ya lo hacían. Lógica en `nativo.ts` (`ordenCategoria`, `categoriaNativa`, `pagaCuotaEnEquipo(equipos, tipoEquipo, categoriaActual)`, `categoriasPagoJugador(equipos)`); `presupuesto.ts` (GET por equipo y TOTAL) pasa equipos con name/type/category. Verificado E2E con vínculo temporal de Luka en C20 (creado y rollbackeado): en C20 pagaAca=false catPago=C17, presupuesto C20 19 pagantes/1 excluido, y tras rollback 19/0 (base intacta); fichas en C20 → solo ELECTRO. Segovia (C20+NEGRO) sigue pagando C20. **118 vínculos de pago = 118 jugadores únicos → cero dobles cobros**.
-- **[10/08] Alta por DNI = VINCULACIÓN, y un jugador NO puede estar en dos PRIMERAS (EN MASTER)**: `GET /api/players/by-document?document=X` (auth; solo responde si el usuario tiene acceso a algún equipo del jugador — evita pescar planteles ajenos) → `{found, player:{id, firstName, lastName, birthDate, equipos[{name,type} solo JUGADOR]}}`. El modal de alta en el Dashboard hace debounce 450 ms al escribir el DNI: si ya existe muestra tarjeta "✓ DNI ya registrado: Nombre — se va a VINCULAR sin duplicar — ya figura en: C17 (Formativa)", autocompleta nombre/apellido y el botón cambia a "Vincular a este equipo" (el POST siempre hizo upsert por DNI; ahora se anuncia). **Doble primera bloqueado**: si el destino es PRIMERA y el jugador ya es JUGADOR en Otra PRIMERA → `409 {error, code:"CAMBIO_PRIMERA", playerId, equipoActual{id,name}}` sin tocar nada; el panel muestra window.confirm ("¿Moverlo a X? Saldrá automáticamente de Y. Se conservan todos sus datos, pagos y fichas médicas") y si acepta llama `POST /api/players/:id/cambiar-primera` `{deTeamId, aTeamId, position?, jersey?, cuentaPresupuesto?}` (transacción: delete vínculo origen + upsert destino; datos/payments viven en el Player → nada se pierde; requiere acceso al DESTINO, no al origen). `api.ts` ahora arrastra el body del error al Error (err.code/playerId/equipoActual). Verificado E2E con Thomas Arrua (JH C→NEGRO→JH C rollback): 409 correcto, en NEGRO pagaAca=false catPago=C20 (nativa), estado final idéntico al inicial.
-- **[10/08] TOTAL del club (ADMIN, EN MASTER)**: `GET /teams/presupuesto/total?mes=YYYY-MM` (requiere ADMIN → delegado da 403 verificado) recorre todos los equipos: jugadores que pagan (regla nativo), cuota, ingreso, gastos fijos/extras, balance, **deuda** (mesesDebe × cuota por jugador con `calcularEstadoCuota`), **ordenado por mayor pérdida primero**; devuelve `{ mes, porEquipo[], totales }`. UI: botón "Total del club" en la vista Presupuesto (solo admin) → 4 tarjetas (jugadores/ingreso/gastos/deuda), balance total con nota de que la deuda es dinero a cobrar, tabla por equipo con badges formativa/primera y cuota recomendada por equipo.
-- **[10/08] SEGURIDAD aplicada (EN MASTER)**: 1) **RLS activo en las 11 tablas** (`ENABLE ROW LEVEL SECURITY`, sin políticas → default deny) + **REVOKE ALL** a `anon`/`authenticated` (tablas + sequences) → PostgREST cerrado de fábrica; la web no usa Supabase Auth (JWT propios) y Prisma conecta con rol `postgres` (BYPASSRLS) → la API sigue intacta. Scripts: `server/src/scripts/blindaje-rls.ts` (idempotente) y `diagnostico-rls.ts`. 2) **403 verificado** con delegado ajeno en presupuesto/quota/gastos/marca cuentaPresupuesto (delegado.elite intentando tocar C11 → 403; acceso pleno a JH ELITE). 3) **Índices nuevos** (db push): `PlayerTeam(teamId)`, `Match(teamId, dateTime)`, `UserTeamAccess(teamId)` — cubren las FKs sin índice (las demás FKs ya estaban cubiertas por índices compuestos leftmost). Asesor: `server/src/scripts/asesor-indices.ts`.
-- **[10/08] Fix ventana del finde (EN MASTER)**: el Home mostraba la fecha siguiente antes de que terminara la actual (con el partido del lunes todavía por jugarse ya aparecían los del próximo viernes). Causa: `weekendWindowArg` tenía el LUNES (y el DOMINGO, bug latente viejo) fuera del finde en curso → saltaba al próximo viernes. Corregida la regla: vie/sáb/dom/lun → finde EN CURSO (volver al viernes con `-((day+2)%7)`); mar→jue → próximo viernes. Además `GET /matches/upcoming?weekend=1` ahora filtra `dateTime >= now` (no muestra partidos ya jugados del finde) y el Home usa `?weekend=1`; `GET /public/stats` cuenta solo partidos por jugarse del finde en curso. Verificado: hoy lunes queda 1 partido (JH C, día 11) y NO aparecen los del 15-18. Test: `server/src/scripts/test-window.ts`.
-- **[10/08] Modal fixture por equipo (EN MASTER)**: las tarjetas de "Categorías del club" del Home ahora son clicables → modal con TODOS los partidos cargados de ese equipo (`GET /api/matches?teamId=X&limit=50`, ya era público). `GET /api/public/teams` ahora expone `id` (antes solo name/type). El modal agrupa por día (header con día/fecha), marca partidos ya jugados (opacity + "Jugado") vs próximos ("Próximo", borde verde), cierra con ✕ / click afuera / Escape, y tiene estado vacío y footer con nota de sincronización APFS. Verificado: cada equipo tiene hoy 1 partido cargado (el sync acumula fecha a fecha).
-- **[10/08] Resultados de partidos (EN MASTER)**: TIMBO manda `goals[]` alineado por índice con `positions` (home→0), y `closed: true` + `show_result: 1` cuando el resultado está confirmado. Nuevos campos en `Match`: `clubGoals Int?`, `rivalGoals Int?`. `server/src/lib/timbo.ts` → `resultFromMatch(m)` extrae los goles del club (o null). El sync los persiste en el upsert (create y update) — los syncs cada 6h actualizan resultados solos. Front (modal fixture): partido con resultado → fila con borde/fondo verde GANADO, roja PERDIDO o amarilla EMPATE + marcador "J.H. 3 - 0" en la línea central (reemplaza el "vs") + badge "✓ Ganado / ✗ Perdido / = Empate"; jugado sin resultado → atenuado "Jugado". Verificado E2E con sync manual: JH ELITE 3-0 (ganado), C20 3-3 (empate). ATENCIÓN: al regenerar Prisma client, el watch de tsx bloquea el DLL (EPERM en `query_engine-windows.dll.node`) → detener el watch (`Stop-Process` sobre los node del server), `npx prisma generate/db push`, relanzar con `node node_modules\tsx\dist\cli.mjs watch src/index.ts`.
-- **[11/08] Rediseño pestaña Delegados (EN MASTER)**: antes el form estaba siempre visible arriba con `<select multiple>` nativo (requería Ctrl para multi-selección, nadie lo entendía) y sin feedback. Ahora: botón "+ Nuevo delegado" → **modal** (patrón cuota/gasto) con nombre, email, contraseña (opcional al editar) y **checkboxes de equipos** en grilla con scroll; tabla con **badges de equipos**, estado **Activo/Inactivo** con toggle directo (confirmación anti-accidente al desactivar, fila atenuada si inactivo), feedback de éxito verde que se auto-oculta (3s), estado vacío, nota aclarando que el admin no figura en la lista. Backend: `PATCH /auth/delegados/:id` ahora acepta `active` (ya existía en modelo User pero el endpoint no lo exponía) — el login valida `active` → desactivado recibe 401. Verificado E2E en server local contra BD real (crear→login→editar nombre/equipos→desactivar→401→reactivar→login OK→borrar test, BD intacta). Builds OK (client + tsc server).
-- **Pendiente (10/08) — RESUELTO y deployado**: rediseño visual **EN PRODUCCIÓN (Pitch Dominance armonizado)**: tokens surface #121414/surface-1 #1e2020/surface-2 #282a2b/outline #333535 (del MD v2), primary #008f39, `action-green #00ff66` SOLO para el indicador live, `pitch-deep #00632b`, JetBrains Mono como font-mono; fuentes Epilogue/Montserrat/JetBrains Mono cargadas por link en index.html (ANTES NO SE CARGABAN); hero/páginas con "noche de estadio" (halo verde desde el piso + círculo de cancha + escudo con halo); pase de claridad visual (menos texto en badges, menos micro-labels, más aire); panel sin restos de vidrio blanco. **IMPORTANTE**: al tocar `tailwind.config.js` hay que reiniciar Vite (Tailwind cachea el config por proceso) y limpiar `node_modules/.vite` + `.cache`. Todo el bloque (presupuesto, reglas, rediseño, resultados, modal fixture, fix ventana) quedó deployado (commits `1977f1c`/`d5b509d` + siguientes). Pendiente de UX: continuar con correcciones + detalles finos, documentación de uso de la página.
-- **Pendiente**: continuar con correcciones + front (página pública, login, detalles de UX), OAuth/Supabase Auth, pagos online (Mercado Pago?), limpiar deployments viejos BLOCKED/ERROR en Vercel.
-- **[08/08] DEPLOYADO a prod**: ficha médica por categoría, documentos con fecha de emisión, plantilla Excel + import, fix 413, hora 24h. Server: deploy manual CLI (`--scope team_u0Xf2d5IqhLVBFQ92tKX7u4h`) + alias. Front: auto-deploy GitHub (commit 3f51cba). Verificado end-to-end en prod.
-- **Pendiente (08/08, prioridad baja)**: **PWA** — el club le preguntó a Guille si se puede hacer app además de web. Decisión del usuario: **PWA gratis** (`vite-plugin-pwa` + manifest con logo del club + service worker offline + botón "Instalar"). Backend no necesita cambios; Capacitor sería la vía futura a las stores. NO planear por ahora, solo registrado.
+## Roadmap (actualizado 12/08/2026)
 
-## Integración TIMBO (fixtures del futsal de Paraná) — [07/08] RESUELTA
-- **Torneo real encontrado**: `COMPETENCIA OFICIAL APFS` (Asociación Paranaense de Fútbol de Salón, Paraná, Entre Ríos). Slug: `competencia-oficial-apfs` (id 1156294753) — 46 equipos, 1.549 jugadores. Fue hallado vía el link de la bio de IG `@paranafutsalok` ("Torneo Clausura APFS").
-- NOTA: los slugs `futsal-parana`, `cafs`, `torneo-cafs-2026`, `copa-coloshp-2024` NO son de Paraná (vacío o de Tierra del Fuego/FFF).
-- **Ediciones** (2026): CLAUSURA (slug `clausura-2026-31`, id **836000892**, activa, 12 categorías, inicia 16/07) y APERTURA (slug `apertura-2026-110`, id 829317791). Históricas 2025: clausura-2025-54 (1709217987) y apertura-2025-2025-75 (1637233959).
-- **API REAL (pública, sin token)**: base **`https://admin.timbo.futbol/api`** (NO `api.timbo.futbol` → 403) + headers obligatorios `Rav: 99999999999` y `Api-Version: 99999999999` (descubiertos en la función minificada `S2` del bundle Nuxt `Dcrk0dqO.js`).
-  - `GET /embeded/tournaments/{slug}` → torneo + ediciones
-  - `GET /embeded/tournaments/{slug}/{editionSlug}` → edición + categorías + rounds
-  - `GET /embeded/editions/{editionId}/fixtures?round={n}` → categorías del torneo (actualidad)
-  - `GET /embeded/editions/{editionId}/fixtures/{zoneId}?round={n}` → partidos (match: id, date_iso, field (nombre/sede), positions[2].roster.team.name, goals[])
-  - `GET /embeded/editions/{editionId}/fixtures/interzonal/{catId}?round={n}` y `.../additional/...` → partidos extra
-- **Categorías CLAUSURA 2026** (categoriaId → zoneId): C11 (1919724182→988433371), C15 (475979060→1777915026), C17 (1999231365→1931711571), C20 Masculina (771802194→1418548496), Elite Femenina (2029178096→933248058), Elite Masculina (1405995841→640741674), Segunda División (178583342→2137527202), 2da Div Femenina (2109731839→352408293), Tercera División (1419181644→1841657768), C99 (378322886→1098047236), C20 Femenina (1926304864→1620054040), C13 (673957919→459559666).
-- **José Hernández figura en: C9, C11, C13, C15, C17, C20 Masc, C20 Fem, Elite Fem, Elite Masc, Segunda División** (JH A / JH C / JH NEGRO). Verificado: partidos reales con equipo local, fecha ISO, cancha (BERDUC, UNIÓN ÁRABE, TOMA VIEJA...).
-- Referencia completa guardada en `C:\Users\Guille\AppData\Local\Temp\opencode\timbo-api-resumen.json`; html/payloads de ejemplo en mismo directorio (`apfs-*.html`, `api_1.json`, `fx_*.json`).
-- **[07/08] Sync implementado (server)**: `POST /api/sync/timbo` (token `X-Timbo-Sync-Token` = env `TIMBO_SYNC_TOKEN`) → lee la ventana del finde (viernes→lunes) por zona+ronda, hace `upsert` en `Match` por `timboId` (idempotente), borra de la ventana los que ya no figuran (reprogramados) y guarda estado en `SyncState` (`key: "timbo"`: editionId, lastSyncAt, window, lastWindowRound por zona — el próximo sync escanea desde `round-2`). Código: `server/src/lib/timbo.ts` (cliente API + mapeo `CLUB_ZONES`) y `server/src/routes/sync.ts`. `GET /api/matches/upcoming?weekend=1` devuelve el finde en curso (viernes→lunes; LUNES incluido desde fix 10/08) solo con partidos por jugarse.
-- **Mapeo TIMBO → equipos del club** (en `lib/timbo.ts`): C11→C11, C13→C13, C15→C15, C17→C17, C20 Masc→C20, C20 Fem→C20 FEM, Elite Fem→1ra Fem, Elite Masc→JH ELITE, Segunda Div→JH C y JH NEGRO (por nombre TIMBO: "JOSÉ HERNÁNDEZ C/NEGRO"). C9 y Tercera Div sin equipo propio → se ignoran. Rival/localía detectados por nombre TIMBO real del club en el partido.
-- **Schema**: `Match.timboId Int? @unique` + modelo `SyncState` (key/value JSON) — ya pusheado a Supabase (`db push` 07/08). Los partidos manuales de delegados (sin timboId) no se tocan.
-- **Cron**: `.github/workflows/sync-timbo.yml` — cada 6h UTC (`17 */6 * * *`) + `workflow_dispatch`, llama al server con secrets `TIMBO_API_URL` (https://server-tellig.vercel.app) y `TIMBO_SYNC_TOKEN`. **Auth en GitHub no configurada aún** (gh no logueado): crear los secrets en Settings → Secrets and variables → Actions. El token también está en `server/.env` (mismo valor que en Vercel) y en `C:\Users\Guille\AppData\Local\Temp\opencode\timbo-token.txt`.
+### Prioridades actuales (según conversación con el usuario)
+1. **Darle vida al club con contenido visual y emocional** (✅ en proceso):
+   - Historia, fotos, testimonios, redes sociales.
+   - Hero con más impacto.
+   - Badges y llamados a la acción.
+   - **Próximo**: agregar fotos reales del club (reemplazar placeholders).
 
-## Roadmap pedido por Marucha (10/08/2026, por WhatsApp) — NO implementado aún, tener en cuenta al diseñar
-- **Panel para cada profe**: cada profesor entra y ve/modifica SUS datos (datos personales, horas semanales, categorías a cargo, alias bancario); saber cuánto va a cobrar. → implica: nuevo rol de usuario (PROFE), campos de profe (horas, alias), vista propia.
-- **Panel cronograma del poli**: horarios de uso del polideportivo (quién usa cada categoría/profe, cuándo).
-- **Panel ventas**: ingresos SEPARADOS por categoría (cuotas vs ventas) y a nivel club; "que la plata no se mezcle entre categorías". El presupuesto actual ya separa ingreso de cuotas por equipo — falta el lado ventas.
-- **Alertas pagos (tesorero)**: el 9 de cada mes avisar que al día siguiente se paga (profes, gimnasio, APFS, seguros...) con detalle de montos y alias por profe. Resúmenes de altas/bajas mensuales del seguro.
+2. **Mejorar experiencia pública**:
+   - Consulta de cuota más amigable y compartible (✅ botón "Compartir").
+   - Cronograma con filtros por categoría (pendiente).
+   - Más visibilidad de partidos (✅ badge "¡Este finde!").
 
-## Decisiones técnicas
-- `PlayerTeam` portotype: rol del jugador EN el equipo (JUGADOR | técnico/DIREC) — payments son por jugador, no por equipo.
-- `calcularEstadoCuota` en el server es la fuente de verdad; el client lo duplica (`estadoLocal`) solo como fallback si el server no trae estadoCuota.
-- `generateMonth(now, i)` usa getFullYear + meses 0..12 → siempre Ene del año "actual" como inicio para simetría simple (puede ir 2026-01 → 2027-01 sin importar el mes real).
-- Scripts de creación/corrección de usuarios se corren localmente con `npx tsx src/scripts/xxx.ts` (DATABASE_URL 5432 local apunta a la misma Supabase de prod).
+3. **Dashboard para delegados** (se prioriza después de lo público):
+   - Refactorizar en componentes más pequeños (postergado).
+   - Mejoras de usabilidad (postergado).
+
+4. **Roadmap de Marucha** (pendiente):
+   - Panel para profesores.
+   - Panel de ventas.
+   - Alertas de pagos.
+   - PWA.
+
+---
+
+## Decisiones técnicas recientes
+- **No refactorizar el Dashboard por ahora**: se prioriza el contenido público y la identidad del club.
+- **Placeholder de fotos**: se usa 🏆 hasta que el club proporcione imágenes reales.
+- **Botón "Compartir"**: usa `navigator.share` en móviles y `clipboard` en desktop.
+- **Hero**: se mantiene la cuenta regresiva (usa `restante`) para mantener la funcionalidad existente.
+
+---
+
+## Notas para desarrolladores
+- Al agregar fotos reales, reemplazar los placeholders 🏆 en `Home.tsx` y `Historia.tsx`.
+- Las fotos deben ir en `public/images/` y usar rutas relativas.
+- El badge "¡Este finde!" se muestra solo en el primer partido de la lista (`i === 0`).
+- La página `/historia` está ruteada en `App.tsx`.
+
+---
+
+## Commits recientes (frontend)
+- `784d33a`: feat: agregar badge '¡Este finde!' en próximos partidos
+- `71cbe4b`: feat: agregar sección Historia y página /historia con redes sociales
+- `9d50779`: feat: mejorar Hero con más impacto visual (con corrección de countdown)
+- `fix`: corregir export default en Historia.tsx (deploy fix)
+
+---
+
+**Última actualización**: 12/08/2026
