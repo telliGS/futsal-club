@@ -635,7 +635,10 @@ export default function Dashboard() {
     if (docForm.tipo === "ELECTROCARDIOGRAMA") {
       return "Electro: vence al año de la emisión (se calcula automáticamente).";
     }
-    return "Ficha médica y otros: sin vencimiento por regla (referencia).";
+    if (docForm.tipo === "FICHA_MEDICA") {
+      return "Ficha médica: vence a los 2 años de la emisión (se calcula automáticamente).";
+    }
+    return "Documento: sin vencimiento por regla.";
   }
 
   async function openDocs(p: Player) {

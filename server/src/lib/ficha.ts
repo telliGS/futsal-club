@@ -16,7 +16,8 @@
 //       NO tienen ergo (no bloquea ni se exige).
 //   - Un jugador en varias categorías: manda la categoría MENOR
 //     (ej. C17 + C20 → solo electro).
-//   - FICHA_MEDICA y OTRO: solo referencia, nunca bloquean.
+//   - FICHA_MEDICA: vence a los 2 años de la emisión.
+//   - OTRO: solo referencia, nunca bloquean.
 // VENCIMIENTO (siempre automático, sin depender de categoría):
 //   - ERGONOMETRIA → emisión + 2 años
 //   - ELECTROCARDIOGRAMA → emisión + 1 año
@@ -29,10 +30,13 @@ export type TipoDocumento = "FICHA_MEDICA" | "ELECTROCARDIOGRAMA" | "ERGONOMETRI
 export const TIPOS_DOCUMENTO = ["FICHA_MEDICA", "ELECTROCARDIOGRAMA", "ERGONOMETRIA", "OTRO"] as const;
 export const MAX_DOC_BYTES = 2 * 1024 * 1024; // 2 MB
 
-// Vigencia por tipo según la regla del club (desde la fecha de emisión):
+// Vigencia por tipo desde la fecha de emisión:
+//   - Ficha médica: 2 años
 //   - Ergo: 2 años
 //   - Electro: 1 año
+//   - OTRO: sin vencimiento (referencia)
 export const VIGENCIA_EMISION: Partial<Record<TipoDocumento, number>> = {
+  FICHA_MEDICA: 2, // años
   ERGONOMETRIA: 2, // años
   ELECTROCARDIOGRAMA: 1, // año
 };
