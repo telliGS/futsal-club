@@ -4,6 +4,7 @@ import Status from "./pages/Status";
 import Cronograma from "./pages/Cronograma";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Historia from "./pages/Historia"; // 👈 NUEVA IMPORTACIÓN
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
       <Route path="/cronograma" element={<Cronograma />} />
       <Route path="/ingresar" element={<Login />} />
       <Route path="/delegado/*" element={<Dashboard />} />
+      <Route path="/historia" element={<Historia />} /> {/* 👈 NUEVA RUTA */}
     </Routes>
   );
 }

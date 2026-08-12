@@ -242,6 +242,33 @@ export default function Status() {
                       </div>
                     )}
                   </div>
+
+                  {/* 🟢 BOTÓN COMPARTIR - NUEVO */}
+                  {!result.esTecnico && (
+                    <button
+                      onClick={() => {
+                        const estado = result.isPaid
+                          ? "✅ Al día"
+                          : result.pendiente
+                            ? "⏳ Pendiente"
+                            : "❌ Con deuda";
+                        const mensaje = `Mi estado de cuota en JH Futsal: ${estado}. Consultalo acá: ${window.location.origin}/mi-cuota`;
+                        if (navigator.share) {
+                          navigator.share({
+                            title: "Mi cuota en JH Futsal",
+                            text: mensaje,
+                          });
+                        } else {
+                          navigator.clipboard.writeText(mensaje).then(() => {
+                            alert("¡Copiado al portapapeles! Compartilo con quien quieras.");
+                          });
+                        }
+                      }}
+                      className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm bg-surface-2 border border-outline text-white/70 hover:text-white hover:border-primary/40 transition-colors"
+                    >
+                      📤 Compartir mi estado
+                    </button>
+                  )}
                 </div>
               )}
             </div>

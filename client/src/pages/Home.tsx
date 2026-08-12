@@ -472,7 +472,56 @@ export default function Home() {
             <p className="mt-4 text-white/50 text-sm">Las categorías se cargan al configurar el club.</p>
           )}
         </section>
-
+{/* ========================= HISTORIA ========================= */}
+<section className="mt-16 border-t border-outline pt-12">
+  <div className="grid md:grid-cols-2 gap-8 items-center">
+    <div>
+      <h2 className="font-display text-3xl font-bold flex items-center gap-3">
+        <span className="inline-block w-1.5 h-8 bg-primary rounded-full" />
+        Nuestra historia
+      </h2>
+      <p className="mt-4 text-white/70 leading-relaxed">
+        Somos el Club José Hernández. Nacimos en un barrio de Paraná, con una
+        pelota y un sueño. Perdimos finales, pero nunca bajamos los brazos.
+        En 2016 dimos la vuelta: campeones de la Copa de Oro Norte en Corrientes.
+        Después llegaron el Apertura, el segundo título oficial, y más festejos.
+        Hoy somos 10 equipos, más de 100 jugadores, y seguimos siendo un club
+        de barrio: familia, esfuerzo y pasión por la camiseta verde. Somos JH Futsal.
+      </p>
+      <div className="mt-6 flex flex-wrap gap-4">
+        <Link
+          to="/historia"
+          className="inline-flex items-center gap-2 btn bg-primary text-white hover:bg-primary-light"
+        >
+          Conocé más
+          <span aria-hidden>→</span>
+        </Link>
+        <a
+          href="https://www.instagram.com/josehernandezfs/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 btn bg-surface-2 border border-outline text-white hover:border-primary/40 hover:bg-surface-1"
+        >
+          📸 Seguinos en Instagram
+        </a>
+      </div>
+    </div>
+    <div className="rounded-xl overflow-hidden border border-outline shadow-xl bg-surface-1 flex items-center justify-center aspect-[4/3]">
+      {/* ⚠️ REPLACÉ ESTO POR UNA FOTO REAL CUANDO TENGAS */}
+      <div className="text-center p-8">
+        <span className="text-6xl block mb-2">🏆</span>
+        <p className="text-white/40 text-sm">Fotos del club muy pronto</p>
+      </div>
+      {/* CUANDO TENGAS LA FOTO, DESCOMENTÁ ESTO Y BORRÁ EL DIV DE ARRIBA:
+      <img
+        src="/images/historia-1.jpg"
+        alt="Equipo campeón del Club José Hernández"
+        className="w-full h-full object-cover"
+      />
+      */}
+    </div>
+  </div>
+</section>
         {/* ========================= EL CLUB ========================= */}
         <section className="mt-16">
           <h2 className="font-display text-2xl font-bold flex items-center gap-3 animate-fade-up">
