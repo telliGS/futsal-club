@@ -385,7 +385,13 @@ export default function Home() {
                 </p>
                 <div className="grid md:grid-cols-2 gap-4 gap-y-3">
                   {parts.map((m, i) => (
-                    <article key={m.id} className="card group p-5 animate-fade-up" style={{ animationDelay: `${0.05 * i}s` }}>
+  <article key={m.id} className="card group p-5 animate-fade-up relative" style={{ animationDelay: `${0.05 * i}s` }}>
+                     {/* Badge "¡Este finde!" */}
+{i === 0 && (
+  <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-primary text-white text-[10px] font-mono uppercase tracking-wider shadow-lg">
+    ¡Este finde!
+  </span>
+)}
                       <div className="flex items-start gap-4">
                         <div className="shrink-0 w-14 rounded-lg bg-primary/15 border border-primary/25 text-center py-2 transition-colors duration-200 group-hover:bg-primary/25">
                           <p className="text-[10px] uppercase tracking-wide text-primary-light font-mono">
