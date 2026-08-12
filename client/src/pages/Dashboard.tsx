@@ -1175,7 +1175,7 @@ export default function Dashboard() {
       startTime: "19:00",
       endTime: "20:30",
       place: "Polideportivo",
-      teamId: allTeams[0]?.id ?? "",
+      teamId: (esAdmin ? allTeams[0] : me?.teams?.[0])?.id ?? "",
       responsable: "",
       note: "",
     });
@@ -1233,24 +1233,27 @@ export default function Dashboard() {
   async function borrarPoliSlot(s: PoliSlot) {
     if (!token) return;
     if (!window.confirm(`¿Eliminar el bloque ${s.startTime}-${s.endTime} (${s.place})?`)) return;
+    setPoliLoading(true);
     try {
       await apiFetch(`/poli/slots/${s.id}`, { method: "DELETE" }, token);
       setPoliMsg("Bloque eliminado.");
       setTimeout(() => setPoliMsg(""), 3000);
-      cargarPoli();
+      await cargarPoli();
     } catch (err) {
       setPoliError((err as Error).message);
+      setPoliLoading(false);
     }
   }
 
   function abrirExcepcion(fecha: string, bloque?: PoliBloque) {
+    const defaultTeam = bloque?.team?.id ?? (esAdmin ? "" : (equiposPoliEditables[0]?.id ?? ""));
     setPoliExForm({
       place: bloque?.place ?? "",
       startTime: bloque?.startTime ?? "",
       endTime: bloque?.endTime ?? "",
       canceled: false,
       note: "",
-      teamId: bloque?.team?.id ?? "",
+      teamId: defaultTeam,
     });
     setPoliError("");
     setShowPoliExModal({ fecha, bloque });
@@ -1309,13 +1312,15 @@ export default function Dashboard() {
 
   async function togglePoliSlot(s: PoliSlot) {
     if (!token) return;
+    setPoliLoading(true);
     try {
       await apiFetch(`/poli/slots/${s.id}`, { method: "PATCH", body: JSON.stringify({ active: !s.active }) }, token);
       setPoliMsg(s.active ? "Bloque suspendido." : "Bloque reactivado.");
       setTimeout(() => setPoliMsg(""), 3000);
-      cargarPoli();
+      await cargarPoli();
     } catch (err) {
       setPoliError((err as Error).message);
+      setPoliLoading(false);
     }
   }
 
