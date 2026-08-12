@@ -629,16 +629,11 @@ export default function Dashboard() {
   }
 
   function vigenciaHint(): string {
-    const esMayor = esCategoriaMayor(categoriaActual);
     if (docForm.tipo === "ERGONOMETRIA") {
-      return esMayor
-        ? "Ergo (C20 en adelante): vence a los 2 años de la emisión. Obligatorio en esta categoría."
-        : "Ergo no se exige en menores (C17 para abajo) — solo electro.";
+      return "Ergo: vence a los 2 años de la emisión (se calcula automáticamente).";
     }
     if (docForm.tipo === "ELECTROCARDIOGRAMA") {
-      return esMayor
-        ? "Electro no se exige en mayores (C20 en adelante) — solo ergo."
-        : "Electro (C17 para abajo): vence al año de la emisión. Obligatorio en esta categoría.";
+      return "Electro: vence al año de la emisión (se calcula automáticamente).";
     }
     return "Ficha médica y otros: sin vencimiento por regla (referencia).";
   }
@@ -1264,6 +1259,8 @@ export default function Dashboard() {
     if (!token || !showPoliExModal) return;
     setPoliExSaving(true);
     setPoliError("");
+    const controller = new AbortController();
+    const safetyId = setTimeout(() => { controller.abort(); setPoliExSaving(false); }, 15000);
     try {
       const bloque = showPoliExModal.bloque;
       const esExtra = !bloque; // "+ Extra": entrenamiento puntual nuevo
@@ -1279,14 +1276,19 @@ export default function Dashboard() {
         canceled: poliExForm.canceled,
         note: poliExForm.note || null,
       };
-      await apiFetch("/poli/exceptions", { method: "POST", body: JSON.stringify(payload) }, token);
+      await apiFetch("/poli/exceptions", { method: "POST", body: JSON.stringify(payload), signal: controller.signal } as RequestInit, token);
+      clearTimeout(safetyId);
       setPoliMsg(poliExForm.canceled ? "Entrenamiento cancelado para ese día." : "Cambio aplicado para ese día.");
       setTimeout(() => setPoliMsg(""), 3000);
       setShowPoliExModal(null);
       cargarPoli();
     } catch (err) {
-      setPoliError((err as Error).message);
+      clearTimeout(safetyId);
+      if ((err as Error).name !== "AbortError") {
+        setPoliError((err as Error).message);
+      }
     } finally {
+      clearTimeout(safetyId);
       setPoliExSaving(false);
     }
   }
@@ -2978,7 +2980,7 @@ export default function Dashboard() {
                   Fichas: {docsPlayer.firstName} {docsPlayer.lastName}
                 </h2>
                 <p className="text-xs text-white/50 mt-1">
-                  Ergo y electro bloquean el apto para jugar. La fecha de vencimiento es la que figura en el papel.
+                  Ergo vence a los 2 años, electro al año de la emisión. Se calcula automáticamente.
                 </p>
               </div>
               <button

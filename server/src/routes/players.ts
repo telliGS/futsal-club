@@ -523,7 +523,7 @@ const uploadDocSchema = z.object({
   dataBase64: z.string().min(1),
   fechaEmision: z.string().optional().nullable(), // fecha del papel (referencia)
   fechaVencimiento: z.string().optional().nullable(), // si viene, manda (lo que dice el papel)
-  categoria: z.string().optional().nullable(), // categoría del equipo (para la regla ergo 2a / electro 1a)
+  categoria: z.string().optional().nullable(), // categoría del equipo (referencia)
 });
 
 // GET /api/players/:id/documents — lista de documentos (sin el archivo) + estado calculado
@@ -567,7 +567,7 @@ router.post("/players/:id/documents", requireAuth, async (req, res) => {
 
   const emision = fechaEmision ? new Date(fechaEmision) : null;
   // La fecha que manda: la explícita si vino; si no, la regla del club
-  // (ergo 2 años / electro 1 año desde la emisión, según categoría)
+  // (ergo 2 años / electro 1 año desde la emisión)
   const vence =
     fechaVencimiento ? new Date(fechaVencimiento)
     : vencimientoPorRegla(tipo, emision, categoria) ?? emision;

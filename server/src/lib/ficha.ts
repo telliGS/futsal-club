@@ -9,14 +9,18 @@
 //
 // REGLA DEL CLUB POR CATEGORÍA:
 //   - Mayores (C20 en adelante, PRIMERA, 1ra, ELITE...):
-//       exigen ERGOMETRÍA (vence a los 2 años de la emisión).
+//       exigen ERGOMETRÍA para jugar (bloquea apto).
 //       NO tienen electro (no bloquea ni se exige).
 //   - Menores (C19 para abajo: C11, C13, C15, C17...):
-//       exigen ELECTROCARDIOGRAMA (vence al año de la emisión).
+//       exigen ELECTROCARDIOGRAMA para jugar (bloquea apto).
 //       NO tienen ergo (no bloquea ni se exige).
 //   - Un jugador en varias categorías: manda la categoría MENOR
 //     (ej. C17 + C20 → solo electro).
 //   - FICHA_MEDICA y OTRO: solo referencia, nunca bloquean.
+// VENCIMIENTO (siempre automático, sin depender de categoría):
+//   - ERGONOMETRIA → emisión + 2 años
+//   - ELECTROCARDIOGRAMA → emisión + 1 año
+//   - FICHA_MEDICA / OTRO → sin vencimiento (referencia permanente)
 // ============================================================
 
 export const DIAS_AVISO = 30; // días de anticipación para "PRÓXIMO A VENCER"
@@ -26,8 +30,8 @@ export const TIPOS_DOCUMENTO = ["FICHA_MEDICA", "ELECTROCARDIOGRAMA", "ERGONOMET
 export const MAX_DOC_BYTES = 2 * 1024 * 1024; // 2 MB
 
 // Vigencia por tipo según la regla del club (desde la fecha de emisión):
-//   - Ergo (mayores): 2 años
-//   - Electro (menores): 1 año
+//   - Ergo: 2 años
+//   - Electro: 1 año
 export const VIGENCIA_EMISION: Partial<Record<TipoDocumento, number>> = {
   ERGONOMETRIA: 2, // años
   ELECTROCARDIOGRAMA: 1, // año
@@ -69,19 +73,18 @@ export function sumarAños(d: Date, años: number): Date {
 
 /**
  * Calcula el vencimiento automático según la regla del club.
- * Solo aplica si el tipo corresponde a la categoría:
- * mayores + ERGO → emisión + 2 años; menores + ELECTRO → emisión + 1 año.
- * Devuelve null si no aplica (o falta la fecha de emisión).
+ * ERGO → emisión + 2 años; ELECTRO → emisión + 1 año.
+ * Se aplica SIEMPRE que haya fecha de emisión, sin depender de la categoría.
+ * Devuelve null si no aplica (tipo sin regla o falta la fecha de emisión).
  */
 export function vencimientoPorRegla(
   tipo: TipoDocumento,
   fechaEmision: Date | null,
-  categoria: string | null | undefined
+  _categoria?: string | null | undefined
 ): Date | null {
   if (!fechaEmision) return null;
   const vigencia = VIGENCIA_EMISION[tipo];
   if (!vigencia) return null;
-  if (!tiposBloqueantes(categoria).includes(tipo)) return null;
   return sumarAños(fechaEmision, vigencia);
 }
 
