@@ -277,7 +277,7 @@ export default function Home() {
           { n: stats.equipos, l: "Equipos" },
           { n: stats.partidosProximos, l: "Partidos por jugar" },
         ].map((s) => (
-          <div key={s.l} className="rounded-lg bg-surface-1 border border-outline px-5 py-4 text-center">
+          <div key={s.l} className="rounded-lg bg-surface-1 border border-outline px-5 py-4 text-center bg-noise">
             <p className="font-display font-bold text-3xl md:text-4xl tabular-nums text-white">{s.n}</p>
             <p className="text-[11px] uppercase tracking-wider text-white/50 mt-1 font-mono">{s.l}</p>
           </div>
@@ -285,18 +285,18 @@ export default function Home() {
       </div>
     )}
 
-    {/* Partido destacado - con countdown (usando restante) */}
+    {/* Partido destacado con efecto vidrio */}
     {!loading && destacado && (
       (() => {
         const estado = estadoPartido(destacado);
         const enCurso = estado === "en_curso";
         return (
           <div
-            className="mt-10 max-w-md rounded-lg border border-outline bg-surface-1/60 overflow-hidden animate-fade-up"
+            className="mt-10 max-w-md rounded-lg border border-primary/20 bg-surface-1/80 backdrop-blur-sm overflow-hidden animate-fade-up"
             style={{ animationDelay: "0.2s" }}
           >
             {/* Barra superior */}
-            <div className="flex items-center justify-between px-4 py-2 border-b border-outline/60 bg-surface-1/40">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-primary/20 bg-surface-1/40">
               <div className="flex items-center gap-2">
                 {enCurso ? (
                   <BadgeEnCurso />
@@ -338,9 +338,9 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Cuenta regresiva (usa restante) */}
+            {/* Cuenta regresiva */}
             {!enCurso && restante && (
-              <div className="px-4 py-2 bg-surface-2/60 border-t border-outline/60 flex items-center justify-between">
+              <div className="px-4 py-2 bg-surface-2/60 border-t border-primary/20 flex items-center justify-between">
                 <p className="text-[10px] font-mono uppercase tracking-wider text-white/35">Cuenta regresiva</p>
                 <p
                   className="font-mono text-[13px] text-primary-light/90 tabular-nums"
@@ -396,7 +396,8 @@ export default function Home() {
                 </p>
                 <div className="grid md:grid-cols-2 gap-4 gap-y-3">
                   {parts.map((m, i) => (
-  <article key={m.id} className="card group p-5 animate-fade-up relative" style={{ animationDelay: `${0.05 * i}s` }}>
+                      <article key={m.id} className="card group p-5 animate-fade-up relative border-l-4 
+                      border-l-primary bg-pitch" style={{ animationDelay: `${0.05 * i}s` }}>
                      {/* Badge "¡Este finde!" */}
 {i === 0 && (
   <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-primary text-white text-[10px] font-mono uppercase tracking-wider shadow-lg">
