@@ -170,7 +170,7 @@ export default function Home() {
 
   return (
     <Layout>
-      {/* ============================ HERO ============================ */}
+      {/* HERO */}
       <header className="relative bg-surface overflow-hidden border-b border-outline">
         <div
           aria-hidden="true"
@@ -228,16 +228,10 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap gap-3 animate-fade-up md:flex-col md:items-end" style={{ animationDelay: "0.1s" }}>
-              <Link
-                to="/mi-cuota"
-                className="btn-primary"
-              >
+              <Link to="/mi-cuota" className="btn-primary">
                 Consultar mi cuota
               </Link>
-              <Link
-                to="/ingresar"
-                className="btn-secondary"
-              >
+              <Link to="/ingresar" className="btn-secondary">
                 Área delegados
               </Link>
             </div>
@@ -321,7 +315,7 @@ export default function Home() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-16">
-        {/* ========================= PRÓXIMOS PARTIDOS ========================= */}
+        {/* PRÓXIMOS PARTIDOS */}
         <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-up">
           <h2 className="font-display text-2xl font-bold flex items-center gap-3">
             <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
@@ -404,7 +398,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ========================= CATEGORÍAS DEL CLUB ========================= */}
+        {/* CATEGORÍAS */}
         <section className="mt-16">
           <div className="flex items-end justify-between gap-4 animate-fade-up">
             <div>
@@ -450,7 +444,7 @@ export default function Home() {
           )}
         </section>
 
-        {/* ========================= HISTORIA ========================= */}
+        {/* HISTORIA */}
         <section className="mt-16 border-t border-outline pt-12">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
@@ -467,10 +461,7 @@ export default function Home() {
                 de barrio: familia, esfuerzo y pasión por la camiseta verde. Somos JH Futsal.
               </p>
               <div className="mt-6 flex flex-wrap gap-4">
-                <Link
-                  to="/historia"
-                  className="btn-primary inline-flex items-center gap-2"
-                >
+                <Link to="/historia" className="btn-primary inline-flex items-center gap-2">
                   Conocé más
                   <span aria-hidden>→</span>
                 </Link>
@@ -484,18 +475,17 @@ export default function Home() {
                 </a>
               </div>
             </div>
-           <div className="rounded-xl overflow-hidden border border-outline shadow-xl bg-surface-1 aspect-[4/3]">
-  <img
-    src="/images/historia-1.jpg"
-    alt="Equipo del Club José Hernández"
-    className="w-full h-full object-cover"
-  />
-</div>
+            <div className="rounded-xl overflow-hidden border border-outline shadow-xl bg-surface-1 aspect-[4/3]">
+              <img
+                src="/images/historia-1.jpg"
+                alt="Equipo del Club José Hernández"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </section>
 
-        {/* ========================= EL CLUB ========================= */}
+        {/* EL CLUB */}
         <section className="mt-16">
           <h2 className="font-display text-2xl font-bold flex items-center gap-3 animate-fade-up">
             <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
@@ -535,7 +525,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* ===================== MODAL: FIXTURE DEL EQUIPO ===================== */}
+      {/* MODAL: FIXTURE DEL EQUIPO */}
       {selTeam && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
