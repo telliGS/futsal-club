@@ -181,8 +181,8 @@ export async function buildSemana(from: string, to: string): Promise<SemanaResul
     const extrasMapeados: SemanaBloque[] = extras.map((e) => ({
       id: `extra-${e.id}`,
       tipo: "EXTRA" as const,
-      startTime: e.startTime!,
-      endTime: e.endTime!,
+      startTime: e.startTime ?? "00:00",
+      endTime: e.endTime ?? "00:00",
       place: e.place ?? "Polideportivo",
       team: e.team,
       responsable: undefined,
@@ -200,7 +200,7 @@ export async function buildSemana(from: string, to: string): Promise<SemanaResul
         rival: m.rival,
         isHome: m.isHome,
         venue: m.venue,
-        team: { id: m.teamId, name: m.team.name },
+        team: { id: m.teamId, name: m.team?.name ?? "Desconocido" },
       }));
 
     return {
