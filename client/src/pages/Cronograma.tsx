@@ -44,7 +44,12 @@ interface Schedule {
   semana: ScheduleDia[];
 }
 
-// Colores y emojis por lugar
+interface EquipoPublico {
+  id: string;
+  name: string;
+  type: string;
+}
+
 const LUGARES = [
   { name: "Polideportivo", color: "border-primary/40 bg-primary/15 text-green-300", emoji: "🏟️" },
   { name: "La Toma", color: "border-sky-500/40 bg-sky-500/10 text-sky-300", emoji: "🌿" },
@@ -61,11 +66,34 @@ function getLugarInfo(place: string) {
 
 export default function Cronograma() {
   const [schedule, setSchedule] = useState<Schedule | null>(null);
+  const [teams, setTeams] = useState<EquipoPublico[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("todas");
 
-  const categoriasUnicas = schedule
+  // Cargar cronograma y lista de equipos
+  useEffect(() => {
+    Promise.all([
+      apiFetch<Schedule>("/public/schedule"),
+      apiFetch<EquipoPublico[]>("/public/teams"),
+    ])
+      .then(([s, t]) => {
+        setSchedule(s);
+        setTeams(t);
+      })
+      .catch((e) => setError((e as Error).message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Ordenar equipos: formativas primero, luego primeras
+  const equiposOrdenados = [...teams].sort((a, b) => {
+    if (a.type === "FORMATIVA" && b.type !== "FORMATIVA") return -1;
+    if (a.type !== "FORMATIVA" && b.type === "FORMATIVA") return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  // Categorías que tienen entrenamientos (para saber si mostrar "sin actividad")
+  const categoriasConActividad = schedule
     ? Array.from(
         new Set(
           schedule.semana.flatMap((d) =>
@@ -75,18 +103,11 @@ export default function Cronograma() {
       )
     : [];
 
-  useEffect(() => {
-    apiFetch<Schedule>("/public/schedule")
-      .then(setSchedule)
-      .catch((e) => setError((e as Error).message))
-      .finally(() => setLoading(false));
-  }, []);
-
   return (
     <Layout>
       <div className="max-w-5xl mx-auto px-6 py-12 md:py-16">
         <div className="rounded-lg border border-outline bg-surface-1 overflow-hidden animate-fade-up">
-          {/* ======== Encabezado mejorado ======== */}
+          {/* ======== Encabezado ======== */}
           <div className="relative bg-surface p-8 md:p-10 text-white overflow-hidden border-b border-outline">
             <div
               aria-hidden="true"
@@ -123,7 +144,7 @@ export default function Cronograma() {
                 Los partidos del fin de semana también se muestran acá.
               </p>
 
-              {/* Leyenda de lugares (más compacta) */}
+              {/* Leyenda de lugares */}
               <div className="mt-6 flex flex-wrap gap-2 text-xs">
                 {LUGARES.map((l) => (
                   <span
@@ -148,7 +169,7 @@ export default function Cronograma() {
             </div>
           </div>
 
-          {/* ======== Grilla de la semana ======== */}
+          {/* ======== Grilla ======== */}
           <div className="p-6 md:p-8">
             {loading && <p className="text-white/70">Cargando cronograma...</p>}
             {error && (
@@ -166,8 +187,8 @@ export default function Cronograma() {
                   </p>
                 </div>
 
-                {/* Filtro */}
-                {categoriasUnicas.length > 0 && (
+                {/* ===== FILTRO CON TODAS LAS CATEGORÍAS ===== */}
+                {equiposOrdenados.length > 0 && (
                   <div className="mb-6 flex flex-wrap items-center gap-3">
                     <label className="text-sm text-white/70 font-medium">Filtrar por categoría:</label>
                     <select
@@ -176,9 +197,9 @@ export default function Cronograma() {
                       className="px-4 py-2 rounded-lg bg-surface-1 border border-outline text-sm text-white focus:outline-none focus:border-primary transition-colors"
                     >
                       <option value="todas">Todas las categorías</option>
-                      {categoriasUnicas.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
+                      {equiposOrdenados.map((t) => (
+                        <option key={t.id} value={t.name}>
+                          {t.name}
                         </option>
                       ))}
                     </select>
@@ -202,7 +223,9 @@ export default function Cronograma() {
 
                     const tieneActividad = bloquesFiltrados.length > 0 || d.partidos.length > 0;
 
-                    if (!tieneActividad) return null;
+                    // Si no hay actividad y el filtro está activo, no mostrar el día
+                    if (categoriaFiltro !== "todas" && !tieneActividad) return null;
+                    if (categoriaFiltro === "todas" && d.bloques.length === 0 && d.partidos.length === 0) return null;
 
                     return (
                       <div
@@ -261,14 +284,11 @@ export default function Cronograma() {
                   })}
                 </div>
 
-                {/* Mensaje si no hay resultados con el filtro */}
-                {schedule.semana.every((d) => {
-                  const bloquesFiltrados =
-                    categoriaFiltro === "todas"
-                      ? d.bloques
-                      : d.bloques.filter((b) => b.team?.name === categoriaFiltro);
-                  return bloquesFiltrados.length === 0 && d.partidos.length === 0;
-                }) && categoriaFiltro !== "todas" && (
+                {/* Mensaje cuando no hay resultados con el filtro */}
+                {categoriaFiltro !== "todas" && !schedule.semana.some((d) => {
+                  const bloquesFiltrados = d.bloques.filter((b) => b.team?.name === categoriaFiltro);
+                  return bloquesFiltrados.length > 0 || d.partidos.length > 0;
+                }) && (
                   <div className="mt-8 text-center text-white/60 text-sm border border-dashed border-outline rounded-lg py-8">
                     <p className="text-2xl">🔍</p>
                     <p className="mt-2">
