@@ -3,212 +3,22 @@ import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { apiFetch, API, getToken, setToken } from "../lib/api";
 import Layout from "../components/Layout";
-
-interface Team {
-  id: string;
-  name: string;
-  gender: string;
-  type: string;
-  category?: string | null;
-  tier?: string | null;
-}
-
-// ---------- Fichas médicas / estudios ----------
-type EstadoFicha = "VIGENTE" | "PROXIMO_A_VENCER" | "VENCIDO" | "SIN_CARGAR";
-
-interface EstadoUnTipo {
-  tipo: string;
-  estado: EstadoFicha;
-  vence?: string | null;
-  hayDoc: boolean;
-}
-
-interface FichaEstado {
-  porTipo: Record<string, EstadoUnTipo>;
-  aptoFichas: boolean;
-  faltantes: string[];
-  bloqueantes: string[];
-  resumen: string;
-}
-
-interface DocItem {
-  id: string;
-  tipo: string;
-  descripcion?: string | null;
-  fileName: string;
-  mime: string;
-  size: number;
-  fechaEmision?: string | null;
-  fechaVencimiento?: string | null;
-  subidoPorId?: string | null;
-  createdAt: string;
-}
-
-interface Player {
-  id: string;
-  lastName: string;
-  firstName: string;
-  document: string;
-  birthDate?: string | null;
-  status: string;
-  inactiveSince?: string | null; // hasta dónde jugó (ISO) — inactivo
-  role: string;
-  position?: string | null;
-  jersey?: number | null;
-  cuentaPresupuesto?: boolean;
-  // Regla nativo/formativa: el jugador paga la cuota en este equipo (true)
-  // o en su categoría formativa (false — aparece pero sin opciones de pago)
-  esFormativos?: boolean;
-  pagaAca?: boolean;
-  categoriaPago?: string[];
-  hasInsurance?: boolean;
-  payments: Array<{ month: string; paid: boolean; amount: number }>;
-  estadoCuota?: {
-    deudor: boolean;
-    alDia: boolean;
-    pendiente: boolean;
-    puedeJugar: boolean;
-    mesesDebe: number;
-  };
-  fichas?: FichaEstado;
-  apto?: { puedeJugar: boolean; razones: string[] };
-}
-
-interface Toast {
-  id: number;
-  message: string;
-  type: "success" | "error" | "warning" | "info";
-}
-
-interface MeData {
-  id: string;
-  fullName: string;
-  email: string;
-  role: string;
-  canChangeCredentials?: boolean;
-  teams: Team[];
-}
-
-interface DelegadoAdmin {
-  id: string;
-  fullName: string;
-  email: string;
-  role: string;
-  active: boolean;
-  canChangeCredentials?: boolean;
-  teamAccess: Array<{ team: Team }>;
-}
-
-// ---------- Poli (cronograma de entrenamiento) ----------
-interface PoliSlot {
-  id: string;
-  dayOfWeek: number; // 1=lun ... 7=dom
-  startTime: string;
-  endTime: string;
-  place: string;
-  teamId: string | null;
-  responsable: string | null;
-  note: string | null;
-  active: boolean;
-  team: { id: string; name: string } | null;
-}
-
-interface PoliBloque {
-  id: string;
-  tipo: "PLANTILLA" | "EXTRA";
-  startTime: string;
-  endTime: string;
-  place: string;
-  team: { id: string; name: string } | null;
-  responsable?: string | null;
-  note?: string | null;
-  excepcion?: {
-    id: string;
-    canceled: boolean;
-    place?: string;
-    startTime?: string;
-    endTime?: string;
-    note?: string;
-    slotId: string | null;
-  } | null;
-}
-
-interface PoliPartido {
-  id: string;
-  time: string;
-  rival: string;
-  isHome: boolean;
-  venue: string;
-  team: { id: string; name: string };
-}
-
-interface PoliDia {
-  fecha: string;
-  dia: string;
-  bloques: PoliBloque[];
-  partidos: PoliPartido[];
-}
-
-interface PoliSemana {
-  from: string;
-  to: string;
-  semana: PoliDia[];
-  hoy?: string;
-}
-
-// ---------- Presupuesto ----------
-interface GastoItem {
-  id: string;
-  nombre: string;
-  monto: number;
-  mes?: string | null;
-}
-
-interface PresupuestoData {
-  teamId: string;
-  categoria: string;
-  mes: string;
-  jugadores: number;
-  cuota: number | null;
-  jugadoresExcluidos: number;
-  gastosFijos: GastoItem[];
-  gastosExtra: GastoItem[];
-  resultado: {
-    ingreso: number;
-    gastos: number;
-    balance: number;
-    cuotaMinima: number | null;
-    cuotaRecomendada: number | null;
-    recomendacionSana: boolean;
-  };
-}
-
-// Total del club (ADMIN): un renglón por equipo + totales
-interface TotalEquipo {
-  teamId: string;
-  categoria: string;
-  tipo: string;
-  jugadores: number;
-  cuota: number;
-  ingreso: number;
-  gastosFijos: number;
-  gastosExtra: number;
-  gastos: number;
-  balance: number;
-  deuda: number;
-}
-
-interface TotalPresupuesto {
-  mes: string;
-  porEquipo: TotalEquipo[];
-  totales: {
-    jugadores: number;
-    ingreso: number;
-    gastos: number;
-    deuda: number;
-    balance: number;
-  };
-}
+import {
+  Team,
+  EstadoUnTipo,
+  FichaEstado,
+  DocItem,
+  Player,
+  Toast,
+  MeData,
+  DelegadoAdmin,
+  PoliSlot,
+  PoliBloque,
+  PoliDia,
+  PoliSemana,
+  PresupuestoData,
+  TotalPresupuesto,
+} from "../lib/panel-types";
 
 const MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
