@@ -9,7 +9,7 @@ export default function Historia() {
   }, []);
 
   const hitos = [
-    { año: "1985", descripcion: "Fundación del club en el barrio de la Toma", icon: "🏠" },
+    { año: "1985", descripcion: "Fundación del club en el barrio de José Hernández", icon: "🏠" },
     { año: "2016", descripcion: "Campeones de la Copa de Oro Norte en Corrientes", icon: "🏆" },
     { año: "2023", descripcion: "Campeones del Torneo Apertura APFS", icon: "🥇" },
     { año: "2024", descripcion: "Segundo título oficial y consagración", icon: "🏅" },

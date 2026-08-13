@@ -286,78 +286,69 @@ export default function Home() {
     )}
 
     {/* Partido destacado con efecto vidrio */}
-    {!loading && destacado && (
-      (() => {
-        const estado = estadoPartido(destacado);
-        const enCurso = estado === "en_curso";
-        return (
-          <div
-            className="mt-10 max-w-md rounded-lg border border-primary/20 bg-surface-1/80 backdrop-blur-sm overflow-hidden animate-fade-up"
-            style={{ animationDelay: "0.2s" }}
-          >
-            {/* Barra superior */}
-            <div className="flex items-center justify-between px-4 py-2 border-b border-primary/20 bg-surface-1/40">
-              <div className="flex items-center gap-2">
-                {enCurso ? (
-                  <BadgeEnCurso />
-                ) : (
-                  <>
-                    <span className="relative flex w-1.5 h-1.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-action-green opacity-60" />
-                      <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-action-green" />
-                    </span>
-                    <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/50">
-                      Próximo partido
-                    </p>
-                  </>
-                )}
-              </div>
-              <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary-light text-[10px] font-mono uppercase tracking-wider">
-                {destacado.team.name}
-              </span>
-            </div>
+    {/* Partido destacado - Sin fondo gris */}
+{!loading && destacado && (
+  (() => {
+    const estado = estadoPartido(destacado);
+    const enCurso = estado === "en_curso";
+    return (
+      <div
+        className="mt-10 max-w-md animate-fade-up border-t-2 border-primary/50 pt-4"
+        style={{ animationDelay: "0.2s" }}
+      >
+        {/* Categoría */}
+        <div className="flex items-center justify-between">
+          <span className="px-3 py-1 bg-primary/20 text-primary-light text-[11px] font-mono uppercase tracking-wider border border-primary/30 rounded-sm">
+            {destacado.team.name}
+          </span>
+          {enCurso ? (
+            <BadgeEnCurso />
+          ) : (
+            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/30">
+              Próximo partido
+            </span>
+          )}
+        </div>
 
-            {/* Marcador */}
-            <div className="px-4 py-3.5">
-              <div className="flex items-center justify-between gap-4">
-                <p className="font-display font-bold text-lg md:text-xl leading-tight">
-                  {destacado.isHome ? "J.H." : destacado.rival}
-                </p>
-                <span className="font-mono text-white/35 text-[11px] uppercase tracking-widest">vs</span>
-                <p className="font-display font-bold text-lg md:text-xl leading-tight text-right">
-                  {destacado.isHome ? destacado.rival : "J.H."}
-                </p>
-              </div>
+        {/* Marcador estilo estadio */}
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <p className="font-display font-black text-3xl md:text-4xl leading-tight tracking-tight">
+            {destacado.isHome ? "J.H." : destacado.rival}
+          </p>
+          <span className="font-mono text-white/20 text-sm tracking-widest">VS</span>
+          <p className="font-display font-black text-3xl md:text-4xl leading-tight tracking-tight text-right">
+            {destacado.isHome ? destacado.rival : "J.H."}
+          </p>
+        </div>
 
-              <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[13px] text-white/55">
-                <span className="text-white/80">{formatFechaLegible(destacado.dateTime)}</span>
-                <span className="text-white/25">·</span>
-                <span className="text-white/80">{formatHora(destacado.dateTime)}</span>
-                <span className="text-white/25">·</span>
-                <span className="text-white/70">{destacado.venue}</span>
-              </div>
-            </div>
+        {/* Detalles en una línea */}
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/50">
+          <span className="text-white/70">{formatFechaLegible(destacado.dateTime)}</span>
+          <span className="text-white/20">·</span>
+          <span className="font-mono tabular-nums text-white/80">{formatHora(destacado.dateTime)}</span>
+          <span className="text-white/20">·</span>
+          <span className="uppercase tracking-wider text-xs">{destacado.venue}</span>
+        </div>
 
-            {/* Cuenta regresiva */}
-            {!enCurso && restante && (
-              <div className="px-4 py-2 bg-surface-2/60 border-t border-primary/20 flex items-center justify-between">
-                <p className="text-[10px] font-mono uppercase tracking-wider text-white/35">Cuenta regresiva</p>
-                <p
-                  className="font-mono text-[13px] text-primary-light/90 tabular-nums"
-                  title={new Date(destacado.dateTime).toLocaleString("es-AR")}
-                >
-                  {restante.dias > 0
-                    ? `en ${restante.dias} día${restante.dias === 1 ? "" : "s"} ${restante.horas} h`
-                    : restante.horas > 0
-                      ? `en ${restante.horas} h ${restante.mins} min`
-                      : `en ${restante.mins} min`}
-                </p>
-              </div>
-            )}
+        {/* Cuenta regresiva - minimalista */}
+        {!enCurso && restante && (
+          <div className="mt-4 flex items-center gap-4 border-t border-white/10 pt-3">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-white/30">
+              ⌛
+            </span>
+            <span className="font-mono text-sm font-bold text-primary-light tabular-nums tracking-wide">
+              {restante.dias > 0
+                ? `${restante.dias}d ${restante.horas}h`
+                : restante.horas > 0
+                  ? `${restante.horas}h ${restante.mins}m`
+                  : `${restante.mins}m`}
+            </span>
           </div>
-        );
-      })()
-    )}
+        )}
+      </div>
+    );
+  })()
+)}
   </div>
 </header>
 
@@ -396,48 +387,61 @@ export default function Home() {
                 </p>
                 <div className="grid md:grid-cols-2 gap-4 gap-y-3">
                   {parts.map((m, i) => (
-                      <article key={m.id} className="card group p-5 animate-fade-up relative border-l-4 
-                      border-l-primary bg-pitch" style={{ animationDelay: `${0.05 * i}s` }}>
-                     {/* Badge "¡Este finde!" */}
-{i === 0 && (
-  <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-primary text-white text-[10px] font-mono uppercase tracking-wider shadow-lg">
-    ¡Este finde!
-  </span>
-)}
-                      <div className="flex items-start gap-4">
-                        <div className="shrink-0 w-14 rounded-lg bg-primary/15 border border-primary/25 text-center py-2 transition-colors duration-200 group-hover:bg-primary/25">
-                          <p className="text-[10px] uppercase tracking-wide text-primary-light font-mono">
-                            {formatDia(m.dateTime).slice(0, 3)}
-                          </p>
-                          <p className="font-display font-bold text-lg leading-none mt-1">
-                            {new Date(m.dateTime).getDate()}
-                          </p>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-display font-bold text-lg leading-snug">
-                            {m.isHome ? "J.H." : m.rival}{" "}
-                            <span className="text-white/40 font-light">vs</span>{" "}
-                            {m.isHome ? m.rival : "J.H."}
-                          </p>
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
-                            <p className="text-sm text-white/60">
-                              {m.team.name} · {m.venue}
-                            </p>
-                            {estadoPartido(m) === "en_curso" && <BadgeEnCurso />}
-                          </div>
-                        </div>
-                        <div className="shrink-0 text-right">
-                          <p className={`font-display font-bold text-2xl tabular-nums transition-colors duration-200 group-hover:text-primary-light ${estadoPartido(m) === "en_curso" ? "text-action-green" : ""}`}>
-                            {formatHora(m.dateTime)}
-                          </p>
-                          {estadoPartido(m) === "en_curso" && (
-                            <p className="text-[10px] font-mono uppercase tracking-wider text-action-green/80 mt-0.5">
-                              jugándose
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </article>
+  <article 
+    key={m.id} 
+    className="group animate-fade-up relative pl-4 border-l-4 border-primary/60 hover:border-primary transition-all duration-300"
+    style={{ animationDelay: `${0.05 * i}s` }}
+  >
+    {/* Badge "¡Este finde!" */}
+    {i === 0 && (
+      <span className="absolute -top-2 -right-2 z-10 px-2.5 py-0.5 rounded-full bg-primary text-white text-[10px] font-mono uppercase tracking-wider shadow-lg">
+        ¡Este finde!
+      </span>
+    )}
+    <div className="flex items-start gap-4 py-3 border-b border-white/5 hover:border-white/10 transition-colors">
+      {/* Fecha */}
+      <div className="shrink-0 w-14 rounded-lg bg-primary/10 border border-primary/20 text-center py-2 transition-colors duration-200 group-hover:bg-primary/20">
+        <p className="text-[10px] uppercase tracking-wide text-primary-light font-mono">
+          {formatDia(m.dateTime).slice(0, 3)}
+        </p>
+        <p className="font-display font-bold text-lg leading-none mt-1">
+          {new Date(m.dateTime).getDate()}
+        </p>
+      </div>
+      
+      {/* Info del partido */}
+      <div className="flex-1 min-w-0">
+        <p className="font-display font-bold text-lg leading-snug">
+          {m.isHome ? "J.H." : m.rival}{" "}
+          <span className="text-white/30 font-light">vs</span>{" "}
+          {m.isHome ? m.rival : "J.H."}
+        </p>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
+          <span className="text-sm text-white/50">
+            {m.team.name}
+          </span>
+          <span className="text-white/20">·</span>
+          <span className="text-xs text-white/40 uppercase tracking-wider">
+            {m.venue}
+          </span>
+          {estadoPartido(m) === "en_curso" && <BadgeEnCurso />}
+        </div>
+      </div>
+      
+      {/* Hora */}
+      <div className="shrink-0 text-right">
+        <p className={`font-display font-bold text-2xl tabular-nums transition-colors duration-200 group-hover:text-primary-light ${estadoPartido(m) === "en_curso" ? "text-action-green" : ""}`}>
+          {formatHora(m.dateTime)}
+        </p>
+        {estadoPartido(m) === "en_curso" && (
+          <p className="text-[10px] font-mono uppercase tracking-wider text-action-green/80 mt-0.5">
+            jugándose
+          </p>
+        )}
+      </div>
+    </div>
+  </article>
+))}
                   ))}
                 </div>
               </div>
