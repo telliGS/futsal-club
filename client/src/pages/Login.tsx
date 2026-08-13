@@ -49,7 +49,7 @@ export default function Login() {
     <Layout>
       <div className="max-w-5xl mx-auto px-6 py-12 md:py-16">
         <div className="rounded-lg border border-outline bg-surface-1 overflow-hidden grid md:grid-cols-2 animate-fade-up">
-          {/* Panel izquierdo */}
+          {/* ======== Panel izquierdo ======== */}
           <div className="relative bg-surface p-8 md:p-10 text-white overflow-hidden border-b md:border-b-0 md:border-r border-outline">
             <div
               aria-hidden="true"
@@ -91,10 +91,10 @@ export default function Login() {
               <ul className="mt-8 space-y-3">
                 {FEATURES.map((f) => (
                   <li key={f.text} className="flex items-center gap-3 text-sm">
-                    <span className="w-8 h-8 shrink-0 rounded-lg bg-surface-2 border border-outline flex items-center justify-center text-base">
+                    <span className="w-9 h-9 shrink-0 rounded-lg bg-surface-2 border border-outline flex items-center justify-center text-lg">
                       {f.icon}
                     </span>
-                    <span className="text-white/80">{f.text}</span>
+                    <span className="text-white/80 font-medium">{f.text}</span>
                   </li>
                 ))}
               </ul>
@@ -106,39 +106,45 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Panel derecho */}
+          {/* ======== Panel derecho ======== */}
           <div className="p-8 md:p-10 flex items-center">
             <div className="w-full max-w-sm mx-auto">
-              <p className="text-xs font-mono uppercase tracking-widest text-white/50">Ingreso</p>
-              <h1 className="font-display text-2xl font-bold mt-1">Área de delegados</h1>
-              <p className="text-white/70 text-sm mt-1 mb-8">
+              <span className="inline-block px-3 py-1 rounded-full bg-primary/20 text-primary-light text-[10px] font-mono uppercase tracking-wider border border-primary/30 mb-4">
+                Ingreso
+              </span>
+              <h1 className="font-display text-2xl font-bold">Área de delegados</h1>
+              <p className="text-white/70 text-sm mt-1 mb-6">
                 Ingresá con tu cuenta para gestionar tu equipo.
               </p>
 
               <form onSubmit={submit} className="space-y-5">
                 <div>
-                  <label className="text-sm text-white/80 block mb-1.5">Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="delegado@josehernandez.futbol"
-                    className="w-full px-4 py-3 rounded-lg bg-surface-1 border border-outline text-white placeholder-white/40
-                           focus:outline-none focus:border-primary focus:bg-surface-2"
-                    required
-                  />
+                  <label className="text-sm text-white/80 block mb-1.5 font-medium">Email</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-lg">📧</span>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="delegado@josehernandez.futbol"
+                      className="w-full pl-11 pr-4 py-3 rounded-lg bg-surface-1 border border-outline text-white placeholder-white/40 focus:outline-none focus:border-primary focus:bg-surface-2 transition-colors"
+                      required
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label className="text-sm text-white/80 block mb-1.5">Contraseña</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-3 rounded-lg bg-surface-1 border border-outline text-white placeholder-white/40
-                           focus:outline-none focus:border-primary focus:bg-surface-2"
-                    required
-                  />
+                  <label className="text-sm text-white/80 block mb-1.5 font-medium">Contraseña</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-lg">🔒</span>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-11 pr-4 py-3 rounded-lg bg-surface-1 border border-outline text-white placeholder-white/40 focus:outline-none focus:border-primary focus:bg-surface-2 transition-colors"
+                      required
+                    />
+                  </div>
                 </div>
 
                 {error && (
@@ -150,11 +156,16 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn w-full bg-primary text-white hover:bg-primary-light disabled:opacity-50"
+                  className="btn w-full bg-primary text-white hover:bg-primary-light disabled:opacity-50 text-base py-3"
                 >
                   {loading ? "Ingresando..." : "Ingresar al panel"}
                 </button>
               </form>
+
+              {/* Mensaje adicional */}
+              <p className="mt-6 text-center text-xs text-white/40">
+                ¿Problemas para ingresar? Contactá al administrador.
+              </p>
             </div>
           </div>
         </div>

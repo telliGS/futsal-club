@@ -48,7 +48,7 @@ export default function Status() {
     <Layout>
       <div className="max-w-5xl mx-auto px-6 py-12 md:py-16">
         <div className="rounded-lg border border-outline bg-surface-1 overflow-hidden grid md:grid-cols-2 animate-fade-up">
-          {/* Panel izquierdo */}
+          {/* ======== Panel izquierdo ======== */}
           <div className="relative bg-surface p-8 md:p-10 text-white overflow-hidden border-b md:border-b-0 md:border-r border-outline">
             <div
               aria-hidden="true"
@@ -105,31 +105,40 @@ export default function Status() {
                   </p>
                 </div>
               </div>
+
+              {/* Frase cálida */}
+              <div className="mt-8 border-t border-white/10 pt-6 text-sm text-white/50 italic">
+                “La cuota es el corazón del club. Con tu aporte, seguimos creciendo.”
+              </div>
             </div>
           </div>
 
-          {/* Panel derecho */}
+          {/* ======== Panel derecho ======== */}
           <div className="p-8 md:p-10 flex items-center">
             <div className="w-full max-w-sm mx-auto">
-              <p className="text-xs font-mono uppercase tracking-widest text-white/50">Consulta pública</p>
-              <h1 className="font-display text-2xl font-bold mt-1">Consultar mi cuota</h1>
+              <span className="inline-block px-3 py-1 rounded-full bg-primary/20 text-primary-light text-[10px] font-mono uppercase tracking-wider border border-primary/30 mb-4">
+                Consulta pública
+              </span>
+              <h1 className="font-display text-2xl font-bold">Consultar mi cuota</h1>
               <p className="text-white/70 text-sm mt-1 mb-6">
-                Solo necesitás tu DNI.
+                Solo necesitás tu DNI. Te mostramos al instante tu estado.
               </p>
 
-              <form onSubmit={buscar} className="space-y-3">
-                <input
-                  value={dni}
-                  onChange={(e) => setDni(e.target.value)}
-                  placeholder="DNI · Ej: 42206899"
-                  inputMode="numeric"
-                  className="w-full px-4 py-3 rounded-lg bg-surface-1 border border-outline text-white placeholder-white/40
-                             focus:outline-none focus:border-primary focus:bg-surface-2"
-                />
+              <form onSubmit={buscar} className="space-y-4">
+                <div className="relative">
+                  <input
+                    value={dni}
+                    onChange={(e) => setDni(e.target.value)}
+                    placeholder="DNI · Ej: 42206899"
+                    inputMode="numeric"
+                    className="w-full pl-11 pr-4 py-3 rounded-lg bg-surface-1 border border-outline text-white placeholder-white/40 focus:outline-none focus:border-primary focus:bg-surface-2 transition-colors"
+                  />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-lg">🔍</span>
+                </div>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn w-full bg-primary text-white hover:bg-primary-light disabled:opacity-50"
+                  className="btn w-full bg-primary text-white hover:bg-primary-light disabled:opacity-50 text-base py-3"
                 >
                   {loading ? "Buscando..." : "Buscar mi estado"}
                 </button>
@@ -153,9 +162,10 @@ export default function Status() {
                           : "border-red-500/40"
                   }`}
                 >
-                  <div className="flex items-start gap-4">
+                  {/* Badge de estado grande */}
+                  <div className="flex items-center gap-3 mb-4">
                     <span
-                      className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-xl font-bold ${
+                      className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-bold ${
                         result.esTecnico
                           ? "bg-surface-2 text-white/70"
                           : result.isPaid
@@ -167,37 +177,34 @@ export default function Status() {
                     >
                       {result.esTecnico ? "—" : result.isPaid ? "✓" : result.pendiente ? "⏳" : "✕"}
                     </span>
-                    <div className="min-w-0">
+                    <div>
                       <p className="font-display text-xl font-bold truncate">{result.fullName}</p>
                       <p className="text-sm text-white/70 truncate">{result.teams.join(" · ")}</p>
                     </div>
                   </div>
 
-                  <div className="mt-5">
+                  <div className="mt-4">
                     {result.esTecnico ? (
-                      <div>
-                        <p className="text-white/80 font-semibold">Integrante del cuerpo técnico</p>
-                        <p className="mt-2 text-xs text-white/70 leading-relaxed">
-                          Estás registrado en {result.teams.join(" · ")} como técnico, no como jugador.
-                          La cuota no aplica para el cuerpo técnico, así que no tenés deuda ni estado de pago.
-                        </p>
+                      <div className="bg-surface-2 rounded-lg p-4 text-sm text-white/70">
+                        <p className="font-semibold text-white/90">Integrante del cuerpo técnico</p>
+                        <p className="mt-1 text-xs">La cuota no aplica para técnicos.</p>
                       </div>
                     ) : result.isPaid ? (
-                      <div>
-                        <p className="text-green-400 font-semibold">Estás al día ({result.currentMonth})</p>
-                        <div className="mt-3 text-xs text-white/70 bg-surface-2 rounded-lg px-3 py-2.5">
+                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                        <p className="text-green-400 font-semibold text-lg">✅ Estás al día</p>
+                        <p className="text-sm text-white/70">Cuota de {result.currentMonth} pagada</p>
+                        <div className="mt-2 text-xs text-white/60 bg-surface-2 rounded-lg px-3 py-2">
                           {result.lastPayment ? (
-                            <>Último pago registrado: <span className="text-white/85 font-semibold">{monthLabel(result.lastPayment.month)}</span></>
+                            <>Último pago: <span className="text-white/85 font-semibold">{monthLabel(result.lastPayment.month)}</span></>
                           ) : (
                             "Sin pagos registrados todavía"
                           )}
                         </div>
                       </div>
                     ) : result.pendiente ? (
-                      <div>
-                        <p className="text-amber-300 font-semibold">
-                          Todavía no pagaste {result.currentMonth}
-                        </p>
+                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+                        <p className="text-amber-300 font-semibold text-lg">⏳ Todavía no pagaste</p>
+                        <p className="text-sm text-white/70">Cuota de {result.currentMonth} pendiente</p>
                         <p className="mt-2 text-xs text-white/80 leading-relaxed">
                           Estás dentro del plazo (1 al 10).{" "}
                           {result.diasParaPagar > 0 ? (
@@ -214,15 +221,13 @@ export default function Status() {
                         </p>
                       </div>
                     ) : (
-                      <div>
-                        <p className="text-red-400 font-semibold">Tenés deuda registrada</p>
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                        <p className="text-red-400 font-semibold text-lg">❌ Tenés deuda</p>
+                        <p className="text-sm text-white/70">No podés jugar hasta regularizar</p>
                         {result.unpaidMonths.length > 0 && (
                           <ul className="mt-3 space-y-1.5">
                             {result.unpaidMonths.map((u) => (
-                              <li
-                                key={u.month}
-                                className="flex items-center justify-between text-sm bg-surface-2 rounded-lg px-3 py-2"
-                              >
+                              <li key={u.month} className="flex items-center justify-between text-sm bg-surface-2 rounded-lg px-3 py-2">
                                 <span className="text-white/80">{monthLabel(u.month)}</span>
                                 <span className="text-red-300 font-semibold tabular-nums">
                                   ${u.amount.toLocaleString("es-AR")}
@@ -233,7 +238,7 @@ export default function Status() {
                         )}
                         {result.totalDeuda > 0 && (
                           <p className="mt-3 text-sm font-bold text-red-300">
-                            Total: ${result.totalDeuda.toLocaleString("es-AR")}
+                            Total adeudado: ${result.totalDeuda.toLocaleString("es-AR")}
                           </p>
                         )}
                       </div>
@@ -250,17 +255,14 @@ export default function Status() {
                             : "❌ Con deuda";
                         const mensaje = `Mi estado de cuota en JH Futsal: ${estado}. Consultalo acá: ${window.location.origin}/mi-cuota`;
                         if (navigator.share) {
-                          navigator.share({
-                            title: "Mi cuota en JH Futsal",
-                            text: mensaje,
-                          });
+                          navigator.share({ title: "Mi cuota en JH Futsal", text: mensaje });
                         } else {
                           navigator.clipboard.writeText(mensaje).then(() => {
                             alert("¡Copiado al portapapeles! Compartilo con quien quieras.");
                           });
                         }
                       }}
-                      className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm bg-surface-2 border border-outline text-white/70 hover:text-white hover:border-primary/40 transition-colors"
+                      className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm bg-primary/20 text-primary-light border border-primary/30 hover:bg-primary/30 transition-colors font-semibold"
                     >
                       📤 Compartir mi estado
                     </button>
