@@ -329,6 +329,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filtroEstado, setFiltroEstado] = useState<string>("todos");
+  const [busqueda, setBusqueda] = useState("");
   const [view, setView] = useState<"lista" | "calendario" | "presupuesto" | "delegados" | "poli">("lista");
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [delegados, setDelegados] = useState<DelegadoAdmin[]>([]);
@@ -1475,6 +1476,14 @@ export default function Dashboard() {
   if (filtroEstado === "inactivo") return p.status === "INACTIVO";
   return true;
 });
+// Aplicar búsqueda por nombre o DNI sobre los jugadores ya filtrados por estado
+const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
+  if (!busqueda.trim()) return true;
+  const q = busqueda.toLowerCase().trim();
+  return p.firstName.toLowerCase().includes(q) ||
+         p.lastName.toLowerCase().includes(q) ||
+         p.document.includes(q);
+});
   // Jugadores de formativa que aparecen en este equipo pero pagan en su categoría
   const plantelSinCuota = players.filter((p) => p.role === "JUGADOR" && p.pagaAca === false);
 
@@ -1629,60 +1638,81 @@ export default function Dashboard() {
       {view === "lista" && (
         <>
           {/* Resumen del equipo: contadores de estado */}
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="card p-4 flex items-center gap-3">
-              <span className="w-9 h-9 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center text-lg">👥</span>
-              <div>
-                <p className="font-display font-bold text-xl leading-none">
-                 {jugadoresFiltrados.filter((p) => p.status !== "INACTIVO").length +
-  plantelSinCuota.filter((p) => p.status !== "INACTIVO").length}
-                </p>
-                <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Jugadores</p>
-              </div>
-            </div>
-            <div className="card p-4 flex items-center gap-3">
-              <span className="w-9 h-9 rounded-lg bg-green-500/15 border border-green-500/25 flex items-center justify-center text-lg">✓</span>
-              <div>
-                <p className="font-display font-bold text-xl leading-none text-green-400">
-                  {plantel.filter((p) => p.status !== "INACTIVO" && (p.estadoCuota ?? estadoLocal(p)).alDia).length}
-                </p>
-                <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Al día</p>
-              </div>
-            </div>
-            <div className="card p-4 flex items-center gap-3">
-              <span className="w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-lg">⏳</span>
-              <div>
-                <p className="font-display font-bold text-xl leading-none text-amber-300">
-                  {plantel.filter((p) => p.status !== "INACTIVO" && (p.estadoCuota ?? estadoLocal(p)).pendiente).length}
-                </p>
-                <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Pendientes (1-10)</p>
-              </div>
-            </div>
-            <div className="card p-4 flex items-center gap-3">
-              <span className="w-9 h-9 rounded-lg bg-red-500/15 border border-red-500/25 flex items-center justify-center text-lg">✕</span>
-              <div>
-                <p className="font-display font-bold text-xl leading-none text-red-400">
-                  {plantel.filter((p) => p.status !== "INACTIVO" && (p.estadoCuota ?? estadoLocal(p)).deudor).length}
-                </p>
-                <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Con deuda</p>
-              </div>
-            </div>
-          </div>
-                {/* Filtros de estado */}
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                   <label className="text-sm text-white/70">Filtrar estado:</label>
-                     <select
-               value={filtroEstado}
-              onChange={(e) => setFiltroEstado(e.target.value)}
-               className="px-3 py-1.5 rounded-lg bg-surface-1 border border-outline text-sm focus:outline-none focus:border-primary transition-colors"
-                >
-              <option value="todos">Todos</option>
-             <option value="al_dia">Al día</option>
-           <option value="pendiente">Pendiente</option>
-              <option value="deudor">Deudor</option>
-           <option value="inactivo">Inactivo</option>
-            </select>
-             {filtroEstado !== "todos" && (
+          {/* ===== RESUMEN EJECUTIVO ===== */}
+{view === "lista" && (
+  <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+    {/* Jugadores activos */}
+    <div className="card p-4 flex items-center gap-3">
+      <span className="w-9 h-9 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center text-lg">⚽</span>
+      <div>
+        <p className="font-display font-bold text-xl leading-none">
+          {jugadoresBusqueda.filter((p) => p.status !== "INACTIVO").length}
+        </p>
+        <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Jugadores activos</p>
+      </div>
+    </div>
+
+    {/* Con deuda */}
+    <div className="card p-4 flex items-center gap-3">
+      <span className="w-9 h-9 rounded-lg bg-red-500/15 border border-red-500/25 flex items-center justify-center text-lg">🔴</span>
+      <div>
+        <p className="font-display font-bold text-xl leading-none text-red-400">
+          {jugadoresBusqueda.filter((p) => (p.estadoCuota ?? estadoLocal(p)).deudor && p.status !== "INACTIVO").length}
+        </p>
+        <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Con deuda</p>
+      </div>
+    </div>
+
+    {/* Sin fichas */}
+    <div className="card p-4 flex items-center gap-3">
+      <span className="w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-lg">📄</span>
+      <div>
+        <p className="font-display font-bold text-xl leading-none text-amber-300">
+          {jugadoresBusqueda.filter((p) => p.fichas && !p.fichas.aptoFichas && p.status !== "INACTIVO").length}
+        </p>
+        <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Sin fichas</p>
+      </div>
+    </div>
+
+    {/* Inactivos */}
+    <div className="card p-4 flex items-center gap-3">
+      <span className="w-9 h-9 rounded-lg bg-surface-2 border border-outline flex items-center justify-center text-lg">⏸️</span>
+      <div>
+        <p className="font-display font-bold text-xl leading-none text-white/60">
+          {jugadoresBusqueda.filter((p) => p.status === "INACTIVO").length}
+        </p>
+        <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Inactivos</p>
+      </div>
+    </div>
+  </div>
+)}
+              {/* ===== BÚSQUEDA Y FILTROS ===== */}
+<div className="mt-4 flex flex-wrap items-center gap-3">
+  {/* Búsqueda */}
+  <input
+    type="text"
+    value={busqueda}
+    onChange={(e) => setBusqueda(e.target.value)}
+    placeholder="Buscar jugador por nombre o DNI..."
+    className="px-3 py-1.5 rounded-lg bg-surface-1 border border-outline text-sm text-white placeholder-white/40 focus:outline-none focus:border-primary transition-colors flex-1 min-w-[180px]"
+  />
+
+  {/* Filtro por estado */}
+  <label className="text-sm text-white/70">Estado:</label>
+  <select
+    value={filtroEstado}
+    onChange={(e) => setFiltroEstado(e.target.value)}
+    className="px-3 py-1.5 rounded-lg bg-surface-1 border border-outline text-sm focus:outline-none focus:border-primary transition-colors"
+  >
+    <option value="todos">Todos</option>
+    <option value="al_dia">Al día</option>
+    <option value="pendiente">Pendiente</option>
+    <option value="deudor">Deudor</option>
+    <option value="inactivo">Inactivo</option>
+  </select>
+
+  {/* Botón limpiar filtros */}
+  {filtroEstado !== "todos" && (
     <button
       onClick={() => setFiltroEstado("todos")}
       className="text-xs text-white/50 hover:text-white underline transition-colors"
@@ -1690,13 +1720,17 @@ export default function Dashboard() {
       Limpiar filtro
     </button>
   )}
+
+  {/* Mostrar cantidad de resultados */}
+  <span className="text-xs text-white/30 ml-auto">
+    {jugadoresBusqueda.length} {jugadoresBusqueda.length === 1 ? "jugador" : "jugadores"}
+  </span>
 </div>
           {/* ===== JUGADORES EN MÓVIL: tarjetas (tabla solo en md+) ===== */}
           <div className="md:hidden mt-4 space-y-2">
             {[
-             ...jugadoresFiltrados.filter((x) => x.status !== "INACTIVO")  ,
-             ...jugadoresFiltrados.filter((x) => x.status === "INACTIVO")
-            ].map((p) => {
+               ...jugadoresBusqueda.filter((x) => x.status !== "INACTIVO")
+               , ...jugadoresBusqueda.filter((x) => x.status === "INACTIVO")            ].map((p) => {
               const thisMonth = p.payments.find((x) => x.month === currentMonth);
               const ec = p.estadoCuota ?? estadoLocal(p);
               return (
