@@ -223,40 +223,42 @@ export default function Cronograma() {
                           </p>
                         </div>
                         <div className="p-2 space-y-1.5">
-                          {d.partidos.length > 0 && (
-                            <div className="px-2 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/25 text-[11px]">
-                              {d.partidos.map((p) => (
-                                <p key={p.id} className="text-amber-200/90 leading-snug">
-                                  ⚽ <span className="font-mono">{p.time}</span> · {p.team.name} vs {p.rival}
-                                </p>
-                              ))}
-                            </div>
-                          )}
-                          {bloquesFiltrados.length === 0 && d.partidos.length === 0 && (
-                            <div className="py-3 text-center text-xs text-white/40 flex flex-col items-center gap-1">
-                              <span className="text-lg">🌙</span>
-                              <span>Sin actividad</span>
-                            </div>
-                          )}
-                          {bloquesFiltrados.map((b) => {
-                            const info = getLugarInfo(b.place);
-                            return (
-                              <div key={b.id} className={`rounded-md border px-2.5 py-2 ${info.color}`}>
-                                <div className="flex items-center justify-between gap-1">
-                                  <p className="font-mono text-xs font-semibold tabular-nums flex items-center gap-1">
-                                    {info.emoji} {b.startTime}–{b.endTime}
-                                  </p>
-                                  <span className="text-[9px] uppercase tracking-wider opacity-70 font-mono">
-                                    {b.tipo === "EXTRA" ? "Extra" : b.excepcion ? "Modificado" : "Fijo"}
-                                  </span>
-                                </div>
-                                <p className="text-sm font-semibold mt-0.5">{b.team?.name ?? "Actividad libre"}</p>
-                                <p className="text-[11px] opacity-80">{b.place}</p>
-                                {b.note && <p className="text-[10px] italic opacity-70 mt-0.5">{b.note}</p>}
-                              </div>
-                            );
-                          })}
-                        </div>
+  {d.partidos.length > 0 && (
+    <div className="px-2 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/25 text-[11px]">
+      {d.partidos.map((p) => (
+        <p key={p.id} className="text-amber-200/90 leading-snug">
+          ⚽ <span className="font-mono">{p.time}</span> · {p.team.name} vs {p.rival}
+        </p>
+      ))}
+    </div>
+  )}
+  
+  {bloquesFiltrados.length > 0 ? (
+    bloquesFiltrados.map((b) => {
+      const info = getLugarInfo(b.place);
+      return (
+        <div key={b.id} className={`rounded-md border px-2.5 py-2 ${info.color}`}>
+          <div className="flex items-center justify-between gap-1">
+            <p className="font-mono text-xs font-semibold tabular-nums flex items-center gap-1">
+              {info.emoji} {b.startTime}–{b.endTime}
+            </p>
+            <span className="text-[9px] uppercase tracking-wider opacity-70 font-mono">
+              {b.tipo === "EXTRA" ? "Puntual" : b.excepcion ? "Modificado" : "Fijo"}
+            </span>
+          </div>
+          <p className="text-sm font-semibold mt-0.5">{b.team?.name ?? "Actividad libre"}</p>
+          <p className="text-[11px] opacity-80">{b.place}</p>
+          {b.note && <p className="text-[10px] italic opacity-70 mt-0.5">{b.note}</p>}
+        </div>
+      );
+    })
+  ) : d.partidos.length === 0 ? (
+    <div className="py-3 text-center text-xs text-white/40 flex flex-col items-center gap-1">
+      <span className="text-lg">🌙</span>
+      <span>Sin actividad</span>
+    </div>
+  ) : null}
+</div>
                       </div>
                     );
                   })}
