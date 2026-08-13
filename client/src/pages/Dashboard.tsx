@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import * as XLSX from "xlsx";
 import { apiFetch, API, getToken, setToken } from "../lib/api";
 import Layout from "../components/Layout";
 
@@ -355,6 +356,9 @@ export default function Dashboard() {
   // ----- Toasts -----
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [toastCounter, setToastCounter] = useState(0);
+
+  // ----- Exportación -----
+  const [exportando, setExportando] = useState(false);
 
   // ---------- Cambio de credenciales propio (1 sola vez) ----------
   const [showCredModal, setShowCredModal] = useState(false);
@@ -1483,6 +1487,53 @@ export default function Dashboard() {
     }, 4000);
   };
 
+  // ============================================================
+  // EXPORTACIÓN A EXCEL
+  // ============================================================
+  const exportarExcel = () => {
+    const jugadores = jugadoresBusqueda || [];
+    if (jugadores.length === 0) {
+      mostrarToast("No hay jugadores para exportar", "warning");
+      return;
+    }
+    try {
+      setExportando(true);
+      const datos = jugadores.map((p, index) => {
+        const ec = p.estadoCuota ?? estadoLocal(p);
+        const estado = p.status === "INACTIVO"
+          ? "Inactivo"
+          : ec.deudor
+            ? "Deudor"
+            : ec.pendiente
+              ? "Pendiente"
+              : "Al día";
+        return {
+          "#": index + 1,
+          "Apellido": p.lastName,
+          "Nombre": p.firstName,
+          "DNI": p.document,
+          "Rol": p.role === "JUGADOR" ? "Jugador" : p.role,
+          "Posición": p.position || "-",
+          "Camiseta": p.jersey || "-",
+          "Estado": estado,
+          "Fichas": p.fichas?.aptoFichas ? "OK" : "Sin fichas",
+          "Deuda (meses)": ec.mesesDebe || 0,
+        };
+      });
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(datos);
+      XLSX.utils.book_append_sheet(wb, ws, "Jugadores");
+      const nombreEquipo = me?.teams.find((t) => t.id === teamId)?.name || "equipo";
+      const fecha = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `JH_${nombreEquipo}_jugadores_${fecha}.xlsx`);
+      mostrarToast(`Exportados ${datos.length} jugadores`, "success");
+    } catch (e) {
+      mostrarToast("Error al exportar: " + (e as Error).message, "error");
+    } finally {
+      setExportando(false);
+    }
+  };
+
   if (loading) return <div className="p-10">Cargando...</div>;
 
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -1620,6 +1671,14 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
               >
                 <Icon name="upload" className="w-3.5 h-3.5" />
                 Importar Excel
+              </button>
+              <button
+                onClick={exportarExcel}
+                disabled={exportando}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface-1 text-white/80 transition-all duration-200 hover:bg-surface-2 active:scale-95 disabled:opacity-50"
+                title="Exportar lista de jugadores a Excel"
+              >
+                {exportando ? "Generando..." : "📊 Exportar"}
               </button>
             </div>
           </div>
