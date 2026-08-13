@@ -170,7 +170,7 @@ export default function Home() {
 
   return (
     <Layout>
-      {/* ============================ HERO ============================ */}
+      {/* HERO */}
       <header className="relative bg-surface overflow-hidden border-b border-outline">
         <div
           aria-hidden="true"
@@ -218,26 +218,20 @@ export default function Home() {
                   Futsal de{" "}
                   <span className="text-primary-light">Paraná</span>
                 </h1>
-                <p className="mt-2 text-white/50 text-sm md:text-base max-w-md font-mono tracking-wider">
+                <p className="mt-2 text-white/60 text-sm md:text-base max-w-md font-mono tracking-wider">
                   10 equipos · más de 100 jugadores · una pasión
                 </p>
-                <p className="mt-1 text-white/70 text-sm md:text-base max-w-md">
+                <p className="mt-1 text-white/80 text-sm md:text-base max-w-md">
                   Competencia Oficial APFS
                 </p>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-3 animate-fade-up md:flex-col md:items-end" style={{ animationDelay: "0.1s" }}>
-              <Link
-                to="/mi-cuota"
-                className="btn-primary"
-              >
+              <Link to="/mi-cuota" className="btn-primary">
                 Consultar mi cuota
               </Link>
-              <Link
-                to="/ingresar"
-                className="btn-secondary"
-              >
+              <Link to="/ingresar" className="btn-secondary">
                 Área delegados
               </Link>
             </div>
@@ -255,7 +249,7 @@ export default function Home() {
               ].map((s) => (
                 <div key={s.l} className="rounded-lg bg-surface-1 border border-outline px-5 py-4 text-center bg-noise">
                   <p className="font-display font-bold text-3xl md:text-4xl tabular-nums text-white">{s.n}</p>
-                  <p className="text-[11px] uppercase tracking-wider text-white/50 mt-1 font-mono">{s.l}</p>
+                  <p className="text-[11px] uppercase tracking-wider text-white/60 mt-1 font-mono">{s.l}</p>
                 </div>
               ))}
             </div>
@@ -276,7 +270,7 @@ export default function Home() {
                       {enCurso ? (
                         <BadgeEnCurso />
                       ) : (
-                        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/30">
+                        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/40">
                           Próximo partido
                         </span>
                       )}
@@ -292,17 +286,17 @@ export default function Home() {
                       </p>
                     </div>
 
-                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/50">
-                      <span className="text-white/70">{formatFechaLegible(destacado.dateTime)}</span>
-                      <span className="text-white/20">·</span>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/60">
+                      <span className="text-white/80">{formatFechaLegible(destacado.dateTime)}</span>
+                      <span className="text-white/30">·</span>
                       <span className="font-mono tabular-nums text-white/80">{formatHora(destacado.dateTime)}</span>
-                      <span className="text-white/20">·</span>
-                      <span className="uppercase tracking-wider text-xs">{destacado.venue}</span>
+                      <span className="text-white/30">·</span>
+                      <span className="uppercase tracking-wider text-xs text-white/70">{destacado.venue}</span>
                     </div>
 
                     {!enCurso && restante && (
                       <div className="mt-4 flex items-center gap-4 border-t border-white/10 pt-3">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-white/30">⌛</span>
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">⌛</span>
                         <span className="font-mono text-sm font-bold text-primary-light tabular-nums tracking-wide">
                           {restante.dias > 0
                             ? `${restante.dias}d ${restante.horas}h`
@@ -321,7 +315,7 @@ export default function Home() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-16">
-        {/* ========================= PRÓXIMOS PARTIDOS ========================= */}
+        {/* PRÓXIMOS PARTIDOS */}
         <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-up">
           <h2 className="font-display text-2xl font-bold flex items-center gap-3">
             <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
@@ -334,13 +328,13 @@ export default function Home() {
           </h2>
         </div>
 
-        {loading && <p className="mt-6 text-white/60">Cargando partidos...</p>}
+        {loading && <p className="mt-6 text-white/70">Cargando partidos...</p>}
         {error && <p className="mt-6 text-red-400">No se pudieron cargar los datos: {error}</p>}
         {!loading && !error && matches.length === 0 && (
           <div className="mt-8 rounded-lg border border-dashed border-outline p-10 text-center">
             <p className="text-3xl">📅</p>
             <p className="mt-3 font-display font-bold text-lg">Todavía no hay partidos cargados</p>
-            <p className="text-sm text-white/50 mt-1">Los fixtures se publican acá apenas se carga la fecha. Volvé pronto.</p>
+            <p className="text-sm text-white/60 mt-1">Los fixtures se publican acá apenas se carga la fecha. Volvé pronto.</p>
           </div>
         )}
 
@@ -379,9 +373,9 @@ export default function Home() {
                             {m.isHome ? m.rival : "J.H."}
                           </p>
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
-                            <span className="text-sm text-white/50">{m.team.name}</span>
-                            <span className="text-white/20">·</span>
-                            <span className="text-xs text-white/40 uppercase tracking-wider">{m.venue}</span>
+                            <span className="text-sm text-white/60">{m.team.name}</span>
+                            <span className="text-white/30">·</span>
+                            <span className="text-xs text-white/50 uppercase tracking-wider">{m.venue}</span>
                             {estadoPartido(m) === "en_curso" && <BadgeEnCurso />}
                           </div>
                         </div>
@@ -404,7 +398,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ========================= CATEGORÍAS DEL CLUB ========================= */}
+        {/* CATEGORÍAS DEL CLUB */}
         <section className="mt-16">
           <div className="flex items-end justify-between gap-4 animate-fade-up">
             <div>
@@ -412,7 +406,7 @@ export default function Home() {
                 <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
                 Categorías del club
               </h2>
-              <p className="mt-2 text-white/60 text-sm">
+              <p className="mt-2 text-white/70 text-sm">
                 Formativas y equipos de primera compitiendo en la APFS de Paraná.
               </p>
             </div>
@@ -438,7 +432,7 @@ export default function Home() {
                   >
                     {t.type === "FORMATIVA" ? "Formativa" : "Primera"}
                   </span>
-                  <span className="mt-2 block text-[10px] uppercase tracking-wider text-white/40 font-mono opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  <span className="mt-2 block text-[10px] uppercase tracking-wider text-white/50 font-mono opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                     Ver partidos →
                   </span>
                 </button>
@@ -446,11 +440,11 @@ export default function Home() {
             </div>
           )}
           {!loading && teams.length === 0 && (
-            <p className="mt-4 text-white/50 text-sm">Las categorías se cargan al configurar el club.</p>
+            <p className="mt-4 text-white/60 text-sm">Las categorías se cargan al configurar el club.</p>
           )}
         </section>
 
-        {/* ========================= HISTORIA ========================= */}
+        {/* HISTORIA */}
         <section className="mt-16 border-t border-outline pt-12">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
@@ -458,7 +452,7 @@ export default function Home() {
                 <span className="inline-block w-1.5 h-8 bg-primary rounded-full" />
                 Nuestra historia
               </h2>
-              <p className="mt-4 text-white/70 leading-relaxed">
+              <p className="mt-4 text-white/80 leading-relaxed">
                 Somos el Club José Hernández. Nacimos en un barrio de Paraná, con una
                 pelota y un sueño. Perdimos finales, pero nunca bajamos los brazos.
                 En 2016 dimos la vuelta: campeones de la Copa de Oro Norte en Corrientes.
@@ -467,10 +461,7 @@ export default function Home() {
                 de barrio: familia, esfuerzo y pasión por la camiseta verde. Somos JH Futsal.
               </p>
               <div className="mt-6 flex flex-wrap gap-4">
-                <Link
-                  to="/historia"
-                  className="btn-primary inline-flex items-center gap-2"
-                >
+                <Link to="/historia" className="btn-primary inline-flex items-center gap-2">
                   Conocé más
                   <span aria-hidden>→</span>
                 </Link>
@@ -485,16 +476,16 @@ export default function Home() {
               </div>
             </div>
             <div className="rounded-xl overflow-hidden border border-outline shadow-xl bg-surface-1 aspect-[4/3]">
-  <img
-    src="/images/historia-1.jpg"
-    alt="Equipo del Club José Hernández"
-    className="w-full h-full object-cover"
-  />
-</div>
+              <img
+                src="/images/historia-1.jpg"
+                alt="Equipo del Club José Hernández"
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
         </section>
 
-        {/* ========================= EL CLUB ========================= */}
+        {/* EL CLUB */}
         <section className="mt-16">
           <h2 className="font-display text-2xl font-bold flex items-center gap-3 animate-fade-up">
             <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
@@ -506,7 +497,7 @@ export default function Home() {
                 🎽
               </span>
               <h3 className="font-display font-bold mt-4">Formativas en serio</h3>
-              <p className="text-sm text-white/60 mt-2 leading-relaxed">
+              <p className="text-sm text-white/70 mt-2 leading-relaxed">
                 {formativas.length} categorías de base (C11 a C20) formando jugadores
                 para la primera división del club.
               </p>
@@ -516,7 +507,7 @@ export default function Home() {
                 ⚽
               </span>
               <h3 className="font-display font-bold mt-4">Cuatro equipos de primera</h3>
-              <p className="text-sm text-white/60 mt-2 leading-relaxed">
+              <p className="text-sm text-white/70 mt-2 leading-relaxed">
                 Primera Femenina, JH C, JH NEGRO y JH ELITE en la Competencia Oficial APFS.
               </p>
             </div>
@@ -525,7 +516,7 @@ export default function Home() {
                 🏟️
               </span>
               <h3 className="font-display font-bold mt-4">Futsal de Paraná</h3>
-              <p className="text-sm text-white/60 mt-2 leading-relaxed">
+              <p className="text-sm text-white/70 mt-2 leading-relaxed">
                 Jugamos los fines en las canchas de la ciudad (Berduc, Unión Árabe,
                 Toma Vieja) con la APFS.
               </p>
@@ -534,7 +525,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* ===================== MODAL: FIXTURE DEL EQUIPO ===================== */}
+      {/* MODAL FIXTURE */}
       {selTeam && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
@@ -542,16 +533,13 @@ export default function Home() {
           aria-modal="true"
           aria-label={`Partidos de ${selTeam.name}`}
         >
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setSelTeam(null)}
-          />
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelTeam(null)} />
           <div className="relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-lg border border-outline bg-surface-2 shadow-lg">
             <div className="flex items-center gap-3 p-5 border-b border-outline">
               <img src="/escudo-jh.png" alt="" className="w-10 h-10 shrink-0" />
               <div className="flex-1 min-w-0">
                 <h3 className="font-display font-bold text-lg leading-tight">{selTeam.name}</h3>
-                <span className="text-xs text-white/60">
+                <span className="text-xs text-white/70">
                   {selTeam.type === "FORMATIVA" ? "Categoría formativa" : "Primera"} · Futsal APFS
                 </span>
               </div>
@@ -566,15 +554,13 @@ export default function Home() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-5">
-              {teamLoading && <p className="text-white/60 text-center py-8">Cargando partidos...</p>}
-              {teamError && (
-                <p className="text-red-400 text-center py-8">No se pudieron cargar: {teamError}</p>
-              )}
+              {teamLoading && <p className="text-white/70 text-center py-8">Cargando partidos...</p>}
+              {teamError && <p className="text-red-400 text-center py-8">No se pudieron cargar: {teamError}</p>}
               {!teamLoading && !teamError && teamMatches && teamMatches.length === 0 && (
                 <div className="text-center py-8">
                   <p className="text-3xl">🗓️</p>
                   <p className="mt-3 font-display font-bold">Todavía no hay partidos cargados</p>
-                  <p className="text-sm text-white/50 mt-1">
+                  <p className="text-sm text-white/60 mt-1">
                     El fixture de {selTeam.name} se publica acá apenas se carga la fecha.
                   </p>
                 </div>
@@ -629,7 +615,7 @@ export default function Home() {
                                     </>
                                   )}
                                 </p>
-                                <p className="text-xs text-white/50 mt-0.5 truncate">{m.venue}</p>
+                                <p className="text-xs text-white/60 mt-0.5 truncate">{m.venue}</p>
                               </div>
                               {conResultado ? (
                                 <span
@@ -644,7 +630,7 @@ export default function Home() {
                                   {ganado ? "✓ Ganado" : perdido ? "✗ Perdido" : "= Empate"}
                                 </span>
                               ) : yaJugado ? (
-                                <span className="text-[10px] font-mono uppercase tracking-wider text-white/40 shrink-0">
+                                <span className="text-[10px] font-mono uppercase tracking-wider text-white/50 shrink-0">
                                   Jugado
                                 </span>
                               ) : (
@@ -662,7 +648,7 @@ export default function Home() {
               )}
             </div>
 
-            <div className="p-3 border-t border-outline text-center text-[11px] text-white/40">
+            <div className="p-3 border-t border-outline text-center text-[11px] text-white/50">
               Los partidos se sincronizan automáticamente desde el fixture de la APFS.
             </div>
           </div>

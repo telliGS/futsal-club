@@ -23,7 +23,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Si ya hay sesión guardada, no pedir credenciales de nuevo: ir directo al panel.
   useEffect(() => {
     if (getToken()) navigate("/delegado", { replace: true });
   }, [navigate]);
@@ -50,9 +49,8 @@ export default function Login() {
     <Layout>
       <div className="max-w-5xl mx-auto px-6 py-12 md:py-16">
         <div className="rounded-lg border border-outline bg-surface-1 overflow-hidden grid md:grid-cols-2 animate-fade-up">
-          {/* ======== Panel de marca (izquierda) — noche de estadio ======== */}
+          {/* Panel izquierdo */}
           <div className="relative bg-surface p-8 md:p-10 text-white overflow-hidden border-b md:border-b-0 md:border-r border-outline">
-            {/* Luz del estadio subiendo desde el piso */}
             <div
               aria-hidden="true"
               className="absolute inset-0"
@@ -61,7 +59,6 @@ export default function Login() {
                   "radial-gradient(120% 90% at 50% 110%, rgba(0,147,66,0.30) 0%, rgba(0,99,43,0.12) 38%, transparent 72%)",
               }}
             />
-            {/* Círculo central de la cancha, tenue */}
             <div
               aria-hidden="true"
               className="absolute right-[-7rem] bottom-[-7rem] w-[22rem] h-[22rem] rounded-full border border-white/[0.05]"
@@ -86,7 +83,7 @@ export default function Login() {
                 <br />
                 en un solo lugar
               </h2>
-              <p className="text-white/70 text-sm mt-3 leading-relaxed">
+              <p className="text-white/80 text-sm mt-3 leading-relaxed">
                 Desde el panel de delegado gestionás el plantel, las cuotas, las
                 fichas médicas y el presupuesto de tu categoría.
               </p>
@@ -104,41 +101,41 @@ export default function Login() {
 
               <div className="mt-10 rounded-lg bg-surface-2 border border-outline px-4 py-3 text-xs text-white/70">
                 <p className="font-semibold text-white/90">⚠ Solo para delegados</p>
-                <p className="mt-1">Si no tenés cuenta, pedile al administrador del club que te la cree.</p>
+                <p className="mt-1 text-white/70">Si no tenés cuenta, pedile al administrador del club que te la cree.</p>
               </div>
             </div>
           </div>
 
-          {/* ======== Formulario (derecha) ======== */}
+          {/* Panel derecho */}
           <div className="p-8 md:p-10 flex items-center">
             <div className="w-full max-w-sm mx-auto">
-              <p className="text-xs font-mono uppercase tracking-widest text-white/40">Ingreso</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-white/50">Ingreso</p>
               <h1 className="font-display text-2xl font-bold mt-1">Área de delegados</h1>
-              <p className="text-white/60 text-sm mt-1 mb-8">
+              <p className="text-white/70 text-sm mt-1 mb-8">
                 Ingresá con tu cuenta para gestionar tu equipo.
               </p>
 
               <form onSubmit={submit} className="space-y-5">
                 <div>
-                  <label className="text-sm text-white/70 block mb-1.5">Email</label>
+                  <label className="text-sm text-white/80 block mb-1.5">Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="delegado@josehernandez.futbol"
-                    className="w-full px-4 py-3 rounded-lg bg-surface-1 border border-outline text-white placeholder-white/30
+                    className="w-full px-4 py-3 rounded-lg bg-surface-1 border border-outline text-white placeholder-white/40
                            focus:outline-none focus:border-primary focus:bg-surface-2"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-white/70 block mb-1.5">Contraseña</label>
+                  <label className="text-sm text-white/80 block mb-1.5">Contraseña</label>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 rounded-lg bg-surface-1 border border-outline text-white placeholder-white/30
+                    className="w-full px-4 py-3 rounded-lg bg-surface-1 border border-outline text-white placeholder-white/40
                            focus:outline-none focus:border-primary focus:bg-surface-2"
                     required
                   />

@@ -57,6 +57,18 @@ export default function Cronograma() {
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string>("todas");
+
+  // Obtener categorías únicas de los bloques
+  const categoriasUnicas = schedule
+    ? Array.from(
+        new Set(
+          schedule.semana.flatMap((d) =>
+            d.bloques.map((b) => b.team?.name).filter(Boolean)
+          )
+        )
+      )
+    : [];
 
   useEffect(() => {
     apiFetch<Schedule>("/public/schedule")
@@ -69,7 +81,7 @@ export default function Cronograma() {
     <Layout>
       <div className="max-w-5xl mx-auto px-6 py-12 md:py-16">
         <div className="rounded-lg border border-outline bg-surface-1 overflow-hidden animate-fade-up">
-          {/* ======== Panel de marca (arriba) — noche de estadio ======== */}
+          {/* ======== Panel de marca ======== */}
           <div className="relative bg-surface p-8 md:p-10 text-white overflow-hidden border-b border-outline">
             <div
               aria-hidden="true"
@@ -101,7 +113,7 @@ export default function Cronograma() {
               <h2 className="font-display text-2xl md:text-3xl font-bold mt-8 leading-snug">
                 Dónde y cuándo entrena cada categoría
               </h2>
-              <p className="text-white/70 text-sm mt-3 leading-relaxed max-w-lg">
+              <p className="text-white/80 text-sm mt-3 leading-relaxed max-w-lg">
                 Horarios y lugares de esta semana, actualizados por los delegados del club.
                 Los partidos del fin de semana también se muestran acá.
               </p>
@@ -132,7 +144,7 @@ export default function Cronograma() {
 
           {/* ======== Grilla de la semana ======== */}
           <div className="p-8 md:p-10">
-            {loading && <p className="text-white/60">Cargando cronograma...</p>}
+            {loading && <p className="text-white/70">Cargando cronograma...</p>}
             {error && (
               <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
                 No se pudo cargar el cronograma: {error}
@@ -143,56 +155,110 @@ export default function Cronograma() {
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                   <h3 className="font-display font-bold text-lg">Esta semana</h3>
-                  <p className="text-xs font-mono text-white/40">
+                  <p className="text-xs font-mono text-white/50">
                     {schedule.from.split("-").join("/")} → {schedule.to.split("-").join("/")}
                   </p>
                 </div>
 
+                {/* ===== FILTRO POR CATEGORÍA ===== */}
+                {categoriasUnicas.length > 0 && (
+                  <div className="mb-6 flex flex-wrap items-center gap-3">
+                    <label className="text-sm text-white/70 font-medium">Filtrar por categoría:</label>
+                    <select
+                      value={categoriaFiltro}
+                      onChange={(e) => setCategoriaFiltro(e.target.value)}
+                      className="px-4 py-2 rounded-lg bg-surface-1 border border-outline text-sm text-white focus:outline-none focus:border-primary transition-colors"
+                    >
+                      <option value="todas">Todas las categorías</option>
+                      {categoriasUnicas.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                    {categoriaFiltro !== "todas" && (
+                      <button
+                        onClick={() => setCategoriaFiltro("todas")}
+                        className="text-xs text-white/50 hover:text-white underline"
+                      >
+                        Limpiar filtro
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {schedule.semana.map((d) => (
-                    <div key={d.fecha} className="rounded-lg border border-outline bg-surface overflow-hidden">
-                      <div className="px-3 py-2 border-b border-outline bg-surface-1">
-                        <p className="font-display font-bold text-sm capitalize">{d.dia}</p>
-                        <p className="text-[10px] font-mono text-white/40">
-                          {new Date(`${d.fecha}T00:00:00`).toLocaleDateString("es-AR", { day: "numeric", month: "numeric" })}
-                        </p>
-                      </div>
-                      <div className="p-2 space-y-1.5">
-                        {d.partidos.length > 0 && (
-                          <div className="px-2 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/25 text-[11px]">
-                            {d.partidos.map((p) => (
-                              <p key={p.id} className="text-amber-200/90 leading-snug">
-                                ⚽ <span className="font-mono">{p.time}</span> · {p.team.name} vs {p.rival}
+                  {schedule.semana.map((d) => {
+                    // Filtrar bloques por categoría
+                    const bloquesFiltrados =
+                      categoriaFiltro === "todas"
+                        ? d.bloques
+                        : d.bloques.filter((b) => b.team?.name === categoriaFiltro);
+
+                    // Si no hay bloques ni partidos después del filtro, no mostrar el día
+                    if (bloquesFiltrados.length === 0 && d.partidos.length === 0) return null;
+
+                    return (
+                      <div key={d.fecha} className="rounded-lg border border-outline bg-surface overflow-hidden">
+                        <div className="px-3 py-2 border-b border-outline bg-surface-1">
+                          <p className="font-display font-bold text-sm capitalize">{d.dia}</p>
+                          <p className="text-[10px] font-mono text-white/50">
+                            {new Date(`${d.fecha}T00:00:00`).toLocaleDateString("es-AR", {
+                              day: "numeric",
+                              month: "numeric",
+                            })}
+                          </p>
+                        </div>
+                        <div className="p-2 space-y-1.5">
+                          {d.partidos.length > 0 && (
+                            <div className="px-2 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/25 text-[11px]">
+                              {d.partidos.map((p) => (
+                                <p key={p.id} className="text-amber-200/90 leading-snug">
+                                  ⚽ <span className="font-mono">{p.time}</span> · {p.team.name} vs {p.rival}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                          {bloquesFiltrados.length === 0 && d.partidos.length === 0 && (
+                            <p className="px-2 py-3 text-center text-xs text-white/40">Sin actividad</p>
+                          )}
+                          {bloquesFiltrados.map((b) => (
+                            <div key={b.id} className={`rounded-md border px-2.5 py-2 ${schedulePlaceColor(b.place)}`}>
+                              <p className="font-mono text-xs font-semibold tabular-nums">
+                                {b.startTime}–{b.endTime}
                               </p>
-                            ))}
-                          </div>
-                        )}
-                        {d.bloques.length === 0 && d.partidos.length === 0 && (
-                          <p className="px-2 py-3 text-center text-xs text-white/30">Sin actividad</p>
-                        )}
-                        {d.bloques.map((b) => (
-                          <div key={b.id} className={`rounded-md border px-2.5 py-2 ${schedulePlaceColor(b.place)}`}>
-                            <p className="font-mono text-xs font-semibold tabular-nums">
-                              {b.startTime}–{b.endTime}
-                            </p>
-                            <p className="text-sm font-semibold mt-0.5">{b.team?.name ?? "Actividad libre"}</p>
-                            <p className="text-[11px] opacity-80">{b.place}</p>
-                            {b.note && <p className="text-[10px] italic opacity-70 mt-0.5">{b.note}</p>}
-                          </div>
-                        ))}
+                              <p className="text-sm font-semibold mt-0.5">{b.team?.name ?? "Actividad libre"}</p>
+                              <p className="text-[11px] opacity-80">{b.place}</p>
+                              {b.note && <p className="text-[10px] italic opacity-70 mt-0.5">{b.note}</p>}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
-                <p className="mt-6 text-[11px] text-white/40 text-center">
+                {/* Mensaje si no hay resultados con el filtro */}
+                {schedule.semana.every((d) => {
+                  const bloquesFiltrados =
+                    categoriaFiltro === "todas"
+                      ? d.bloques
+                      : d.bloques.filter((b) => b.team?.name === categoriaFiltro);
+                  return bloquesFiltrados.length === 0 && d.partidos.length === 0;
+                }) && categoriaFiltro !== "todas" && (
+                  <p className="mt-6 text-center text-white/60 text-sm">
+                    No hay entrenamientos para <span className="font-semibold text-white">{categoriaFiltro}</span> esta semana.
+                  </p>
+                )}
+
+                <p className="mt-6 text-[11px] text-white/50 text-center">
                   Cronograma cargado por los delegados · Los partidos se sincronizan desde el fixture de la APFS.
                 </p>
               </div>
             )}
 
             {!loading && !error && schedule && schedule.semana.length === 0 && (
-              <p className="text-white/50">
+              <p className="text-white/70">
                 Todavía no se cargó el cronograma de esta semana. Volvé pronto.
               </p>
             )}
