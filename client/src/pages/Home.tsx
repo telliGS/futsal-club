@@ -485,11 +485,7 @@ export default function Home() {
               </div>
             </div>
             <div className="rounded-xl overflow-hidden border border-outline shadow-xl bg-surface-1 aspect-[4/3]">
-              <img
-                src="/images/historia-1.jpg"
-                alt="Equipo del Club José Hernández"
-                className="w-full h-full object-cover"
-              />
+              <img src="/historia-1.jpg" alt="Equipo del Club José Hernández" className="w-full h-full object-cover" />
             </div>
           </div>
         </section>

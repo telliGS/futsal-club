@@ -139,19 +139,11 @@ export default function Historia() {
           <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
   {/* Imagen 1 */}
   <div className="aspect-square rounded-xl overflow-hidden border border-outline bg-surface-1 hover:border-primary/40 transition-colors">
-    <img
-      src="/images/historia-1.jpg"
-      alt="Historia del club"
-      className="w-full h-full object-cover"
-    />
+    <img src="/historia-1.jpg" alt="Historia del club" className="w-full h-full object-cover" />
   </div>
   {/* Imagen 2 */}
   <div className="aspect-square rounded-xl overflow-hidden border border-outline bg-surface-1 hover:border-primary/40 transition-colors">
-    <img
-      src="/images/historia-2.jpg"
-      alt="Historia del club"
-      className="w-full h-full object-cover"
-    />
+    <img src="/historia-2.jpg" alt="Historia del club" className="w-full h-full object-cover" />
   </div>
   {/* Los demás placeholders (hasta que tengas más fotos) */}
   {[3, 4, 5, 6].map((i) => (
