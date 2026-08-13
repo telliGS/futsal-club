@@ -399,50 +399,50 @@ export default function Home() {
         )}
 
         {/* ========================= CATEGORÍAS DEL CLUB ========================= */}
-        <section className="mt-16">
-          <div className="flex items-end justify-between gap-4 animate-fade-up">
-            <div>
-              <h2 className="font-display text-2xl font-bold flex items-center gap-3">
-                <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
-                Categorías del club
-              </h2>
-              <p className="mt-2 text-white/70 text-sm">
-                Formativas y equipos de primera compitiendo en la APFS de Paraná.
-              </p>
-            </div>
-            <span className="text-xs font-mono bg-primary/15 text-primary-light px-2.5 py-1 rounded-full shrink-0">
-              {teams.length} equipos
-            </span>
-          </div>
+<section className="mt-16">
+  <div className="flex flex-wrap items-end justify-between gap-3 animate-fade-up">
+    <div>
+      <h2 className="font-display text-2xl font-bold flex items-center gap-3">
+        <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
+        Categorías del club
+      </h2>
+      <p className="mt-1 text-white/70 text-sm">
+        Formativas y equipos de primera compitiendo en la APFS de Paraná.
+      </p>
+    </div>
+    <span className="text-xs font-mono bg-primary/15 text-primary-light px-3 py-1.5 rounded-full shrink-0 border border-primary/20">
+      {teams.length} equipos
+    </span>
+  </div>
 
-          {teams.length > 0 && (
-            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-              {ordenEquipos.map((t, i) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => openTeam(t)}
-                  title={`Ver partidos de ${t.name}`}
-                  className="card p-4 text-center animate-fade-up transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 group cursor-pointer"
-                  style={{ animationDelay: `${0.04 * i}s` }}
-                >
-                  <p className="font-display font-bold text-xl">{t.name}</p>
-                  <span
-                    className={`mt-2 inline-block px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide font-mono border ${colorEquipo(t.type)}`}
-                  >
-                    {t.type === "FORMATIVA" ? "Formativa" : "Primera"}
-                  </span>
-                  <span className="mt-2 block text-[10px] uppercase tracking-wider text-white/50 font-mono opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                    Ver partidos →
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-          {!loading && teams.length === 0 && (
-            <p className="mt-4 text-white/60 text-sm">Las categorías se cargan al configurar el club.</p>
-          )}
-        </section>
+  {teams.length > 0 && (
+    <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+      {ordenEquipos.map((t, i) => (
+        <button
+          key={t.id}
+          type="button"
+          onClick={() => openTeam(t)}
+          title={`Ver partidos de ${t.name}`}
+          className="card p-4 text-center animate-fade-up transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 group cursor-pointer"
+          style={{ animationDelay: `${0.04 * i}s` }}
+        >
+          <p className="font-display font-bold text-xl leading-tight">{t.name}</p>
+          <span
+            className={`mt-2 inline-block px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wide font-mono border text-center ${colorEquipo(t.type)}`}
+          >
+            {t.type === "FORMATIVA" ? "Formativa" : "Primera"}
+          </span>
+          <span className="mt-2 block text-[10px] uppercase tracking-wider text-white/40 font-mono opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            Ver partidos →
+          </span>
+        </button>
+      ))}
+    </div>
+  )}
+  {!loading && teams.length === 0 && (
+    <p className="mt-4 text-white/60 text-sm">Las categorías se cargan al configurar el club.</p>
+  )}
+</section>
 
         {/* ========================= HISTORIA ========================= */}
         <section className="mt-16 border-t border-outline pt-12">
@@ -491,44 +491,44 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ========================= EL CLUB ========================= */}
-        <section className="mt-16">
-          <h2 className="font-display text-2xl font-bold flex items-center gap-3 animate-fade-up">
-            <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
-            El club
-          </h2>
-          <div className="mt-6 grid md:grid-cols-3 gap-4">
-            <div className="card p-6 animate-fade-up bg-noise border-l-4 border-l-primary">
-              <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
-                🌱
-              </span>
-              <h3 className="font-display font-bold mt-4">Semillero de campeones</h3>
-              <p className="text-sm text-white/70 mt-2 leading-relaxed">
-                {formativas.length} categorías de base (C11 a C20) formando jugadores
-                para la primera división del club.
-              </p>
-            </div>
-            <div className="card p-6 animate-fade-up bg-noise" style={{ animationDelay: "0.05s" }}>
-              <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
-                ⚽
-              </span>
-              <h3 className="font-display font-bold mt-4">Cuatro equipos de primera</h3>
-              <p className="text-sm text-white/70 mt-2 leading-relaxed">
-                Primera Femenina, JH C, JH NEGRO y JH ELITE en la Competencia Oficial APFS.
-              </p>
-            </div>
-            <div className="card p-6 animate-fade-up bg-noise" style={{ animationDelay: "0.1s" }}>
-              <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
-                🏟️
-              </span>
-              <h3 className="font-display font-bold mt-4">Futsal de Paraná</h3>
-              <p className="text-sm text-white/70 mt-2 leading-relaxed">
-                Jugamos los fines en las canchas de la ciudad (Berduc, Unión Árabe,
-                Toma Vieja) con la APFS.
-              </p>
-            </div>
-          </div>
-        </section>
+      {/* ========================= EL CLUB ========================= */}
+<section className="mt-16">
+  <h2 className="font-display text-2xl font-bold flex items-center gap-3 animate-fade-up">
+    <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
+    El club
+  </h2>
+  <div className="mt-6 grid md:grid-cols-3 gap-4">
+    <div className="rounded-lg border border-outline bg-surface-1 bg-noise p-6 animate-fade-up border-l-4 border-l-primary transition-all duration-200 hover:-translate-y-1">
+      <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
+        🌱
+      </span>
+      <h3 className="font-display font-bold mt-4">Semillero de campeones</h3>
+      <p className="text-sm text-white/70 mt-2 leading-relaxed">
+        {formativas.length} categorías de base (C11 a C20) formando jugadores
+        para la primera división del club.
+      </p>
+    </div>
+    <div className="rounded-lg border border-outline bg-surface-1 bg-noise p-6 animate-fade-up transition-all duration-200 hover:-translate-y-1" style={{ animationDelay: "0.05s" }}>
+      <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
+        ⚽
+      </span>
+      <h3 className="font-display font-bold mt-4">Cuatro equipos de primera</h3>
+      <p className="text-sm text-white/70 mt-2 leading-relaxed">
+        Primera Femenina, JH C, JH NEGRO y JH ELITE en la Competencia Oficial APFS.
+      </p>
+    </div>
+    <div className="rounded-lg border border-outline bg-surface-1 bg-noise p-6 animate-fade-up transition-all duration-200 hover:-translate-y-1" style={{ animationDelay: "0.1s" }}>
+      <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
+        🏟️
+      </span>
+      <h3 className="font-display font-bold mt-4">Futsal de Paraná</h3>
+      <p className="text-sm text-white/70 mt-2 leading-relaxed">
+        Jugamos los fines en las canchas de la ciudad (Berduc, Unión Árabe,
+        Toma Vieja) con la APFS.
+      </p>
+    </div>
+  </div>
+</section>
       </main>
 
       {/* ===================== MODAL: FIXTURE DEL EQUIPO ===================== */}
