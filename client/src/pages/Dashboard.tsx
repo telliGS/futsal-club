@@ -2450,13 +2450,6 @@ export default function Dashboard() {
                       {d.bloques.length === 0 && d.partidos.length === 0 && (
                         <div className="py-2 text-center">
                           <p className="text-xs text-white/30">Sin actividad</p>
-                          <button
-                            onClick={() => abrirExcepcion(d.fecha)}
-                            className="mt-1.5 text-[11px] px-2 py-0.5 rounded bg-white/5 hover:bg-primary/15 hover:text-primary-light border border-outline hover:border-primary/40 transition-colors"
-                            title="Agregar un entrenamiento puntual este día"
-                          >
-                            + Agregar entrenamiento
-                          </button>
                         </div>
                       )}
                       {d.bloques.map((b) => (
@@ -2484,13 +2477,6 @@ export default function Dashboard() {
                               title={puedeOperarPoli(b.team?.id) ? "Cambiar lugar/hora o cancelar para este día puntual" : "Solo el admin o el encargado de este equipo"}
                             >
                               Cambiar este día
-                            </button>
-                            <button
-                              onClick={() => abrirExcepcion(d.fecha)}
-                              className="text-[11px] px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 transition-colors"
-                              title="Agregar un entrenamiento puntual extra este día"
-                            >
-                              + Extra
                             </button>
                           </div>
                         </div>
