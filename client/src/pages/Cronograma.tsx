@@ -44,13 +44,19 @@ interface Schedule {
   semana: ScheduleDia[];
 }
 
-function schedulePlaceColor(place: string): string {
-  if (/polideportivo/i.test(place)) return "bg-primary/15 border-primary/40 text-green-300";
-  if (/toma/i.test(place)) return "bg-sky-500/10 border-sky-500/30 text-sky-300";
-  if (/palermo/i.test(place)) return "bg-amber-500/10 border-amber-500/30 text-amber-300";
-  if (/borja/i.test(place)) return "bg-purple-500/10 border-purple-500/30 text-purple-300";
-  if (/gym|gimnasio/i.test(place)) return "bg-orange-500/10 border-orange-500/30 text-orange-300";
-  return "bg-surface-2 border-outline text-white/70";
+// Colores y emojis por lugar
+const LUGARES = [
+  { name: "Polideportivo", color: "border-primary/40 bg-primary/15 text-green-300", emoji: "🏟️" },
+  { name: "La Toma", color: "border-sky-500/40 bg-sky-500/10 text-sky-300", emoji: "🌿" },
+  { name: "Palermo", color: "border-amber-500/40 bg-amber-500/10 text-amber-300", emoji: "🌳" },
+  { name: "Borja", color: "border-purple-500/40 bg-purple-500/10 text-purple-300", emoji: "🏠" },
+  { name: "Gimnasio", color: "border-orange-500/40 bg-orange-500/10 text-orange-300", emoji: "💪" },
+];
+
+function getLugarInfo(place: string) {
+  const found = LUGARES.find((l) => place.toLowerCase().includes(l.name.toLowerCase()));
+  if (found) return found;
+  return { color: "border-outline bg-surface-2 text-white/70", emoji: "📍" };
 }
 
 export default function Cronograma() {
@@ -59,7 +65,6 @@ export default function Cronograma() {
   const [error, setError] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("todas");
 
-  // Obtener categorías únicas de los bloques
   const categoriasUnicas = schedule
     ? Array.from(
         new Set(
@@ -81,7 +86,7 @@ export default function Cronograma() {
     <Layout>
       <div className="max-w-5xl mx-auto px-6 py-12 md:py-16">
         <div className="rounded-lg border border-outline bg-surface-1 overflow-hidden animate-fade-up">
-          {/* ======== Panel de marca ======== */}
+          {/* ======== Encabezado mejorado ======== */}
           <div className="relative bg-surface p-8 md:p-10 text-white overflow-hidden border-b border-outline">
             <div
               aria-hidden="true"
@@ -118,32 +123,33 @@ export default function Cronograma() {
                 Los partidos del fin de semana también se muestran acá.
               </p>
 
-              {/* Leyenda de lugares */}
-              <div className="mt-8 flex flex-wrap gap-2 text-xs">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/15 text-green-300 px-3 py-1">
-                  <span className="w-2 h-2 rounded-full bg-primary" /> Polideportivo
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/40 bg-sky-500/10 text-sky-300 px-3 py-1">
-                  <span className="w-2 h-2 rounded-full bg-sky-400" /> La Toma
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-300 px-3 py-1">
-                  <span className="w-2 h-2 rounded-full bg-amber-400" /> Palermo
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/40 bg-purple-500/10 text-purple-300 px-3 py-1">
-                  <span className="w-2 h-2 rounded-full bg-purple-400" /> Borja
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-500/40 bg-orange-500/10 text-orange-300 px-3 py-1">
-                  <span className="w-2 h-2 rounded-full bg-orange-400" /> Gimnasio
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-200 px-3 py-1">
+              {/* Leyenda de lugares (más compacta) */}
+              <div className="mt-6 flex flex-wrap gap-2 text-xs">
+                {LUGARES.map((l) => (
+                  <span
+                    key={l.name}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 ${l.color}`}
+                  >
+                    {l.emoji} {l.name}
+                  </span>
+                ))}
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-200 px-2.5 py-1">
                   ⚽ Partido
                 </span>
               </div>
+
+              {/* Badge "Esta semana" */}
+              {!loading && schedule && (
+                <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary-light text-[11px] font-mono uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary-light animate-pulse" />
+                  Esta semana · {schedule.semana.filter(d => d.bloques.length > 0 || d.partidos.length > 0).length} días con actividad
+                </div>
+              )}
             </div>
           </div>
 
           {/* ======== Grilla de la semana ======== */}
-          <div className="p-8 md:p-10">
+          <div className="p-6 md:p-8">
             {loading && <p className="text-white/70">Cargando cronograma...</p>}
             {error && (
               <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
@@ -160,7 +166,7 @@ export default function Cronograma() {
                   </p>
                 </div>
 
-                {/* ===== FILTRO POR CATEGORÍA ===== */}
+                {/* Filtro */}
                 {categoriasUnicas.length > 0 && (
                   <div className="mb-6 flex flex-wrap items-center gap-3">
                     <label className="text-sm text-white/70 font-medium">Filtrar por categoría:</label>
@@ -179,7 +185,7 @@ export default function Cronograma() {
                     {categoriaFiltro !== "todas" && (
                       <button
                         onClick={() => setCategoriaFiltro("todas")}
-                        className="text-xs text-white/50 hover:text-white underline"
+                        className="text-xs text-white/50 hover:text-white underline transition-colors"
                       >
                         Limpiar filtro
                       </button>
@@ -187,20 +193,23 @@ export default function Cronograma() {
                   </div>
                 )}
 
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {schedule.semana.map((d) => {
-                    // Filtrar bloques por categoría
                     const bloquesFiltrados =
                       categoriaFiltro === "todas"
                         ? d.bloques
                         : d.bloques.filter((b) => b.team?.name === categoriaFiltro);
 
-                    // Si no hay bloques ni partidos después del filtro, no mostrar el día
-                    if (bloquesFiltrados.length === 0 && d.partidos.length === 0) return null;
+                    const tieneActividad = bloquesFiltrados.length > 0 || d.partidos.length > 0;
+
+                    if (!tieneActividad) return null;
 
                     return (
-                      <div key={d.fecha} className="rounded-lg border border-outline bg-surface overflow-hidden">
-                        <div className="px-3 py-2 border-b border-outline bg-surface-1">
+                      <div
+                        key={d.fecha}
+                        className="rounded-lg border border-outline bg-surface overflow-hidden border-t-2 border-t-primary/40"
+                      >
+                        <div className="px-3 py-2 border-b border-outline bg-surface-1 flex items-center justify-between">
                           <p className="font-display font-bold text-sm capitalize">{d.dia}</p>
                           <p className="text-[10px] font-mono text-white/50">
                             {new Date(`${d.fecha}T00:00:00`).toLocaleDateString("es-AR", {
@@ -220,18 +229,32 @@ export default function Cronograma() {
                             </div>
                           )}
                           {bloquesFiltrados.length === 0 && d.partidos.length === 0 && (
-                            <p className="px-2 py-3 text-center text-xs text-white/40">Sin actividad</p>
-                          )}
-                          {bloquesFiltrados.map((b) => (
-                            <div key={b.id} className={`rounded-md border px-2.5 py-2 ${schedulePlaceColor(b.place)}`}>
-                              <p className="font-mono text-xs font-semibold tabular-nums">
-                                {b.startTime}–{b.endTime}
-                              </p>
-                              <p className="text-sm font-semibold mt-0.5">{b.team?.name ?? "Actividad libre"}</p>
-                              <p className="text-[11px] opacity-80">{b.place}</p>
-                              {b.note && <p className="text-[10px] italic opacity-70 mt-0.5">{b.note}</p>}
+                            <div className="py-3 text-center text-xs text-white/40 flex flex-col items-center gap-1">
+                              <span className="text-lg">🌙</span>
+                              <span>Sin actividad</span>
                             </div>
-                          ))}
+                          )}
+                          {bloquesFiltrados.map((b) => {
+                            const info = getLugarInfo(b.place);
+                            return (
+                              <div
+                                key={b.id}
+                                className={`rounded-md border px-2.5 py-2 ${info.color}`}
+                              >
+                                <div className="flex items-center justify-between gap-1">
+                                  <p className="font-mono text-xs font-semibold tabular-nums flex items-center gap-1">
+                                    {info.emoji} {b.startTime}–{b.endTime}
+                                  </p>
+                                  <span className="text-[9px] uppercase tracking-wider opacity-70 font-mono">
+                                    {b.tipo === "EXTRA" ? "Extra" : b.excepcion ? "Modificado" : "Fijo"}
+                                  </span>
+                                </div>
+                                <p className="text-sm font-semibold mt-0.5">{b.team?.name ?? "Actividad libre"}</p>
+                                <p className="text-[11px] opacity-80">{b.place}</p>
+                                {b.note && <p className="text-[10px] italic opacity-70 mt-0.5">{b.note}</p>}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     );
@@ -246,21 +269,32 @@ export default function Cronograma() {
                       : d.bloques.filter((b) => b.team?.name === categoriaFiltro);
                   return bloquesFiltrados.length === 0 && d.partidos.length === 0;
                 }) && categoriaFiltro !== "todas" && (
-                  <p className="mt-6 text-center text-white/60 text-sm">
-                    No hay entrenamientos para <span className="font-semibold text-white">{categoriaFiltro}</span> esta semana.
-                  </p>
+                  <div className="mt-8 text-center text-white/60 text-sm border border-dashed border-outline rounded-lg py-8">
+                    <p className="text-2xl">🔍</p>
+                    <p className="mt-2">
+                      No hay entrenamientos para <span className="font-semibold text-white">{categoriaFiltro}</span> esta semana.
+                    </p>
+                    <button
+                      onClick={() => setCategoriaFiltro("todas")}
+                      className="mt-3 text-primary-light hover:underline text-sm"
+                    >
+                      Mostrar todas las categorías
+                    </button>
+                  </div>
                 )}
 
-                <p className="mt-6 text-[11px] text-white/50 text-center">
+                <p className="mt-6 text-[11px] text-white/50 text-center border-t border-outline pt-4">
                   Cronograma cargado por los delegados · Los partidos se sincronizan desde el fixture de la APFS.
                 </p>
               </div>
             )}
 
             {!loading && !error && schedule && schedule.semana.length === 0 && (
-              <p className="text-white/70">
-                Todavía no se cargó el cronograma de esta semana. Volvé pronto.
-              </p>
+              <div className="text-center py-12 border border-dashed border-outline rounded-lg">
+                <p className="text-3xl">📅</p>
+                <p className="mt-3 text-white/70">Todavía no se cargó el cronograma de esta semana.</p>
+                <p className="text-sm text-white/50 mt-1">Volvé pronto para ver los entrenamientos.</p>
+              </div>
             )}
           </div>
         </div>
