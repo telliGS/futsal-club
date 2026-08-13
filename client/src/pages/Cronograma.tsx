@@ -71,7 +71,6 @@ export default function Cronograma() {
   const [error, setError] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("todas");
 
-  // Cargar cronograma y lista de equipos
   useEffect(() => {
     Promise.all([
       apiFetch<Schedule>("/public/schedule"),
@@ -85,20 +84,17 @@ export default function Cronograma() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Ordenar equipos: formativas primero, luego primeras
   const equiposOrdenados = [...teams].sort((a, b) => {
     if (a.type === "FORMATIVA" && b.type !== "FORMATIVA") return -1;
     if (a.type !== "FORMATIVA" && b.type === "FORMATIVA") return 1;
     return a.name.localeCompare(b.name);
   });
 
-  
-
   return (
     <Layout>
       <div className="max-w-5xl mx-auto px-6 py-12 md:py-16">
         <div className="rounded-lg border border-outline bg-surface-1 overflow-hidden animate-fade-up">
-          {/* ======== Encabezado ======== */}
+          {/* Encabezado */}
           <div className="relative bg-surface p-8 md:p-10 text-white overflow-hidden border-b border-outline">
             <div
               aria-hidden="true"
@@ -135,13 +131,9 @@ export default function Cronograma() {
                 Los partidos del fin de semana también se muestran acá.
               </p>
 
-              {/* Leyenda de lugares */}
               <div className="mt-6 flex flex-wrap gap-2 text-xs">
                 {LUGARES.map((l) => (
-                  <span
-                    key={l.name}
-                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 ${l.color}`}
-                  >
+                  <span key={l.name} className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 ${l.color}`}>
                     {l.emoji} {l.name}
                   </span>
                 ))}
@@ -150,7 +142,6 @@ export default function Cronograma() {
                 </span>
               </div>
 
-              {/* Badge "Esta semana" */}
               {!loading && schedule && (
                 <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary-light text-[11px] font-mono uppercase tracking-wider">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary-light animate-pulse" />
@@ -160,7 +151,7 @@ export default function Cronograma() {
             </div>
           </div>
 
-          {/* ======== Grilla ======== */}
+          {/* Grilla */}
           <div className="p-6 md:p-8">
             {loading && <p className="text-white/70">Cargando cronograma...</p>}
             {error && (
@@ -178,7 +169,7 @@ export default function Cronograma() {
                   </p>
                 </div>
 
-                {/* ===== FILTRO CON TODAS LAS CATEGORÍAS ===== */}
+                {/* Filtro */}
                 {equiposOrdenados.length > 0 && (
                   <div className="mb-6 flex flex-wrap items-center gap-3">
                     <label className="text-sm text-white/70 font-medium">Filtrar por categoría:</label>
@@ -214,7 +205,6 @@ export default function Cronograma() {
 
                     const tieneActividad = bloquesFiltrados.length > 0 || d.partidos.length > 0;
 
-                    // Si no hay actividad y el filtro está activo, no mostrar el día
                     if (categoriaFiltro !== "todas" && !tieneActividad) return null;
                     if (categoriaFiltro === "todas" && d.bloques.length === 0 && d.partidos.length === 0) return null;
 
@@ -251,10 +241,7 @@ export default function Cronograma() {
                           {bloquesFiltrados.map((b) => {
                             const info = getLugarInfo(b.place);
                             return (
-                              <div
-                                key={b.id}
-                                className={`rounded-md border px-2.5 py-2 ${info.color}`}
-                              >
+                              <div key={b.id} className={`rounded-md border px-2.5 py-2 ${info.color}`}>
                                 <div className="flex items-center justify-between gap-1">
                                   <p className="font-mono text-xs font-semibold tabular-nums flex items-center gap-1">
                                     {info.emoji} {b.startTime}–{b.endTime}
@@ -275,7 +262,6 @@ export default function Cronograma() {
                   })}
                 </div>
 
-                {/* Mensaje cuando no hay resultados con el filtro */}
                 {categoriaFiltro !== "todas" && !schedule.semana.some((d) => {
                   const bloquesFiltrados = d.bloques.filter((b) => b.team?.name === categoriaFiltro);
                   return bloquesFiltrados.length > 0 || d.partidos.length > 0;
