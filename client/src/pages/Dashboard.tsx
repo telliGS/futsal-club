@@ -6,6 +6,7 @@ import Layout from "../components/Layout";
 import CalendarioView from "../components/panel/CalendarioView";
 import DelegadosView from "../components/panel/DelegadosView";
 import PoliView from "../components/panel/PoliView";
+import PresupuestoView from "../components/panel/PresupuestoView";
 import { monthRange, monthShort, labelTipo, tiposBloqueantes, BadgeFicha, Icon } from "../lib/panel-helpers";
 import {
   Team,
@@ -1949,264 +1950,24 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
 
       {/* ===================== VISTA PRESUPUESTO ===================== */}
       {view === "presupuesto" && (
-        <div className="mt-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="font-display text-lg font-bold">Presupuesto de {presup?.categoria ?? "la categoría"}</h2>
-              <p className="text-xs text-white/50 mt-1">
-                Balance del mes con lo que entra por cuotas y lo que sale en gastos.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-white/50">Mes:</label>
-              <input
-                type="month"
-                value={presupMes}
-                onChange={(e) => setPresupMes(e.target.value || mesActual())}
-                className="px-2.5 py-1.5 rounded-lg bg-surface-1 border border-outline text-sm [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-              <button
-                  onClick={() => setVerTotal(!verTotal)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 active:scale-95 ${
-                    verTotal ? "bg-primary text-white" : "bg-surface-1 text-white/60 hover:text-white hover:bg-surface-2"
-                  }`}
-                >
-                  {verTotal ? "Ocultar total" : "Total del club"}
-                </button>
-            </div>
-          </div>
-
-          {presupError && <p className="mt-3 text-red-400 text-sm">{presupError}</p>}
-
-          {presupLoading && <p className="mt-4 text-white/50">Cargando presupuesto...</p>}
-
-          {!presupLoading && presup && (
-            <>
-              {/* Tarjetas de números */}
-              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="card p-4">
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Ingreso · cuotas</p>
-                  <p className="mt-1.5 font-display text-2xl font-bold text-green-400 tabular-nums">{formatPesos(presup.resultado.ingreso)}</p>
-                  <p className="mt-1 text-xs text-white/60 leading-relaxed">
-                    {presup.jugadores} jugadores{presup.cuota != null ? ` × ${formatPesos(presup.cuota)}` : " (sin cuota cargada)"}
-                    {presup.jugadoresExcluidos > 0 && ` · ${presup.jugadoresExcluidos} excluido${presup.jugadoresExcluidos === 1 ? "" : "s"}`}
-                  </p>
-                </div>
-                <div className="card p-4">
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Gastos del mes</p>
-                  <p className="mt-1.5 font-display text-2xl font-bold text-red-400 tabular-nums">{formatPesos(presup.resultado.gastos)}</p>
-                  <p className="mt-1 text-xs text-white/60 leading-relaxed">
-                    {formatPesos(presup.gastosFijos.reduce((a, g) => a + g.monto, 0))} fijos +{" "}
-                    {formatPesos(presup.gastosExtra.reduce((a, g) => a + g.monto, 0))} extras
-                  </p>
-                </div>
-                <div className={`card p-4 ${presup.resultado.balance >= 0 ? "border-green-500/30 bg-green-500/[0.04]" : "border-red-500/30 bg-red-500/[0.04]"}`}>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Balance</p>
-                  <p className={`mt-1.5 font-display text-2xl font-bold tabular-nums ${presup.resultado.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
-                    {formatPesos(presup.resultado.balance)}
-                  </p>
-                  <p className="mt-1 text-xs">
-                    <span className={presup.resultado.balance >= 0 ? "text-green-400/80" : "text-red-400/80"}>
-                      {presup.resultado.balance >= 0 ? "▲ superávit" : "▼ déficit"}
-                    </span>
-                    <span className="text-white/60"> del mes</span>
-                  </p>
-                </div>
-                <div className="card p-4">
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Cuota recomendada</p>
-                  <p className="mt-1.5 font-display text-2xl font-bold text-primary-light tabular-nums">
-                    {presup.resultado.recomendacionSana ? formatPesos(presup.resultado.cuotaRecomendada) : "—"}
-                  </p>
-                  <p className="mt-1 text-xs text-white/60 leading-relaxed">
-                    {presup.resultado.recomendacionSana
-                      ? `mínima ${formatPesos(presup.resultado.cuotaMinima)} + 10% margen`
-                      : "cargá gastos y jugadores para calcularla"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Acciones rápidas */}
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  onClick={() => { setQuotaInput(presup.cuota != null ? String(presup.cuota) : ""); setShowQuotaModal(true); }}
-                  className="btn bg-primary text-white hover:bg-primary-light active:scale-95"
-                >
-                  {presup.cuota != null ? `Cambiar cuota · ${formatPesos(presup.cuota)}` : "Cargar cuota"}
-                </button>
-                <button
-                  onClick={() => openGastoModal("fijo")}
-                  className="btn bg-surface-1 text-white/80 border border-outline hover:bg-surface-2 active:scale-95"
-                >
-                  + Gasto fijo
-                </button>
-                <button
-                  onClick={() => openGastoModal("extra")}
-                  className="btn bg-surface-1 text-white/80 border border-outline hover:bg-surface-2 active:scale-95"
-                >
-                  + Gasto extra
-                </button>
-              </div>
-
-              {/* Listas de gastos */}
-              <div className="mt-6 grid md:grid-cols-2 gap-4">
-                <div className="rounded-lg border border-outline overflow-hidden">
-                  <div className="px-4 py-3 border-b border-outline bg-surface-1 flex items-center justify-between">
-                    <h3 className="font-display font-bold text-sm flex items-center gap-2">
-                      <span className="w-1.5 h-4 rounded-full bg-primary" />
-                      Gastos fijos
-                    </h3>
-                    <span className="text-xs font-mono text-white/50 bg-surface-2 px-2 py-0.5 rounded-full">
-                      {presup.gastosFijos.length} · {formatPesos(presup.gastosFijos.reduce((a, g) => a + g.monto, 0))}
-                    </span>
-                  </div>
-                  <ul className="divide-y divide-outline/60">
-                    {presup.gastosFijos.length === 0 && (
-                      <li className="px-4 py-6 text-sm text-white/40 text-center">
-                        Sin gastos fijos cargados. Se repiten todos los meses (cancha, árbitros...).
-                      </li>
-                    )}
-                    {presup.gastosFijos.map((g) => (
-                      <li key={g.id} className="px-4 py-2.5 flex items-center justify-between gap-2 group hover:bg-surface-2/50 transition-colors">
-                        <span className="text-sm">{g.nombre}</span>
-                        <span className="flex items-center gap-3">
-                          <span className="text-sm text-white/70 tabular-nums font-mono">{formatPesos(g.monto)}</span>
-                          <button
-                            onClick={() => borrarGasto("fijo", g.id)}
-                            className="text-xs text-red-400/50 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                            title="Eliminar gasto"
-                          >
-                            ✕
-                          </button>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="rounded-lg border border-outline overflow-hidden">
-                  <div className="px-4 py-3 border-b border-outline bg-surface-1 flex items-center justify-between">
-                    <h3 className="font-display font-bold text-sm flex items-center gap-2">
-                      <span className="w-1.5 h-4 rounded-full bg-amber-300/60" />
-                      Extras de {monthShort(presupMes)}
-                    </h3>
-                    <span className="text-xs font-mono text-white/50 bg-surface-2 px-2 py-0.5 rounded-full">
-                      {presup.gastosExtra.length} · {formatPesos(presup.gastosExtra.reduce((a, g) => a + g.monto, 0))}
-                    </span>
-                  </div>
-                  <ul className="divide-y divide-outline/60">
-                    {presup.gastosExtra.length === 0 && (
-                      <li className="px-4 py-6 text-sm text-white/40 text-center">
-                        Sin gastos puntuales en este mes (cancha por lluvia, etc.).
-                      </li>
-                    )}
-                    {presup.gastosExtra.map((g) => (
-                      <li key={g.id} className="px-4 py-2.5 flex items-center justify-between gap-2 group hover:bg-surface-2/50 transition-colors">
-                        <span className="text-sm">{g.nombre}</span>
-                        <span className="flex items-center gap-3">
-                          <span className="text-sm text-white/70 tabular-nums font-mono">{formatPesos(g.monto)}</span>
-                          <button
-                            onClick={() => borrarGasto("extra", g.id)}
-                            className="text-xs text-red-400/50 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                            title="Eliminar gasto"
-                          >
-                            ✕
-                          </button>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* ===== TOTAL DEL CLUB (ADMIN) ===== */}
-              {verTotal && (
-                <div className="mt-8">
-                  {totalError && <p className="text-red-400 text-sm">{totalError}</p>}
-                  {totalLoading && <p className="text-white/50">Cargando total del club...</p>}
-                  {!totalLoading && totalData && (
-                    <>
-                      {/* Tarjetas de totales */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="card p-4">
-                          <p className="text-xs text-white/50">Jugadores que pagan</p>
-                          <p className="mt-1 text-2xl font-bold">{totalData.totales.jugadores}</p>
-                        </div>
-                        <div className="card p-4">
-                          <p className="text-xs text-white/50">Ingreso total del club</p>
-                          <p className="mt-1 text-2xl font-bold text-green-400">{formatPesos(totalData.totales.ingreso)}</p>
-                        </div>
-                        <div className="card p-4">
-                          <p className="text-xs text-white/50">Gastos totales</p>
-                          <p className="mt-1 text-2xl font-bold text-red-400">{formatPesos(totalData.totales.gastos)}</p>
-                        </div>
-                        <div className="card p-4">
-                          <p className="text-xs text-white/50">Deuda total</p>
-                          <p className="mt-1 text-2xl font-bold text-amber-300">{formatPesos(totalData.totales.deuda)}</p>
-                        </div>
-                      </div>
-
-                      <div className={`mt-3 card p-4 ${totalData.totales.balance >= 0 ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}`}>
-                        <p className="text-xs text-white/50">Balance total del club</p>
-                        <p className={`mt-1 text-2xl font-bold ${totalData.totales.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
-                          {formatPesos(totalData.totales.balance)}
-                        </p>
-                        <p className="mt-1 text-xs text-white/60">
-                          {totalData.totales.balance >= 0 ? "superávit" : "déficit"} de {monthShort(totalData.mes)} — el ingreso real es mayor: sumá la deuda ({formatPesos(totalData.totales.deuda)}) a cobrar
-                        </p>
-                      </div>
-
-                      {/* Tabla por equipo, ordenada por pérdida */}
-                      <div className="mt-4 overflow-x-auto rounded-lg border border-outline">
-                        <table className="w-full text-sm">
-                          <thead className="bg-surface-1/60 text-left text-white/60">
-                            <tr>
-                              <th className="p-3">Equipo</th>
-                              <th className="p-3">Jugadores</th>
-                              <th className="p-3">Cuota</th>
-                              <th className="p-3">Ingreso</th>
-                              <th className="p-3">Gastos</th>
-                              <th className="p-3">Balance</th>
-                              <th className="p-3">Deuda</th>
-                              <th className="p-3">Recomendada</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {totalData.porEquipo.map((e) => {
-                              const recomendada = e.jugadores > 0
-                                ? Math.ceil((e.gastos / e.jugadores) * 1.1 / 500) * 500
-                                : 0;
-                              return (
-                                <tr key={e.teamId} className={`border-t border-outline/60 ${e.balance < 0 ? "bg-red-500/5" : ""}`}>
-                                  <td className="p-3 font-semibold">
-                                    {e.categoria}
-                                    <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] ${e.tipo === "FORMATIVA" ? "bg-primary/20 text-primary-light" : "bg-surface-2 text-white/60"}`}>
-                                      {e.tipo === "FORMATIVA" ? "formativa" : "primera"}
-                                    </span>
-                                  </td>
-                                  <td className="p-3 text-white/70">{e.jugadores}</td>
-                                  <td className="p-3 text-white/70">{e.cuota ? formatPesos(e.cuota) : "—"}</td>
-                                  <td className="p-3 text-white/70">{formatPesos(e.ingreso)}</td>
-                                  <td className="p-3 text-white/70">{formatPesos(e.gastos)}</td>
-                                  <td className={`p-3 font-semibold ${e.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
-                                    {formatPesos(e.balance)}
-                                  </td>
-                                  <td className={`p-3 ${e.deuda > 0 ? "text-amber-300" : "text-white/40"}`}>{formatPesos(e.deuda)}</td>
-                                  <td className="p-3 text-white/60">{recomendada > 0 ? formatPesos(recomendada) : "—"}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                      <p className="mt-2 text-xs text-white/40">
-                        Orden alfabético por categoría. La cuota recomendada por equipo = gastos ÷ jugadores + 10% margen, redondeada a $500.
-                      </p>
-                    </>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-        </div>
+        <PresupuestoView
+          presup={presup}
+          presupMes={presupMes}
+          setPresupMes={setPresupMes}
+          mesActual={mesActual}
+          presupLoading={presupLoading}
+          presupError={presupError}
+          verTotal={verTotal}
+          setVerTotal={setVerTotal}
+          formatPesos={formatPesos}
+          setQuotaInput={setQuotaInput}
+          setShowQuotaModal={setShowQuotaModal}
+          openGastoModal={openGastoModal}
+          borrarGasto={borrarGasto}
+          totalData={totalData}
+          totalLoading={totalLoading}
+          totalError={totalError}
+        />
       )}
 
       {/* ===================== CUERPO TÉCNICO (separado, sin pagos) ===================== */}
