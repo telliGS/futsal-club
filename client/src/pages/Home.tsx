@@ -484,11 +484,13 @@ export default function Home() {
                 </a>
               </div>
             </div>
-            <div className="rounded-xl overflow-hidden border border-outline shadow-xl bg-surface-1 flex items-center justify-center aspect-[4/3]">
-              <div className="text-center p-8">
-                <span className="text-6xl block mb-2">🏆</span>
-                <p className="text-white/40 text-sm">Fotos del club muy pronto</p>
-              </div>
+           <div className="rounded-xl overflow-hidden border border-outline shadow-xl bg-surface-1 aspect-[4/3]">
+  <img
+    src="/images/historia-1.jpg"
+    alt="Equipo del Club José Hernández"
+    className="w-full h-full object-cover"
+  />
+</div>
             </div>
           </div>
         </section>

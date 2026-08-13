@@ -97,12 +97,13 @@ export default function Historia() {
               </Link>
             </div>
           </div>
-          <div className="rounded-xl overflow-hidden border border-outline bg-surface-1 flex items-center justify-center aspect-[4/3]">
-            <div className="text-center p-8">
-              <span className="text-7xl block mb-2">🏆</span>
-              <p className="text-white/40 text-sm">Fotos del club muy pronto</p>
-            </div>
-          </div>
+          <div className="rounded-xl overflow-hidden border border-outline bg-surface-1 aspect-[4/3]">
+  <img
+    src="/images/historia-2.jpg"
+    alt="Historia del Club José Hernández"
+    className="w-full h-full object-cover"
+  />
+</div>
         </section>
 
         {/* ========== LÍNEA DE TIEMPO ========== */}
@@ -136,15 +137,32 @@ export default function Historia() {
             Galería de fotos
           </h2>
           <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="aspect-square rounded-xl border border-outline bg-surface-1 flex items-center justify-center hover:border-primary/40 transition-colors"
-              >
-                <span className="text-5xl">🏆</span>
-              </div>
-            ))}
-          </div>
+  {/* Imagen 1 */}
+  <div className="aspect-square rounded-xl overflow-hidden border border-outline bg-surface-1 hover:border-primary/40 transition-colors">
+    <img
+      src="/images/historia-1.jpg"
+      alt="Historia del club"
+      className="w-full h-full object-cover"
+    />
+  </div>
+  {/* Imagen 2 */}
+  <div className="aspect-square rounded-xl overflow-hidden border border-outline bg-surface-1 hover:border-primary/40 transition-colors">
+    <img
+      src="/images/historia-2.jpg"
+      alt="Historia del club"
+      className="w-full h-full object-cover"
+    />
+  </div>
+  {/* Los demás placeholders (hasta que tengas más fotos) */}
+  {[3, 4, 5, 6].map((i) => (
+    <div
+      key={i}
+      className="aspect-square rounded-xl border border-outline bg-surface-1 flex items-center justify-center hover:border-primary/40 transition-colors"
+    >
+      <span className="text-5xl">🏆</span>
+    </div>
+  ))}
+</div>
           <p className="mt-4 text-sm text-white/40 text-center">
             Pronto más fotos del club. Seguinos en{" "}
             <a
