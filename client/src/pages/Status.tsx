@@ -48,9 +48,8 @@ export default function Status() {
     <Layout>
       <div className="max-w-5xl mx-auto px-6 py-12 md:py-16">
         <div className="rounded-lg border border-outline bg-surface-1 overflow-hidden grid md:grid-cols-2 animate-fade-up">
-          {/* ======== Panel de marca (izquierda) — noche de estadio ======== */}
+          {/* Panel izquierdo */}
           <div className="relative bg-surface p-8 md:p-10 text-white overflow-hidden border-b md:border-b-0 md:border-r border-outline">
-            {/* Luz del estadio subiendo desde el piso */}
             <div
               aria-hidden="true"
               className="absolute inset-0"
@@ -59,7 +58,6 @@ export default function Status() {
                   "radial-gradient(120% 90% at 50% 110%, rgba(0,147,66,0.30) 0%, rgba(0,99,43,0.12) 38%, transparent 72%)",
               }}
             />
-            {/* Círculo central de la cancha, tenue */}
             <div
               aria-hidden="true"
               className="absolute right-[-7rem] bottom-[-7rem] w-[22rem] h-[22rem] rounded-full border border-white/[0.05]"
@@ -82,12 +80,11 @@ export default function Status() {
               <h2 className="font-display text-2xl md:text-3xl font-bold mt-8 leading-snug">
                 ¿Estás al día con el club?
               </h2>
-              <p className="text-white/70 text-sm mt-3 leading-relaxed">
+              <p className="text-white/80 text-sm mt-3 leading-relaxed">
                 Ingresá tu DNI y mirá en segundos tu estado de cuota y si podés jugar
                 este fin de semana.
               </p>
 
-              {/* Regla de pago explicada */}
               <div className="mt-8 space-y-3 text-sm">
                 <div className="flex items-center gap-3 rounded-lg bg-surface-2 border border-outline px-4 py-3">
                   <span className="w-8 h-8 shrink-0 rounded-lg bg-green-500/25 border border-green-500/40 flex items-center justify-center text-green-300">✓</span>
@@ -111,12 +108,12 @@ export default function Status() {
             </div>
           </div>
 
-          {/* ======== Consulta (derecha) ======== */}
+          {/* Panel derecho */}
           <div className="p-8 md:p-10 flex items-center">
             <div className="w-full max-w-sm mx-auto">
-              <p className="text-xs font-mono uppercase tracking-widest text-white/40">Consulta pública</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-white/50">Consulta pública</p>
               <h1 className="font-display text-2xl font-bold mt-1">Consultar mi cuota</h1>
-              <p className="text-white/60 text-sm mt-1 mb-6">
+              <p className="text-white/70 text-sm mt-1 mb-6">
                 Solo necesitás tu DNI.
               </p>
 
@@ -126,7 +123,7 @@ export default function Status() {
                   onChange={(e) => setDni(e.target.value)}
                   placeholder="DNI · Ej: 42206899"
                   inputMode="numeric"
-                  className="w-full px-4 py-3 rounded-lg bg-surface-1 border border-outline text-white placeholder-white/30
+                  className="w-full px-4 py-3 rounded-lg bg-surface-1 border border-outline text-white placeholder-white/40
                              focus:outline-none focus:border-primary focus:bg-surface-2"
                 />
                 <button
@@ -172,7 +169,7 @@ export default function Status() {
                     </span>
                     <div className="min-w-0">
                       <p className="font-display text-xl font-bold truncate">{result.fullName}</p>
-                      <p className="text-sm text-white/60 truncate">{result.teams.join(" · ")}</p>
+                      <p className="text-sm text-white/70 truncate">{result.teams.join(" · ")}</p>
                     </div>
                   </div>
 
@@ -180,7 +177,7 @@ export default function Status() {
                     {result.esTecnico ? (
                       <div>
                         <p className="text-white/80 font-semibold">Integrante del cuerpo técnico</p>
-                        <p className="mt-2 text-xs text-white/60 leading-relaxed">
+                        <p className="mt-2 text-xs text-white/70 leading-relaxed">
                           Estás registrado en {result.teams.join(" · ")} como técnico, no como jugador.
                           La cuota no aplica para el cuerpo técnico, así que no tenés deuda ni estado de pago.
                         </p>
@@ -188,7 +185,7 @@ export default function Status() {
                     ) : result.isPaid ? (
                       <div>
                         <p className="text-green-400 font-semibold">Estás al día ({result.currentMonth})</p>
-                        <div className="mt-3 text-xs text-white/60 bg-surface-2 rounded-lg px-3 py-2.5">
+                        <div className="mt-3 text-xs text-white/70 bg-surface-2 rounded-lg px-3 py-2.5">
                           {result.lastPayment ? (
                             <>Último pago registrado: <span className="text-white/85 font-semibold">{monthLabel(result.lastPayment.month)}</span></>
                           ) : (
@@ -201,7 +198,7 @@ export default function Status() {
                         <p className="text-amber-300 font-semibold">
                           Todavía no pagaste {result.currentMonth}
                         </p>
-                        <p className="mt-2 text-xs text-white/70 leading-relaxed">
+                        <p className="mt-2 text-xs text-white/80 leading-relaxed">
                           Estás dentro del plazo (1 al 10).{" "}
                           {result.diasParaPagar > 0 ? (
                             <>
@@ -243,7 +240,6 @@ export default function Status() {
                     )}
                   </div>
 
-                  {/* 🟢 BOTÓN COMPARTIR - NUEVO */}
                   {!result.esTecnico && (
                     <button
                       onClick={() => {

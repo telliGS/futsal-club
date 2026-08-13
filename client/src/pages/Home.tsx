@@ -170,7 +170,7 @@ export default function Home() {
 
   return (
     <Layout>
-      {/* HERO */}
+      {/* ============================ HERO ============================ */}
       <header className="relative bg-surface overflow-hidden border-b border-outline">
         <div
           aria-hidden="true"
@@ -315,7 +315,7 @@ export default function Home() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-16">
-        {/* PRÓXIMOS PARTIDOS */}
+        {/* ========================= PRÓXIMOS PARTIDOS ========================= */}
         <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-up">
           <h2 className="font-display text-2xl font-bold flex items-center gap-3">
             <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
@@ -398,7 +398,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* CATEGORÍAS DEL CLUB */}
+        {/* ========================= CATEGORÍAS DEL CLUB ========================= */}
         <section className="mt-16">
           <div className="flex items-end justify-between gap-4 animate-fade-up">
             <div>
@@ -444,7 +444,7 @@ export default function Home() {
           )}
         </section>
 
-        {/* HISTORIA */}
+        {/* ========================= HISTORIA ========================= */}
         <section className="mt-16 border-t border-outline pt-12">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
@@ -452,14 +452,20 @@ export default function Home() {
                 <span className="inline-block w-1.5 h-8 bg-primary rounded-full" />
                 Nuestra historia
               </h2>
-              <p className="mt-4 text-white/80 leading-relaxed">
-                Somos el Club José Hernández. Nacimos en un barrio de Paraná, con una
-                pelota y un sueño. Perdimos finales, pero nunca bajamos los brazos.
-                En 2016 dimos la vuelta: campeones de la Copa de Oro Norte en Corrientes.
-                Después llegaron el Apertura, el segundo título oficial, y más festejos.
-                Hoy somos 10 equipos, más de 100 jugadores, y seguimos siendo un club
-                de barrio: familia, esfuerzo y pasión por la camiseta verde. Somos JH Futsal.
-              </p>
+              <div className="mt-4 text-white/80 leading-relaxed space-y-3">
+                <p>
+                  Somos el Club José Hernández. Nacimos el <span className="text-primary-light font-semibold">30 de abril de 2010</span> en el <span className="text-white font-semibold">barrio José Hernández</span>, con una pelota y un sueño. Perdimos finales, pero nunca bajamos los brazos.
+                </p>
+                <p>
+                  En <span className="text-primary-light font-semibold">2015</span> llegó el primer título: la Juvenil Clausura. Un año después, en <span className="text-primary-light font-semibold">2016</span>, dimos la vuelta: campeones de la <span className="text-white font-semibold">Copa de Oro Norte en Corrientes</span>, siendo el único club de la ciudad con un campeonato local, provincial y nacional.
+                </p>
+                <p>
+                  El <span className="text-primary-light font-semibold">2017</span> fue un año histórico: <span className="text-white font-semibold">JH masculino campeón del Apertura de Elite</span> (venciendo a Paracao 2-1) y <span className="text-white font-semibold">JH Femenino campeón del Apertura de ascenso</span> (4-3 vs Oro Verde). <span className="text-primary-light font-semibold">¡Los dos equipos salieron campeones el mismo año!</span> En <span className="text-primary-light font-semibold">2022</span>, JH Elite repitió en el Clausura de la División Elite. En <span className="text-primary-light font-semibold">2023</span>, nuestra <span className="text-white font-semibold">1ra Femenina</span> levantó el Torneo Apertura APFS. En <span className="text-primary-light font-semibold">2024</span>, JH C fue campeón del Clausura en la "B". En <span className="text-primary-light font-semibold">2025</span>, JH Negro fue campeón del Clausura en Segunda División. Y este <span className="text-primary-light font-semibold">2026</span>, nuestras C11 y C13 salieron campeonas del Apertura.
+                </p>
+                <p>
+                  Hoy somos <span className="text-white font-semibold">10 equipos</span>, más de <span className="text-white font-semibold">100 jugadores</span>, y seguimos siendo un club de barrio: <span className="text-white font-semibold">familia, esfuerzo y pasión</span> por la camiseta verde. <span className="text-primary-light font-semibold">Somos JH Futsal.</span>
+                </p>
+              </div>
               <div className="mt-6 flex flex-wrap gap-4">
                 <Link to="/historia" className="btn-primary inline-flex items-center gap-2">
                   Conocé más
@@ -485,18 +491,18 @@ export default function Home() {
           </div>
         </section>
 
-        {/* EL CLUB */}
+        {/* ========================= EL CLUB ========================= */}
         <section className="mt-16">
           <h2 className="font-display text-2xl font-bold flex items-center gap-3 animate-fade-up">
             <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
             El club
           </h2>
           <div className="mt-6 grid md:grid-cols-3 gap-4">
-            <div className="card p-6 animate-fade-up bg-noise">
+            <div className="card p-6 animate-fade-up bg-noise border-l-4 border-l-primary">
               <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
-                🎽
+                🌱
               </span>
-              <h3 className="font-display font-bold mt-4">Formativas en serio</h3>
+              <h3 className="font-display font-bold mt-4">Semillero de campeones</h3>
               <p className="text-sm text-white/70 mt-2 leading-relaxed">
                 {formativas.length} categorías de base (C11 a C20) formando jugadores
                 para la primera división del club.
@@ -525,7 +531,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* MODAL FIXTURE */}
+      {/* ===================== MODAL: FIXTURE DEL EQUIPO ===================== */}
       {selTeam && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
