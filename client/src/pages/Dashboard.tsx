@@ -73,6 +73,12 @@ interface Player {
   apto?: { puedeJugar: boolean; razones: string[] };
 }
 
+interface Toast {
+  id: number;
+  message: string;
+  type: "success" | "error" | "warning" | "info";
+}
+
 interface MeData {
   id: string;
   fullName: string;
@@ -346,6 +352,10 @@ export default function Dashboard() {
   const [showDelegadoModal, setShowDelegadoModal] = useState(false);
   const [delegadoMsg, setDelegadoMsg] = useState("");
 
+  // ----- Toasts -----
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toastCounter, setToastCounter] = useState(0);
+
   // ---------- Cambio de credenciales propio (1 sola vez) ----------
   const [showCredModal, setShowCredModal] = useState(false);
   const [credForm, setCredForm] = useState({ email: "", password: "", currentPassword: "" });
@@ -501,6 +511,7 @@ export default function Dashboard() {
       setShowForm(false);
       const updated = await apiFetch<Player[]>(`/teams/${teamId}/players`, {}, token);
       setPlayers(updated);
+      mostrarToast(editing ? `Jugador actualizado: ${body.firstName} ${body.lastName}` : `Jugador agregado: ${body.firstName} ${body.lastName}`, "success");
     } catch (e) {
       const err = e as Error & { code?: string; playerId?: string; equipoActual?: { id: string; name: string } };
       // Ya es JUGADOR en otra PRIMERA → preguntar y mover (sin perder datos)
@@ -1459,6 +1470,18 @@ export default function Dashboard() {
       mesesDebe: deudaPrevia + (vencio ? 1 : 0),
     };
   }
+
+  // ============================================================
+  // TOASTS
+  // ============================================================
+  const mostrarToast = (message: string, type: "success" | "error" | "warning" | "info" = "info") => {
+    const id = toastCounter + 1;
+    setToastCounter(id);
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  };
 
   if (loading) return <div className="p-10">Cargando...</div>;
 
@@ -3874,6 +3897,27 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
         </div>
       )}
     </div>
+
+      {/* ===== TOASTS ===== */}
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
+        {toasts.map((toast) => {
+          const colors = {
+            success: "border-green-500/50 bg-green-500/10 text-green-400",
+            error: "border-red-500/50 bg-red-500/10 text-red-400",
+            warning: "border-amber-500/50 bg-amber-500/10 text-amber-400",
+            info: "border-blue-500/50 bg-blue-500/10 text-blue-400",
+          };
+          return (
+            <div
+              key={toast.id}
+              className={`rounded-lg border px-4 py-3 text-sm animate-fade-up ${colors[toast.type]}`}
+              style={{ animationDuration: "0.3s" }}
+            >
+              {toast.message}
+            </div>
+          );
+        })}
+      </div>
     </Layout>
   );
 }
