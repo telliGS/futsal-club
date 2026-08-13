@@ -92,16 +92,7 @@ export default function Cronograma() {
     return a.name.localeCompare(b.name);
   });
 
-  // Categorías que tienen entrenamientos (para saber si mostrar "sin actividad")
-  const categoriasConActividad = schedule
-    ? Array.from(
-        new Set(
-          schedule.semana.flatMap((d) =>
-            d.bloques.map((b) => b.team?.name).filter(Boolean)
-          )
-        )
-      )
-    : [];
+  
 
   return (
     <Layout>
