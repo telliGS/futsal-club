@@ -328,6 +328,7 @@ export default function Dashboard() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState<string>("todos");
   const [view, setView] = useState<"lista" | "calendario" | "presupuesto" | "delegados" | "poli">("lista");
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [delegados, setDelegados] = useState<DelegadoAdmin[]>([]);
@@ -1465,6 +1466,15 @@ export default function Dashboard() {
   const tecnicos = players.filter((p) => p.role !== "JUGADOR");
   // Jugadores que pagan acá (nativos o sin vínculo formativo)
   const plantel = players.filter((p) => p.role === "JUGADOR" && p.pagaAca !== false);
+  const jugadoresFiltrados = plantel.filter((p) => {
+  if (filtroEstado === "todos") return true;
+  const ec = p.estadoCuota ?? estadoLocal(p);
+  if (filtroEstado === "al_dia") return ec.alDia;
+  if (filtroEstado === "pendiente") return ec.pendiente;
+  if (filtroEstado === "deudor") return ec.deudor;
+  if (filtroEstado === "inactivo") return p.status === "INACTIVO";
+  return true;
+});
   // Jugadores de formativa que aparecen en este equipo pero pagan en su categoría
   const plantelSinCuota = players.filter((p) => p.role === "JUGADOR" && p.pagaAca === false);
 
@@ -1588,18 +1598,32 @@ export default function Dashboard() {
 
       {/* Aviso: jugadores con documentación que bloquea */}
       {view === "lista" && plantel.some((p) => p.fichas && !p.fichas.aptoFichas) && (
-        <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-          <p className="text-sm font-semibold text-amber-300">
-            ⚠ Algunos jugadores tienen documentación vencida o sin cargar — no pueden jugar hasta regularizar
-          </p>
-          <p className="text-xs text-amber-200/70 mt-1">
-            {plantel
-              .filter((p) => p.fichas && !p.fichas.aptoFichas)
-              .map((p) => `${p.firstName} ${p.lastName} (${p.fichas!.resumen})`)
-              .join(" · ")}
-          </p>
-        </div>
-      )}
+  <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <p className="text-sm font-semibold text-amber-300">
+        ⚠ Algunos jugadores tienen documentación vencida o sin cargar — no pueden jugar hasta regularizar
+      </p>
+      <p className="text-xs text-amber-200/70 mt-1">
+        {plantel
+          .filter((p) => p.fichas && !p.fichas.aptoFichas)
+          .map((p) => `${p.firstName} ${p.lastName} (${p.fichas!.resumen})`)
+          .join(" · ")}
+      </p>
+    </div>
+    <button
+      onClick={() => {
+        const deudores = plantel.filter((p) => p.fichas && !p.fichas.aptoFichas);
+        if (deudores.length > 0) {
+          const first = document.getElementById(`player-${deudores[0].id}`);
+          if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }}
+      className="px-4 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-colors text-sm font-medium whitespace-nowrap"
+    >
+      Ver jugadores
+    </button>
+  </div>
+)}
 
       {/* ===================== VISTA LISTA ===================== */}
       {view === "lista" && (
@@ -1610,8 +1634,8 @@ export default function Dashboard() {
               <span className="w-9 h-9 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center text-lg">👥</span>
               <div>
                 <p className="font-display font-bold text-xl leading-none">
-                  {plantel.filter((p) => p.status !== "INACTIVO").length +
-                    plantelSinCuota.filter((p) => p.status !== "INACTIVO").length}
+                 {jugadoresFiltrados.filter((p) => p.status !== "INACTIVO").length +
+  plantelSinCuota.filter((p) => p.status !== "INACTIVO").length}
                 </p>
                 <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Jugadores</p>
               </div>
@@ -1644,12 +1668,34 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-
+                {/* Filtros de estado */}
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                   <label className="text-sm text-white/70">Filtrar estado:</label>
+                     <select
+               value={filtroEstado}
+              onChange={(e) => setFiltroEstado(e.target.value)}
+               className="px-3 py-1.5 rounded-lg bg-surface-1 border border-outline text-sm focus:outline-none focus:border-primary transition-colors"
+                >
+              <option value="todos">Todos</option>
+             <option value="al_dia">Al día</option>
+           <option value="pendiente">Pendiente</option>
+              <option value="deudor">Deudor</option>
+           <option value="inactivo">Inactivo</option>
+            </select>
+             {filtroEstado !== "todos" && (
+    <button
+      onClick={() => setFiltroEstado("todos")}
+      className="text-xs text-white/50 hover:text-white underline transition-colors"
+    >
+      Limpiar filtro
+    </button>
+  )}
+</div>
           {/* ===== JUGADORES EN MÓVIL: tarjetas (tabla solo en md+) ===== */}
           <div className="md:hidden mt-4 space-y-2">
             {[
-              ...plantel.filter((x) => x.status !== "INACTIVO"),
-              ...plantel.filter((x) => x.status === "INACTIVO"),
+             ...jugadoresFiltrados.filter((x) => x.status !== "INACTIVO")  ,
+             ...jugadoresFiltrados.filter((x) => x.status === "INACTIVO")
             ].map((p) => {
               const thisMonth = p.payments.find((x) => x.month === currentMonth);
               const ec = p.estadoCuota ?? estadoLocal(p);
@@ -1785,9 +1831,9 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {[
-                    ...plantel.filter((x) => x.status !== "INACTIVO"),
-                    ...plantel.filter((x) => x.status === "INACTIVO"),
-                  ].map((p) => {
+                    ...jugadoresFiltrados.filter((x) => x.status !== "INACTIVO"),
+                    ...jugadoresFiltrados.filter((x) => x.status === "INACTIVO")         
+         ].map((p) => {
                   const thisMonth = p.payments.find((x) => x.month === currentMonth);
                   const ec = p.estadoCuota ?? estadoLocal(p);
                   return (
@@ -1869,55 +1915,70 @@ export default function Dashboard() {
                           </span>
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 text-xs text-white/60 tabular-nums">
-                        {ec.mesesDebe > 0 ? (
-                          <span className="text-red-300 font-semibold">
-                            {ec.mesesDebe} {ec.mesesDebe === 1 ? "mes" : "meses"}
-                          </span>
-                        ) : (
-                          <span className="text-white/30">—</span>
-                        )}
-                      </td>
+                      <td className="px-3 py-2.5 text-xs tabular-nums">
+  {ec.mesesDebe > 0 ? (
+    <span className="inline-flex items-center gap-1 text-red-400 font-bold bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/30">
+      🔴 {ec.mesesDebe} {ec.mesesDebe === 1 ? "mes" : "meses"}
+    </span>
+  ) : (
+    <span className="text-white/30">—</span>
+  )}
+</td>
                       <td className="px-3 py-2.5">
-                        <div className="row-actions">
-                          <button
-                            onClick={() => abrirInactivo(p)}
-                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90"
-                            title={p.status === "INACTIVO" ? "Ajustar mes de corte" : "Pasar a inactivo"}
-                          >
-                            <Icon name="pause" className="w-4 h-4" />
-                          </button>
-                          {p.status === "INACTIVO" && (
-                            <button
-                              onClick={() => reactivar(p)}
-                              className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90"
-                              title="Reactivar jugador"
-                            >
-                              <Icon name="play" className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => openDocs(p)}
-                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90"
-                            title="Fichas y estudios"
-                          >
-                            <Icon name="doc" className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => openEditar(p)}
-                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90"
-                            title="Editar"
-                          >
-                            <Icon name="edit" className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => removePlayer(p)}
-                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-red-400 hover:bg-red-500/10 transition-colors active:scale-90"
-                            title="Quitar del equipo"
-                          >
-                            <Icon name="trash" className="w-4 h-4" />
-                          </button>
-                        </div>
+                       <div className="row-actions">
+  <button
+    onClick={() => abrirInactivo(p)}
+    className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90 group relative"
+    title={p.status === "INACTIVO" ? "Ajustar mes de corte" : "Pasar a inactivo"}
+  >
+    <Icon name="pause" className="w-4 h-4" />
+    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-2 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+      {p.status === "INACTIVO" ? "Ajustar inactivo" : "Inactivar"}
+    </span>
+  </button>
+  {p.status === "INACTIVO" && (
+    <button
+      onClick={() => reactivar(p)}
+      className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90 group relative"
+      title="Reactivar jugador"
+    >
+      <Icon name="play" className="w-4 h-4" />
+      <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-2 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+        Reactivar
+      </span>
+    </button>
+  )}
+  <button
+    onClick={() => openDocs(p)}
+    className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90 group relative"
+    title="Fichas y estudios"
+  >
+    <Icon name="doc" className="w-4 h-4" />
+    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-2 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+      Fichas
+    </span>
+  </button>
+  <button
+    onClick={() => openEditar(p)}
+    className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90 group relative"
+    title="Editar jugador"
+  >
+    <Icon name="edit" className="w-4 h-4" />
+    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-2 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+      Editar
+    </span>
+  </button>
+  <button
+    onClick={() => removePlayer(p)}
+    className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-red-400 hover:bg-red-500/10 transition-colors active:scale-90 group relative"
+    title="Quitar del equipo"
+  >
+    <Icon name="trash" className="w-4 h-4" />
+    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-2 text-red-400 text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+      Eliminar
+    </span>
+  </button>
+</div>
                       </td>
                     </tr>
                   );
