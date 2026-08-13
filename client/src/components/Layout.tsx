@@ -1,8 +1,6 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
 
 // Header/nav + footer comunes a todas las páginas públicas.
-// Estilo mate, sin neon: fondo sólido oscuro, escudo + enlaces con
-// subrayado que crece, y footer con columnas (club, accesos, categorías).
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
   const esPanel = pathname.startsWith("/delegado");
@@ -78,22 +76,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* ============================ FOOTER ============================ */}
       <footer className="border-t border-outline mt-16 bg-surface-1">
-        <div className="max-w-5xl mx-auto px-6 py-10 grid gap-8 sm:grid-cols-2 md:grid-cols-3">
+        <div className="max-w-5xl mx-auto px-6 py-10 grid gap-8 sm:grid-cols-2 md:grid-cols-4">
+          {/* Columna 1: Club */}
           <div>
             <div className="flex items-center gap-2.5">
-              <img
-                src="/escudo-jh.png"
-                alt=""
-                className="w-9 h-9"
-              />
+              <img src="/escudo-jh.png" alt="" className="w-9 h-9" />
               <p className="font-display font-bold">Club José Hernández</p>
             </div>
-            <p className="mt-3 text-sm text-white/50 leading-relaxed">
+            <p className="mt-3 text-sm text-white/70 leading-relaxed">
               Futsal de Paraná, Entre Ríos. Participando en la Competencia Oficial APFS
               con formativas y equipos de primera división.
             </p>
           </div>
 
+          {/* Columna 2: Accesos */}
           <div>
             <p className="font-display font-semibold text-sm uppercase tracking-wider text-white/70">
               Accesos
@@ -106,19 +102,51 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </ul>
           </div>
 
+          {/* Columna 3: Categorías */}
           <div>
             <p className="font-display font-semibold text-sm uppercase tracking-wider text-white/70">
               Categorías
             </p>
-            <ul className="mt-3 space-y-1.5 text-sm text-white/50">
+            <ul className="mt-3 space-y-1.5 text-sm text-white/60">
               <li>C11 · C13 · C15 · C17 · C20 · C20 FEM</li>
               <li>Primera Femenina · Jh C · JH NEGRO · JH ELITE</li>
             </ul>
           </div>
+
+          {/* Columna 4: Redes sociales */}
+          <div>
+            <p className="font-display font-semibold text-sm uppercase tracking-wider text-white/70">
+              Seguinos
+            </p>
+            <div className="mt-3 flex gap-4">
+              <a
+                href="https://www.instagram.com/josehernandezfs/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-primary-light transition-colors text-2xl"
+                aria-label="Instagram"
+              >
+                📸
+              </a>
+              <a
+                href="https://www.facebook.com/profile.php?id=100006680010803"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-primary-light transition-colors text-2xl"
+                aria-label="Facebook"
+              >
+                👍
+              </a>
+            </div>
+            <p className="mt-2 text-xs text-white/40">
+              Seguinos para enterarte de todo
+            </p>
+          </div>
         </div>
 
-        <div className="border-t border-outline py-5 text-center text-xs text-white/30">
-          <p>Club José Hernández · Futsal · Paraná, Entre Ríos · © {new Date().getFullYear()}</p>
+        {/* Línea inferior con "Desde 2010" */}
+        <div className="border-t border-outline py-5 text-center text-xs text-white/50">
+          <p>Club José Hernández · Futsal · Paraná, Entre Ríos · <span className="text-primary-light font-semibold">Desde 2010</span> · © {new Date().getFullYear()}</p>
         </div>
       </footer>
     </div>
