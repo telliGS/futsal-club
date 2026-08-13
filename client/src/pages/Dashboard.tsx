@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { apiFetch, API, getToken, setToken } from "../lib/api";
@@ -7,7 +7,8 @@ import CalendarioView from "../components/panel/CalendarioView";
 import DelegadosView from "../components/panel/DelegadosView";
 import PoliView from "../components/panel/PoliView";
 import PresupuestoView from "../components/panel/PresupuestoView";
-import { monthRange, monthShort, labelTipo, tiposBloqueantes, BadgeFicha, Icon } from "../lib/panel-helpers";
+import PlayerListView from "../components/panel/PlayerListView";
+import { monthRange, monthShort, labelTipo, Icon } from "../lib/panel-helpers";
 import {
   Team,
   FichaEstado,
@@ -53,7 +54,7 @@ export default function Dashboard() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [toastCounter, setToastCounter] = useState(0);
 
-  // ----- Exportación -----
+  // ----- ExportaciÃ³n -----
   const [exportando, setExportando] = useState(false);
 
   // ---------- Cambio de credenciales propio (1 sola vez) ----------
@@ -93,7 +94,7 @@ export default function Dashboard() {
   });
   const [poliExSaving, setPoliExSaving] = useState(false);
 
-  // ---------- Alta / edición de jugadores ----------
+  // ---------- Alta / ediciÃ³n de jugadores ----------
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Player | null>(null);
   const [saving, setSaving] = useState(false);
@@ -120,7 +121,7 @@ export default function Dashboard() {
   const [foundPlayer, setFoundPlayer] = useState<PlayerEncontrado | null>(null);
   const [buscandoDni, setBuscandoDni] = useState(false);
 
-  // Al escribir un DNI en alta: ¿ya existe? (debounce 450 ms)
+  // Al escribir un DNI en alta: Â¿ya existe? (debounce 450 ms)
   useEffect(() => {
     if (editing || !showForm) return;
     const dni = form.document.replace(/\D/g, "");
@@ -186,7 +187,7 @@ export default function Dashboard() {
   async function savePlayer() {
     if (!token || !teamId) return;
     if (!form.lastName.trim() || !form.firstName.trim() || form.document.trim().length < 6) {
-      setFormError("Completá apellido, nombre y un DNI válido (mín. 6 dígitos).");
+      setFormError("CompletÃ¡ apellido, nombre y un DNI vÃ¡lido (mÃ­n. 6 dÃ­gitos).");
       return;
     }
     setSaving(true);
@@ -214,11 +215,11 @@ export default function Dashboard() {
       mostrarToast(editing ? `Jugador actualizado: ${body.firstName} ${body.lastName}` : `Jugador agregado: ${body.firstName} ${body.lastName}`, "success");
     } catch (e) {
       const err = e as Error & { code?: string; playerId?: string; equipoActual?: { id: string; name: string } };
-      // Ya es JUGADOR en otra PRIMERA → preguntar y mover (sin perder datos)
+      // Ya es JUGADOR en otra PRIMERA â†’ preguntar y mover (sin perder datos)
       if (!editing && err.code === "CAMBIO_PRIMERA" && err.playerId && err.equipoActual) {
         const aNombre = me?.teams.find((t) => t.id === teamId)?.name ?? "este equipo";
         const confirma = window.confirm(
-          `${err.message}\n\n¿Moverlo a ${aNombre}? Saldrá automáticamente de ${err.equipoActual.name}. Se conservan todos sus datos, pagos y fichas médicas.`
+          `${err.message}\n\nÂ¿Moverlo a ${aNombre}? SaldrÃ¡ automÃ¡ticamente de ${err.equipoActual.name}. Se conservan todos sus datos, pagos y fichas mÃ©dicas.`
         );
         if (confirma) {
           try {
@@ -249,7 +250,7 @@ export default function Dashboard() {
 
   async function removePlayer(p: Player) {
     if (!token) return;
-    const ok = window.confirm(`¿Quitar a ${p.firstName} ${p.lastName} del equipo? (el jugador se elimina si no está en otro equipo)`);
+    const ok = window.confirm(`Â¿Quitar a ${p.firstName} ${p.lastName} del equipo? (el jugador se elimina si no estÃ¡ en otro equipo)`);
     if (!ok) return;
     try {
       await apiFetch(`/players/${p.id}`, { method: "DELETE" }, token);
@@ -261,10 +262,10 @@ export default function Dashboard() {
 
   // ---------- Inactivo / Reactivar ----------
   // INACTIVO: deja de contar la cuota y su deuda se congela (no acumula
-  // mientras está fuera). El mes de corte se elige en un modal (a veces se
-  // tardan en marcar la baja — el corte va al mes en que dejó de jugar).
-  // REACTIVAR: si tenía deuda real vuelve DEUDOR y no puede jugar hasta
-  // ponerse al día.
+  // mientras estÃ¡ fuera). El mes de corte se elige en un modal (a veces se
+  // tardan en marcar la baja â€” el corte va al mes en que dejÃ³ de jugar).
+  // REACTIVAR: si tenÃ­a deuda real vuelve DEUDOR y no puede jugar hasta
+  // ponerse al dÃ­a.
   const [inactivoModal, setInactivoModal] = useState<Player | null>(null);
   const [inactivoMes, setInactivoMes] = useState(() => new Date().toISOString().slice(0, 7));
 
@@ -290,7 +291,7 @@ export default function Dashboard() {
   async function reactivar(p: Player) {
     if (!token) return;
     const ok = window.confirm(
-      `¿Reactivar a ${p.firstName} ${p.lastName}?\n\nSi tiene meses de deuda de antes de irse, quedará DEUDOR y no podrá jugar hasta ponerse al día.`
+      `Â¿Reactivar a ${p.firstName} ${p.lastName}?\n\nSi tiene meses de deuda de antes de irse, quedarÃ¡ DEUDOR y no podrÃ¡ jugar hasta ponerse al dÃ­a.`
     );
     if (!ok) return;
     try {
@@ -302,7 +303,7 @@ export default function Dashboard() {
       if (r.status === "DEUDA" && r.estadoCuota.deudor) {
         const n = r.estadoCuota.mesesDebe;
         window.alert(
-          `${p.firstName} ${p.lastName} vuelve con ${n} ${n === 1 ? "mes de deuda" : "meses de deuda"} (de antes de irse). Queda como DEUDOR: no tiene permiso de jugar hasta ponerse al día.`
+          `${p.firstName} ${p.lastName} vuelve con ${n} ${n === 1 ? "mes de deuda" : "meses de deuda"} (de antes de irse). Queda como DEUDOR: no tiene permiso de jugar hasta ponerse al dÃ­a.`
         );
       }
       await recargarPlantel();
@@ -311,7 +312,7 @@ export default function Dashboard() {
     }
   }
 
-  // ---------- Fichas / documentos médicos ----------
+  // ---------- Fichas / documentos mÃ©dicos ----------
   const [docsPlayer, setDocsPlayer] = useState<Player | null>(null);
   const [docsList, setDocsList] = useState<DocItem[]>([]);
   const [docsEstado, setDocsEstado] = useState<FichaEstado | null>(null);
@@ -324,7 +325,7 @@ export default function Dashboard() {
     file: null as File | null,
   });
 
-  // Categoría del equipo seleccionado (para la regla ergo 2 años / electro 1 año)
+  // CategorÃ­a del equipo seleccionado (para la regla ergo 2 aÃ±os / electro 1 aÃ±o)
   const categoriaActual = me?.teams.find((t) => t.id === teamId)?.category ?? null;
 
   // Equipos que el usuario puede operar en el cronograma:
@@ -333,7 +334,7 @@ export default function Dashboard() {
   const esAdmin = me?.role === "ADMIN";
   const equiposPoliEditables = esAdmin ? allTeams : (me?.teams ?? []);
 
-  // ¿El usuario puede editar/borrar/activar un slot o bloque del cronograma?
+  // Â¿El usuario puede editar/borrar/activar un slot o bloque del cronograma?
   function puedeOperarPoli(teamIdSlot: string | null | undefined): boolean {
     if (esAdmin) return true;
     // Delegado: solo bloques de SUS equipos (un bloque sin equipo es de admin)
@@ -343,13 +344,13 @@ export default function Dashboard() {
 
   function vigenciaHint(): string {
     if (docForm.tipo === "ERGONOMETRIA") {
-      return "Ergo: vence a los 2 años de la emisión (se calcula automáticamente).";
+      return "Ergo: vence a los 2 aÃ±os de la emisiÃ³n (se calcula automÃ¡ticamente).";
     }
     if (docForm.tipo === "ELECTROCARDIOGRAMA") {
-      return "Electro: vence al año de la emisión (se calcula automáticamente).";
+      return "Electro: vence al aÃ±o de la emisiÃ³n (se calcula automÃ¡ticamente).";
     }
     if (docForm.tipo === "FICHA_MEDICA") {
-      return "Ficha médica: vence a los 2 años de la emisión (se calcula automáticamente).";
+      return "Ficha mÃ©dica: vence a los 2 aÃ±os de la emisiÃ³n (se calcula automÃ¡ticamente).";
     }
     return "Documento: sin vencimiento por regla.";
   }
@@ -375,7 +376,7 @@ export default function Dashboard() {
 
   async function subirDoc() {
     if (!token || !docsPlayer || !docForm.file) {
-      setDocsMsg("Elegí un archivo para subir.");
+      setDocsMsg("ElegÃ­ un archivo para subir.");
       return;
     }
     if (docForm.file.size > 2 * 1024 * 1024) {
@@ -412,7 +413,7 @@ export default function Dashboard() {
       setDocsList((prev) => [res.documento, ...prev]);
       setDocsEstado(res.estado);
       setDocForm({ tipo: "FICHA_MEDICA", descripcion: "", fechaEmision: "", file: null });
-      setDocsMsg("Documento subido ✓");
+      setDocsMsg("Documento subido âœ“");
     } catch (e) {
       setDocsMsg((e as Error).message);
     } finally {
@@ -422,7 +423,7 @@ export default function Dashboard() {
 
   async function borrarDoc(doc: DocItem) {
     if (!token || !docsPlayer) return;
-    const ok = window.confirm(`¿Eliminar "${doc.fileName}"?`);
+    const ok = window.confirm(`Â¿Eliminar "${doc.fileName}"?`);
     if (!ok) return;
     try {
       await apiFetch(`/players/${docsPlayer.id}/documents/${doc.id}`, { method: "DELETE" }, token);
@@ -460,7 +461,7 @@ export default function Dashboard() {
     }
   }
 
-  // ---------- Plantilla Excel + importación masiva ----------
+  // ---------- Plantilla Excel + importaciÃ³n masiva ----------
   const [exporting, setExporting] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -564,7 +565,7 @@ export default function Dashboard() {
   };
 
   const formatPesos = (n: number | null | undefined): string => {
-    if (n == null) return "—";
+    if (n == null) return "â€”";
     return "$" + Math.round(n).toLocaleString("es-AR");
   };
 
@@ -621,7 +622,7 @@ export default function Dashboard() {
     const monto = Number(gastoForm.monto.replace(/[^0-9]/g, ""));
     const nombre = gastoForm.nombre.trim();
     if (!nombre || monto <= 0) {
-      setPresupError("Completá el nombre y un monto válido.");
+      setPresupError("CompletÃ¡ el nombre y un monto vÃ¡lido.");
       return;
     }
     setGastoSaving(true);
@@ -644,7 +645,7 @@ export default function Dashboard() {
 
   async function borrarGasto(tipo: "fijo" | "extra", id: string) {
     if (!token || !teamId) return;
-    if (!window.confirm("¿Eliminar este gasto?")) return;
+    if (!window.confirm("Â¿Eliminar este gasto?")) return;
     try {
       await apiFetch(`/teams/${teamId}/gastos/${tipo === "fijo" ? "fijos" : "extras"}/${id}`, { method: "DELETE" }, token);
       const updated = await apiFetch<PresupuestoData>(`/teams/${teamId}/presupuesto?mes=${presupMes}`, {}, token);
@@ -683,8 +684,8 @@ export default function Dashboard() {
       .finally(() => setDelegadosLoading(false));
   }, [token, me?.role]);
 
-  // Guarda el cambio de email/contraseña propio (solo si canChangeCredentials).
-  // El server lo marca como usado → esta es la única vez que puede autocambiarse.
+  // Guarda el cambio de email/contraseÃ±a propio (solo si canChangeCredentials).
+  // El server lo marca como usado â†’ esta es la Ãºnica vez que puede autocambiarse.
   async function guardarCredenciales() {
     if (!token || !me) return;
     setCredSaving(true);
@@ -780,7 +781,7 @@ export default function Dashboard() {
     if (!token) return;
     const activando = !d.active;
     const nombre = d.fullName;
-    if (!activando && !window.confirm(`¿Desactivar a ${nombre}? No podrá entrar al panel hasta reactivarlo.`)) return;
+    if (!activando && !window.confirm(`Â¿Desactivar a ${nombre}? No podrÃ¡ entrar al panel hasta reactivarlo.`)) return;
     try {
       await apiFetch(`/auth/delegados/${d.id}`, { method: "PATCH", body: JSON.stringify({ active: activando }) }, token);
       setDelegados((prev) => prev.map((x) => (x.id === d.id ? { ...x, active: activando } : x)));
@@ -791,10 +792,10 @@ export default function Dashboard() {
     }
   }
 
-  // El delegado usó su único autocambio → el admin puede habilitarle otro.
+  // El delegado usÃ³ su Ãºnico autocambio â†’ el admin puede habilitarle otro.
   async function reactivarCredenciales(d: DelegadoAdmin) {
     if (!token) return;
-    if (!window.confirm(`¿Volver a habilitar el cambio de credenciales de ${d.fullName}?`)) return;
+    if (!window.confirm(`Â¿Volver a habilitar el cambio de credenciales de ${d.fullName}?`)) return;
     try {
       await apiFetch(`/auth/delegados/${d.id}`, { method: "PATCH", body: JSON.stringify({ canChangeCredentials: true }) }, token);
       setDelegados((prev) => prev.map((x) => (x.id === d.id ? { ...x, canChangeCredentials: true } : x)));
@@ -807,7 +808,7 @@ export default function Dashboard() {
 
   async function eliminarDelegado(d: DelegadoAdmin) {
     if (!token) return;
-    if (!window.confirm(`¿Eliminar la cuenta de ${d.fullName} (${d.email})? Esta acción no se puede deshacer.`)) return;
+    if (!window.confirm(`Â¿Eliminar la cuenta de ${d.fullName} (${d.email})? Esta acciÃ³n no se puede deshacer.`)) return;
     try {
       await apiFetch(`/auth/delegados/${d.id}`, { method: "DELETE" }, token);
       setDelegados((prev) => prev.filter((x) => x.id !== d.id));
@@ -822,10 +823,10 @@ export default function Dashboard() {
     if (!token) return;
     if (delegados.length === 0) return;
     if (!window.confirm(
-      `¿Eliminar TODAS las cuentas de delegado (${delegados.length})?\n\n` +
-      "Quedará solo la cuenta de administrador. Esta acción no se puede deshacer."
+      `Â¿Eliminar TODAS las cuentas de delegado (${delegados.length})?\n\n` +
+      "QuedarÃ¡ solo la cuenta de administrador. Esta acciÃ³n no se puede deshacer."
     )) return;
-    if (!window.confirm("Confirmación final: ¿borrar todas las cuentas de delegado?")) return;
+    if (!window.confirm("ConfirmaciÃ³n final: Â¿borrar todas las cuentas de delegado?")) return;
     try {
       const res = await apiFetch<{ eliminados: number }>("/auth/delegados", { method: "DELETE" }, token);
       setDelegados([]);
@@ -943,7 +944,7 @@ export default function Dashboard() {
 
   async function borrarPoliSlot(s: PoliSlot) {
     if (!token) return;
-    if (!window.confirm(`¿Eliminar el bloque ${s.startTime}-${s.endTime} (${s.place})?`)) return;
+    if (!window.confirm(`Â¿Eliminar el bloque ${s.startTime}-${s.endTime} (${s.place})?`)) return;
     setPoliLoading(true);
     try {
       await apiFetch(`/poli/slots/${s.id}`, { method: "DELETE" }, token);
@@ -980,7 +981,7 @@ export default function Dashboard() {
     try {
       const bloque = showPoliExModal.bloque;
       const esExtra = !bloque || bloque.tipo === "EXTRA"; // "+ Extra" o editar un extra existente
-      // Si el bloque ya tiene una excepción (plantilla modificada o extra existente),
+      // Si el bloque ya tiene una excepciÃ³n (plantilla modificada o extra existente),
       // la actualizamos/eliminamos en vez de crear una nueva (evita duplicados).
       const exId = bloque?.excepcion?.id ?? (bloque?.tipo === "EXTRA" && bloque.id.startsWith("extra-")
         ? bloque.id.replace("extra-", "")
@@ -1000,13 +1001,13 @@ export default function Dashboard() {
             note: poliExForm.note || null,
           };
           await apiFetch(`/poli/exceptions/${exId}`, { method: "PATCH", body: JSON.stringify(patch), signal: controller.signal } as RequestInit, token);
-          setPoliMsg(poliExForm.canceled ? "Entrenamiento cancelado para ese día." : "Cambio aplicado para ese día.");
+          setPoliMsg(poliExForm.canceled ? "Entrenamiento cancelado para ese dÃ­a." : "Cambio aplicado para ese dÃ­a.");
         }
       } else {
         const payload = {
           date: showPoliExModal.fecha,
           slotId: esExtra ? null : bloque.id,
-          // En un extra, teamId define la categoría que entrena; al modificar un
+          // En un extra, teamId define la categorÃ­a que entrena; al modificar un
           // slot de plantilla el equipo se hereda del slot (teamId null).
           teamId: esExtra ? (poliExForm.teamId || null) : null,
           place: poliExForm.canceled ? null : (poliExForm.place || null),
@@ -1016,7 +1017,7 @@ export default function Dashboard() {
           note: poliExForm.note || null,
         };
         await apiFetch("/poli/exceptions", { method: "POST", body: JSON.stringify(payload), signal: controller.signal } as RequestInit, token);
-        setPoliMsg(poliExForm.canceled ? "Entrenamiento cancelado para ese día." : "Cambio aplicado para ese día.");
+        setPoliMsg(poliExForm.canceled ? "Entrenamiento cancelado para ese dÃ­a." : "Cambio aplicado para ese dÃ­a.");
       }
       clearTimeout(safetyId);
       setTimeout(() => setPoliMsg(""), 3000);
@@ -1068,12 +1069,12 @@ export default function Dashboard() {
 
   async function toggleCuota(p: Player, month: string, paid: boolean) {
     if (!token) return;
-    // Protección anti-accidente: quitar un pago ya registrado pide confirmación
+    // ProtecciÃ³n anti-accidente: quitar un pago ya registrado pide confirmaciÃ³n
     if (!paid) {
       const yaPago = p.payments.some((x) => x.month === month && x.paid);
       if (yaPago) {
         const ok = window.confirm(
-          `¿Quitar el pago de la cuota ${monthShort(month)} de ${p.firstName} ${p.lastName}?`
+          `Â¿Quitar el pago de la cuota ${monthShort(month)} de ${p.firstName} ${p.lastName}?`
         );
         if (!ok) return;
       }
@@ -1084,7 +1085,7 @@ export default function Dashboard() {
         { method: "POST", body: JSON.stringify({ paid, amount: 0 }) },
         token
       );
-      // refresh local con lo que devolvió el server (estado recalculado según día y mes)
+      // refresh local con lo que devolviÃ³ el server (estado recalculado segÃºn dÃ­a y mes)
       setPlayers((prev) =>
         prev.map((x) =>
           x.id === p.id
@@ -1106,12 +1107,12 @@ export default function Dashboard() {
   }
 
   // Poner un mes en NULO: ni pagado ni adeudado. Elimina el registro del mes
-  // (ej. mes anterior a la incorporación del jugador: Mateo entró en febrero,
-  // el enero "impago" que quedó mal no le corresponde → se saca).
+  // (ej. mes anterior a la incorporaciÃ³n del jugador: Mateo entrÃ³ en febrero,
+  // el enero "impago" que quedÃ³ mal no le corresponde â†’ se saca).
   async function quitarRegistro(p: Player, month: string) {
     if (!token) return;
     const ok = window.confirm(
-      `¿Quitar el registro de ${monthShort(month)} de ${p.firstName} ${p.lastName}?\n\nQueda vacío: ni pagado ni adeudado (útil cuando ese mes no le corresponde, ej. todavía no se había incorporado).`
+      `Â¿Quitar el registro de ${monthShort(month)} de ${p.firstName} ${p.lastName}?\n\nQueda vacÃ­o: ni pagado ni adeudado (Ãºtil cuando ese mes no le corresponde, ej. todavÃ­a no se habÃ­a incorporado).`
     );
     if (!ok) return;
     try {
@@ -1137,16 +1138,16 @@ export default function Dashboard() {
     }
   }
 
-  // Menú de 3 estados para una celda con registro (calendario): al tocar un
+  // MenÃº de 3 estados para una celda con registro (calendario): al tocar un
   // mes ya marcado (pagado o impago) se puede cambiar a pagado, impago o a
-  // NULL (quitar el registro — para meses que no le corresponden).
+  // NULL (quitar el registro â€” para meses que no le corresponden).
   async function ponerEstado(p: Player, month: string) {
     if (!token) return;
     const actual = p.payments.find((x) => x.month === month);
     const opcion = window.prompt(
       `Estado de ${monthShort(month)} para ${p.firstName} ${p.lastName}:\n\n` +
-        `1 = Pagado\n2 = Impago (cuenta como deuda)\n3 = Nulo (ni pagado ni adeudado — sin registro)\n\n` +
-        `Respondé 1, 2 o 3. Cancelá para no tocar nada.`,
+        `1 = Pagado\n2 = Impago (cuenta como deuda)\n3 = Nulo (ni pagado ni adeudado â€” sin registro)\n\n` +
+        `RespondÃ© 1, 2 o 3. CancelÃ¡ para no tocar nada.`,
       actual ? (actual.paid ? "1" : "2") : "1"
     );
     if (opcion === null) return;
@@ -1155,7 +1156,7 @@ export default function Dashboard() {
     else if (v === "2") await toggleCuota(p, month, false);
     else if (v === "3") await quitarRegistro(p, month);
   }
-  // pago del 1 al 10; del día 11 sin pago del mes en curso = deudor, no juega)
+  // pago del 1 al 10; del dÃ­a 11 sin pago del mes en curso = deudor, no juega)
   function estadoLocal(p: Player, now = new Date()): NonNullable<Player["estadoCuota"]> {
     const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const pagadoMesActual = p.payments.some((x) => x.month === cur && x.paid);
@@ -1184,7 +1185,7 @@ export default function Dashboard() {
   };
 
   // ============================================================
-  // EXPORTACIÓN A EXCEL
+  // EXPORTACIÃ“N A EXCEL
   // ============================================================
   const exportarExcel = () => {
     const jugadores = jugadoresBusqueda || [];
@@ -1202,14 +1203,14 @@ export default function Dashboard() {
             ? "Deudor"
             : ec.pendiente
               ? "Pendiente"
-              : "Al día";
+              : "Al dÃ­a";
         return {
           "#": index + 1,
           "Apellido": p.lastName,
           "Nombre": p.firstName,
           "DNI": p.document,
           "Rol": p.role === "JUGADOR" ? "Jugador" : p.role,
-          "Posición": p.position || "-",
+          "PosiciÃ³n": p.position || "-",
           "Camiseta": p.jersey || "-",
           "Estado": estado,
           "Fichas": p.fichas?.aptoFichas ? "OK" : "Sin fichas",
@@ -1235,7 +1236,7 @@ export default function Dashboard() {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const months = monthRange();
   const tecnicos = players.filter((p) => p.role !== "JUGADOR");
-  // Jugadores que pagan acá (nativos o sin vínculo formativo)
+  // Jugadores que pagan acÃ¡ (nativos o sin vÃ­nculo formativo)
   const plantel = players.filter((p) => p.role === "JUGADOR" && p.pagaAca !== false);
   const jugadoresFiltrados = plantel.filter((p) => {
   if (filtroEstado === "todos") return true;
@@ -1246,7 +1247,7 @@ export default function Dashboard() {
   if (filtroEstado === "inactivo") return p.status === "INACTIVO";
   return true;
 });
-// Aplicar búsqueda por nombre o DNI sobre los jugadores ya filtrados por estado
+// Aplicar bÃºsqueda por nombre o DNI sobre los jugadores ya filtrados por estado
 const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
   if (!busqueda.trim()) return true;
   const q = busqueda.toLowerCase().trim();
@@ -1254,13 +1255,13 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
          p.lastName.toLowerCase().includes(q) ||
          p.document.includes(q);
 });
-  // Jugadores de formativa que aparecen en este equipo pero pagan en su categoría
+  // Jugadores de formativa que aparecen en este equipo pero pagan en su categorÃ­a
   const plantelSinCuota = players.filter((p) => p.role === "JUGADOR" && p.pagaAca === false);
 
   return (
     <Layout>
     <div className="max-w-6xl mx-auto px-6 py-10">
-      {/* Encabezado del panel: tarjeta con saludo + botón salir */}
+      {/* Encabezado del panel: tarjeta con saludo + botÃ³n salir */}
       <div className="rounded-lg border border-outline bg-surface-1 p-5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex w-12 h-12 rounded-lg bg-primary/15 border border-primary/30 items-center justify-center shrink-0">
@@ -1269,7 +1270,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
           <div>
             <h1 className="font-display text-xl md:text-2xl font-bold">Panel de delegado</h1>
             <p className="text-white/60 text-sm mt-0.5">
-              Hola, <span className="text-white/85 font-semibold">{me?.fullName}</span> — {me?.role === "ADMIN" ? "Administrador" : "Delegado"}
+              Hola, <span className="text-white/85 font-semibold">{me?.fullName}</span> â€” {me?.role === "ADMIN" ? "Administrador" : "Delegado"}
             </p>
           </div>
         </div>
@@ -1294,7 +1295,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
       {/* selector de equipo */}
       {me && me.teams.length > 0 && (
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <label className="text-sm text-white/70">Estás viendo: </label>
+          <label className="text-sm text-white/70">EstÃ¡s viendo: </label>
           <select
             value={teamId}
             onChange={(e) => setTeamId(e.target.value)}
@@ -1346,7 +1347,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
             <button
               onClick={openNuevo}
               className="px-4 py-1.5 rounded-lg text-sm bg-primary text-white font-semibold transition-all duration-200 hover:bg-primary-light active:scale-95"
-              title="Agregar jugador o cuerpo técnico"
+              title="Agregar jugador o cuerpo tÃ©cnico"
             >
               + Agregar
             </button>
@@ -1374,7 +1375,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface-1 text-white/80 transition-all duration-200 hover:bg-surface-2 active:scale-95 disabled:opacity-50"
                 title="Exportar lista de jugadores a Excel"
               >
-                {exportando ? "Generando..." : "📊 Exportar"}
+                {exportando ? "Generando..." : "ðŸ“Š Exportar"}
               </button>
             </div>
           </div>
@@ -1383,18 +1384,18 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
 
       {error && <p className="mt-4 text-red-400">{error}</p>}
 
-      {/* Aviso: jugadores con documentación que bloquea */}
+      {/* Aviso: jugadores con documentaciÃ³n que bloquea */}
       {view === "lista" && plantel.some((p) => p.fichas && !p.fichas.aptoFichas) && (
   <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
     <div>
       <p className="text-sm font-semibold text-amber-300">
-        ⚠ Algunos jugadores tienen documentación vencida o sin cargar — no pueden jugar hasta regularizar
+        âš  Algunos jugadores tienen documentaciÃ³n vencida o sin cargar â€” no pueden jugar hasta regularizar
       </p>
       <p className="text-xs text-amber-200/70 mt-1">
         {plantel
           .filter((p) => p.fichas && !p.fichas.aptoFichas)
           .map((p) => `${p.firstName} ${p.lastName} (${p.fichas!.resumen})`)
-          .join(" · ")}
+          .join(" Â· ")}
       </p>
     </div>
     <button
@@ -1414,489 +1415,26 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
 
       {/* ===================== VISTA LISTA ===================== */}
       {view === "lista" && (
-        <>
-          {/* Resumen del equipo: contadores de estado */}
-          {/* ===== RESUMEN EJECUTIVO ===== */}
-{view === "lista" && (
-  <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-    {/* Jugadores activos */}
-    <div className="card p-4 flex items-center gap-3">
-      <span className="w-9 h-9 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center text-lg">⚽</span>
-      <div>
-        <p className="font-display font-bold text-xl leading-none">
-          {jugadoresBusqueda.filter((p) => p.status !== "INACTIVO").length}
-        </p>
-        <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Jugadores activos</p>
-      </div>
-    </div>
-
-    {/* Con deuda */}
-    <div className="card p-4 flex items-center gap-3">
-      <span className="w-9 h-9 rounded-lg bg-red-500/15 border border-red-500/25 flex items-center justify-center text-lg">🔴</span>
-      <div>
-        <p className="font-display font-bold text-xl leading-none text-red-400">
-          {jugadoresBusqueda.filter((p) => (p.estadoCuota ?? estadoLocal(p)).deudor && p.status !== "INACTIVO").length}
-        </p>
-        <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Con deuda</p>
-      </div>
-    </div>
-
-    {/* Sin fichas */}
-    <div className="card p-4 flex items-center gap-3">
-      <span className="w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-lg">📄</span>
-      <div>
-        <p className="font-display font-bold text-xl leading-none text-amber-300">
-          {jugadoresBusqueda.filter((p) => p.fichas && !p.fichas.aptoFichas && p.status !== "INACTIVO").length}
-        </p>
-        <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Sin fichas</p>
-      </div>
-    </div>
-
-    {/* Inactivos */}
-    <div className="card p-4 flex items-center gap-3">
-      <span className="w-9 h-9 rounded-lg bg-surface-2 border border-outline flex items-center justify-center text-lg">⏸️</span>
-      <div>
-        <p className="font-display font-bold text-xl leading-none text-white/60">
-          {jugadoresBusqueda.filter((p) => p.status === "INACTIVO").length}
-        </p>
-        <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Inactivos</p>
-      </div>
-    </div>
-  </div>
-)}
-              {/* ===== BÚSQUEDA Y FILTROS ===== */}
-<div className="mt-4 flex flex-wrap items-center gap-3">
-  {/* Búsqueda */}
-  <input
-    type="text"
-    value={busqueda}
-    onChange={(e) => setBusqueda(e.target.value)}
-    placeholder="Buscar jugador por nombre o DNI..."
-    className="px-3 py-1.5 rounded-lg bg-surface-1 border border-outline text-sm text-white placeholder-white/40 focus:outline-none focus:border-primary transition-colors flex-1 min-w-[180px]"
-  />
-
-  {/* Filtro por estado */}
-  <label className="text-sm text-white/70">Estado:</label>
-  <select
-    value={filtroEstado}
-    onChange={(e) => setFiltroEstado(e.target.value)}
-    className="px-3 py-1.5 rounded-lg bg-surface-1 border border-outline text-sm focus:outline-none focus:border-primary transition-colors"
-  >
-    <option value="todos">Todos</option>
-    <option value="al_dia">Al día</option>
-    <option value="pendiente">Pendiente</option>
-    <option value="deudor">Deudor</option>
-    <option value="inactivo">Inactivo</option>
-  </select>
-
-  {/* Botón limpiar filtros */}
-  {filtroEstado !== "todos" && (
-    <button
-      onClick={() => setFiltroEstado("todos")}
-      className="text-xs text-white/50 hover:text-white underline transition-colors"
-    >
-      Limpiar filtro
-    </button>
-  )}
-
-  {/* Mostrar cantidad de resultados */}
-  <span className="text-xs text-white/30 ml-auto">
-    {jugadoresBusqueda.length} {jugadoresBusqueda.length === 1 ? "jugador" : "jugadores"}
-  </span>
-</div>
-          {/* ===== JUGADORES EN MÓVIL: tarjetas (tabla solo en md+) ===== */}
-          <div className="md:hidden mt-4 space-y-2">
-            {[
-               ...jugadoresBusqueda.filter((x) => x.status !== "INACTIVO")
-               , ...jugadoresBusqueda.filter((x) => x.status === "INACTIVO")            ].map((p) => {
-              const thisMonth = p.payments.find((x) => x.month === currentMonth);
-              const ec = p.estadoCuota ?? estadoLocal(p);
-              return (
-                <div key={p.id} className={`card p-3 ${p.status === "INACTIVO" ? "opacity-70" : ""}`}>
-                  <div className="flex items-center gap-3">
-                    <span className="avatar w-8 h-8 text-xs">{p.firstName.charAt(0)}{p.lastName.charAt(0)}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm truncate">
-                        {p.firstName} {p.lastName}
-                      </p>
-                      <p className="text-[11px] text-white/40 truncate">
-                        {p.role === "JUGADOR" ? "Jugador" : p.role}
-                        {p.position && ` · ${p.position}`}
-                        {p.jersey != null && <span className="font-mono"> · #{p.jersey}</span>}
-                      </p>
-                    </div>
-                    {p.status === "INACTIVO" ? (
-                      <span className="shrink-0 px-2 py-0.5 rounded-md text-[11px] bg-surface-2 text-white/50 font-semibold">
-                        Inactivo
-                      </span>
-                    ) : ec.deudor ? (
-                      <span className="shrink-0 px-2 py-0.5 rounded-md text-[11px] bg-red-500/20 text-red-400 font-semibold">
-                        Deudor
-                      </span>
-                    ) : (
-                      <span className={`shrink-0 px-2 py-0.5 rounded-md text-[11px] font-semibold ${ec.pendiente ? "bg-amber-500/20 text-amber-300" : "bg-green-500/20 text-green-400"}`}>
-                        {ec.pendiente ? "Pendiente" : "Al día"}
-                      </span>
-                    )}
-                  </div>
-
-                  {p.status !== "INACTIVO" && (
-                    <div className="mt-2.5 flex items-center gap-2">
-                      <button
-                        onClick={() => toggleCuota(p, currentMonth, !thisMonth?.paid)}
-                        className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-150 active:scale-95 ${
-                          thisMonth?.paid
-                            ? "bg-green-500/25 text-green-300"
-                            : "bg-surface-2 text-white/80 hover:bg-green-500/25 hover:text-green-300"
-                        }`}
-                      >
-                        <Icon name="check" className="w-4 h-4" />
-                        {thisMonth?.paid ? "Pagado" : "Pagar cuota"}
-                      </button>
-                      {thisMonth && (
-                        <button
-                          onClick={() => ponerEstado(p, currentMonth)}
-                          className="w-11 h-10 inline-flex items-center justify-center rounded-lg bg-surface-2 text-white/50 active:scale-95"
-                          title="Cambiar estado: pagado / impago / nulo"
-                        >
-                          <Icon name="nulo" className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="mt-2.5 flex items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                      {p.status !== "INACTIVO" && (
-                        ec.mesesDebe > 0 ? (
-                          <span className="text-red-300 font-semibold">debe {ec.mesesDebe} {ec.mesesDebe === 1 ? "mes" : "meses"}</span>
-                        ) : (
-                          <span className="text-green-400/80">sin deuda</span>
-                        )
-                      )}
-                      <span className={p.fichas?.aptoFichas ? "text-white/40" : "text-orange-300"}>
-                        {p.fichas?.aptoFichas ? "fichas OK" : "sin fichas ✕"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-0.5">
-                      <button
-                        onClick={() => abrirInactivo(p)}
-                        className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 active:scale-90"
-                        title={p.status === "INACTIVO" ? "Ajustar mes de corte" : "Pasar a inactivo"}
-                      >
-                        <Icon name="pause" className="w-4 h-4" />
-                      </button>
-                      {p.status === "INACTIVO" && (
-                        <button
-                          onClick={() => reactivar(p)}
-                          className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 active:scale-90"
-                          title="Reactivar jugador"
-                        >
-                          <Icon name="play" className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => openDocs(p)}
-                        className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 active:scale-90"
-                        title="Fichas y estudios"
-                      >
-                        <Icon name="doc" className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => openEditar(p)}
-                        className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 active:scale-90"
-                        title="Editar"
-                      >
-                        <Icon name="edit" className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => removePlayer(p)}
-                        className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-red-400 hover:bg-red-500/10 active:scale-90"
-                        title="Quitar del equipo"
-                      >
-                        <Icon name="trash" className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            {plantel.length === 0 && (
-              <p className="p-6 text-center text-white/40 text-sm border border-dashed border-outline rounded-lg">
-                Sin jugadores en este equipo. Usá "+ Agregar" o importá desde Excel.
-              </p>
-            )}
-          </div>
-
-          {/* Tabla de jugadores (desktop) */}
-          <div className="hidden md:block mt-4 overflow-x-auto rounded-lg border border-outline">
-            <table className="w-full text-sm">
-              <thead>
-                <tr>
-                  <th className="panel-th">Jugador</th>
-                  <th className="panel-th">Estado de cuota</th>
-                  <th className="panel-th">Pago {monthShort(currentMonth)}</th>
-                  <th className="panel-th">Fichas</th>
-                  <th className="panel-th">Deuda</th>
-                  <th className="panel-th text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                    ...jugadoresFiltrados.filter((x) => x.status !== "INACTIVO"),
-                    ...jugadoresFiltrados.filter((x) => x.status === "INACTIVO")         
-         ].map((p) => {
-                  const thisMonth = p.payments.find((x) => x.month === currentMonth);
-                  const ec = p.estadoCuota ?? estadoLocal(p);
-                  return (
-                    <tr key={p.id} className={`panel-tr ${p.status === "INACTIVO" ? "opacity-60" : ec.deudor ? "bg-red-500/[0.04]" : ""}`}>
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-3">
-                          <span className="avatar">{p.firstName.charAt(0)}{p.lastName.charAt(0)}</span>
-                          <div className="min-w-0">
-                            <p className="font-semibold truncate">
-                              {p.firstName} {p.lastName}
-                            </p>
-                            <p className="text-[11px] text-white/40 truncate">
-                              {p.role === "JUGADOR" ? "Jugador" : p.role}
-                              {p.position && ` · ${p.position}`}
-                              {p.jersey != null && <span className="font-mono"> · #{p.jersey}</span>}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <div className="flex flex-wrap gap-1.5">
-                          {p.status === "INACTIVO" ? (
-                            <span className="px-2 py-0.5 rounded-md text-[11px] bg-surface-2 text-white/50 font-semibold">
-                              Inactivo{p.inactiveSince ? ` · ${monthShort(p.inactiveSince.slice(0, 7))} ${p.inactiveSince.slice(0, 4)}` : ""}
-                            </span>
-                          ) : ec.deudor ? (
-                            <span className="px-2 py-0.5 rounded-md text-[11px] bg-red-500/20 text-red-400 font-semibold">
-                              Deudor
-                            </span>
-                          ) : (
-                            <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold ${ec.pendiente ? "bg-amber-500/20 text-amber-300" : "bg-green-500/20 text-green-400"}`}>
-                              {ec.pendiente ? "Pendiente" : "Al día"}
-                            </span>
-                          )}
-                          {p.fichas && !p.fichas.aptoFichas && (
-                            <span className="px-2 py-0.5 rounded-md text-[11px] bg-orange-500/20 text-orange-300 font-semibold">
-                              Sin fichas
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        {p.status === "INACTIVO" ? (
-                          <span className="text-[11px] text-white/30">sin cuota</span>
-                        ) : (
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => toggleCuota(p, currentMonth, !thisMonth?.paid)}
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 active:scale-95 ${
-                                thisMonth?.paid
-                                  ? "bg-green-500/25 text-green-300 hover:bg-green-500/35"
-                                  : "bg-surface-2 text-white/70 hover:bg-green-500/25 hover:text-green-300"
-                              }`}
-                            >
-                              <Icon name="check" className="w-3.5 h-3.5" />
-                              {thisMonth?.paid ? "Pagado" : "Pagar"}
-                            </button>
-                            {thisMonth && (
-                              <button
-                                onClick={() => ponerEstado(p, currentMonth)}
-                                className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-surface-2 transition-colors"
-                                title="Cambiar estado: pagado / impago / nulo (quitar registro)"
-                              >
-                                <Icon name="nulo" className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <span className="flex flex-col gap-0.5" title={p.fichas?.resumen ?? "Sin datos de fichas"}>
-                          <span className="flex items-center gap-1.5 flex-wrap">
-                            {(p.fichas?.bloqueantes ?? tiposBloqueantes(categoriaActual)).map((t) => (
-                              <span key={t} className="flex items-center gap-1">
-                                <span className="text-[10px] text-white/40">{labelTipo(t)}</span>
-                                <BadgeFicha st={p.fichas?.porTipo[t]} />
-                              </span>
-                            ))}
-                          </span>
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-xs tabular-nums">
-  {ec.mesesDebe > 0 ? (
-    <span className="inline-flex items-center gap-1 text-red-400 font-bold bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/30">
-      🔴 {ec.mesesDebe} {ec.mesesDebe === 1 ? "mes" : "meses"}
-    </span>
-  ) : (
-    <span className="text-white/30">—</span>
-  )}
-</td>
-                      <td className="px-3 py-2.5">
-                       <div className="row-actions">
-  <button
-    onClick={() => abrirInactivo(p)}
-    className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90 group relative"
-    title={p.status === "INACTIVO" ? "Ajustar mes de corte" : "Pasar a inactivo"}
-  >
-    <Icon name="pause" className="w-4 h-4" />
-    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-2 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-      {p.status === "INACTIVO" ? "Ajustar inactivo" : "Inactivar"}
-    </span>
-  </button>
-  {p.status === "INACTIVO" && (
-    <button
-      onClick={() => reactivar(p)}
-      className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90 group relative"
-      title="Reactivar jugador"
-    >
-      <Icon name="play" className="w-4 h-4" />
-      <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-2 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-        Reactivar
-      </span>
-    </button>
-  )}
-  <button
-    onClick={() => openDocs(p)}
-    className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90 group relative"
-    title="Fichas y estudios"
-  >
-    <Icon name="doc" className="w-4 h-4" />
-    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-2 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-      Fichas
-    </span>
-  </button>
-  <button
-    onClick={() => openEditar(p)}
-    className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90 group relative"
-    title="Editar jugador"
-  >
-    <Icon name="edit" className="w-4 h-4" />
-    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-2 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-      Editar
-    </span>
-  </button>
-  <button
-    onClick={() => removePlayer(p)}
-    className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-red-400 hover:bg-red-500/10 transition-colors active:scale-90 group relative"
-    title="Quitar del equipo"
-  >
-    <Icon name="trash" className="w-4 h-4" />
-    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-2 text-red-400 text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-      Eliminar
-    </span>
-  </button>
-</div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {plantel.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-white/40">
-                      Sin jugadores en este equipo. Usá "+ Agregar" o importá desde Excel.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-
-      {/* ====== JUGADORES DE FORMATIVA (pagan en su categoría, sin cuota acá) ====== */}
-      {view === "lista" && plantelSinCuota.length > 0 && (
-        <div className="mt-8">
-          <h2 className="font-display text-lg font-bold text-white/80 mb-2 flex items-center gap-2">
-            <span className="inline-block w-1.5 h-5 bg-amber-500/80 rounded" />
-            Pagan en su categoría formativa
-            <span className="text-xs font-mono text-white/40">({plantelSinCuota.length})</span>
-          </h2>
-          <p className="text-xs text-white/50 mb-3">
-            Aparecen en este plantel pero la cuota la pagan en su categoría: no cuentan para el presupuesto ni registran pagos acá.
-          </p>
-          <div className="overflow-x-auto rounded-lg border border-outline">
-            <table className="w-full text-sm">
-              <thead>
-                <tr>
-                  <th className="panel-th">Jugador</th>
-                  <th className="panel-th">Paga en</th>
-                  <th className="panel-th">Fichas</th>
-                  <th className="panel-th text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {plantelSinCuota.map((p) => (
-                  <tr key={p.id} className="panel-tr">
-                    <td className="px-3 py-2.5">
-                      <div className="flex items-center gap-3">
-                        <span className="avatar">{p.firstName.charAt(0)}{p.lastName.charAt(0)}</span>
-                        <div className="min-w-0">
-                          <p className="font-semibold truncate flex items-center gap-2">
-                            {p.firstName} {p.lastName}
-                            <span className="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] bg-amber-500/15 text-amber-300 font-mono uppercase tracking-wide">
-                              formativa
-                            </span>
-                          </p>
-                          <p className="text-[11px] text-white/40 truncate">{p.role}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span className="px-2 py-0.5 rounded-md text-xs bg-primary/15 text-primary-light font-mono">
-                        {p.categoriaPago?.length ? p.categoriaPago.join(" · ") : "—"}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span className="flex flex-col gap-0.5" title={p.fichas?.resumen ?? "Sin datos de fichas"}>
-                        <span className="flex items-center gap-1.5 flex-wrap">
-                          {(p.fichas?.bloqueantes ?? tiposBloqueantes(categoriaActual)).map((t) => (
-                            <span key={t} className="flex items-center gap-1.5">
-                              <span className="text-[10px] text-white/40">{labelTipo(t)}</span>
-                              <BadgeFicha st={p.fichas?.porTipo[t]} />
-                            </span>
-                          ))}
-                        </span>
-                        <span className="text-[10px] text-white/40">
-                          {p.fichas?.aptoFichas ? "Fichas al día" : "Bloquea jugar ✕"}
-                        </span>
-                      </span>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <div className="row-actions">
-                        <button
-                          onClick={() => openDocs(p)}
-                          className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90"
-                          title="Fichas y estudios del jugador"
-                        >
-                          <Icon name="doc" className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => openEditar(p)}
-                          className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-surface-2 transition-colors active:scale-90"
-                          title="Editar"
-                        >
-                          <Icon name="edit" className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => removePlayer(p)}
-                          className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/60 hover:text-red-400 hover:bg-red-500/10 transition-colors active:scale-90"
-                          title="Quitar del equipo"
-                        >
-                          <Icon name="trash" className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <PlayerListView
+          jugadoresBusqueda={jugadoresBusqueda}
+          jugadoresFiltrados={jugadoresFiltrados}
+          plantel={plantel}
+          plantelSinCuota={plantelSinCuota}
+          busqueda={busqueda}
+          setBusqueda={setBusqueda}
+          filtroEstado={filtroEstado}
+          setFiltroEstado={setFiltroEstado}
+          currentMonth={currentMonth}
+          categoriaActual={categoriaActual}
+          estadoLocal={estadoLocal}
+          toggleCuota={toggleCuota}
+          ponerEstado={ponerEstado}
+          abrirInactivo={abrirInactivo}
+          reactivar={reactivar}
+          openDocs={openDocs}
+          openEditar={openEditar}
+          removePlayer={removePlayer}
+        />
       )}
 
       {/* ===================== VISTA CALENDARIO ===================== */}
@@ -1970,10 +1508,10 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
         />
       )}
 
-      {/* ===================== CUERPO TÉCNICO (separado, sin pagos) ===================== */}
+      {/* ===================== CUERPO TÃ‰CNICO (separado, sin pagos) ===================== */}
       {tecnicos.length > 0 && (
         <div className="mt-8">
-          <h2 className="font-display text-lg font-bold text-white/80 mb-3">Cuerpo técnico</h2>
+          <h2 className="font-display text-lg font-bold text-white/80 mb-3">Cuerpo tÃ©cnico</h2>
 <div className="overflow-x-auto rounded-lg border border-outline">
             <table className="w-full text-sm">
               <thead>
@@ -2031,18 +1569,18 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
       )}
 
       <p className="mt-6 text-xs text-white/40">
-        <Link to="/" className="underline">Ver sitio público</Link>
+        <Link to="/" className="underline">Ver sitio pÃºblico</Link>
       </p>
 
-      {/* ===================== MODAL ALTA / EDICIÓN DE JUGADOR ===================== */}
+      {/* ===================== MODAL ALTA / EDICIÃ“N DE JUGADOR ===================== */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-md rounded-lg border border-outline bg-surface-2 p-6">
             <h2 className="font-display text-lg font-bold">
-              {editing ? `Editar: ${editing.firstName} ${editing.lastName}` : "Nuevo jugador / técnico"}
+              {editing ? `Editar: ${editing.firstName} ${editing.lastName}` : "Nuevo jugador / tÃ©cnico"}
             </h2>
             <p className="text-xs text-white/50 mt-1">
-              Cargar por DNI: si el jugador ya existe en otro equipo, solo se vincula acá.
+              Cargar por DNI: si el jugador ya existe en otro equipo, solo se vincula acÃ¡.
             </p>
 
             <div className="mt-4 space-y-3">
@@ -2053,7 +1591,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                     value={form.lastName}
                     onChange={(e) => setForm({ ...form, lastName: e.target.value })}
                     className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                    placeholder="Pérez"
+                    placeholder="PÃ©rez"
                   />
                 </label>
                 <label className="block">
@@ -2080,7 +1618,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                 {!buscandoDni && foundPlayer && (
                   <div className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-2.5 text-xs col-span-2">
                     <p className="text-primary-light font-semibold">
-                      ✓ DNI ya registrado: {foundPlayer.firstName} {foundPlayer.lastName}
+                      âœ“ DNI ya registrado: {foundPlayer.firstName} {foundPlayer.lastName}
                     </p>
                     <p className="text-white/70 mt-1 leading-relaxed">
                       Se va a <span className="font-semibold text-white">vincular</span> a este equipo, sin duplicar datos.
@@ -2122,7 +1660,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-xs text-white/60">Posición</span>
+                  <span className="text-xs text-white/60">PosiciÃ³n</span>
                   <input
                     value={form.position}
                     onChange={(e) => setForm({ ...form, position: e.target.value })}
@@ -2131,7 +1669,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs text-white/60">N° camiseta</span>
+                  <span className="text-xs text-white/60">NÂ° camiseta</span>
                   <input
                     value={form.jersey}
                     onChange={(e) => setForm({ ...form, jersey: e.target.value.replace(/\D/g, "") })}
@@ -2196,14 +1734,14 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                   Fichas: {docsPlayer.firstName} {docsPlayer.lastName}
                 </h2>
                 <p className="text-xs text-white/50 mt-1">
-                  Ergo vence a los 2 años, electro al año de la emisión. Se calcula automáticamente.
+                  Ergo vence a los 2 aÃ±os, electro al aÃ±o de la emisiÃ³n. Se calcula automÃ¡ticamente.
                 </p>
               </div>
               <button
                 onClick={() => setDocsPlayer(null)}
                 className="text-white/50 hover:text-white text-xl leading-none"
               >
-                ×
+                Ã—
               </button>
             </div>
 
@@ -2211,8 +1749,8 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
             {docsEstado && (
               <div className={`mt-4 px-3 py-2 rounded-lg text-sm border ${docsEstado.aptoFichas ? "border-green-500/30 bg-green-500/10 text-green-300" : "border-red-500/30 bg-red-500/10 text-red-300"}`}>
                 {docsEstado.aptoFichas
-                  ? "Apto por documentación ✓"
-                  : "Documentación incompleta — no puede jugar ✕"}
+                  ? "Apto por documentaciÃ³n âœ“"
+                  : "DocumentaciÃ³n incompleta â€” no puede jugar âœ•"}
                 <span className="block text-xs opacity-80 mt-0.5">{docsEstado.resumen}</span>
               </div>
             )}
@@ -2228,14 +1766,14 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                     onChange={(e) => setDocForm({ ...docForm, tipo: e.target.value })}
                     className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                   >
-                    <option value="FICHA_MEDICA" className="bg-surface-2">Ficha médica</option>
+                    <option value="FICHA_MEDICA" className="bg-surface-2">Ficha mÃ©dica</option>
                     <option value="ELECTROCARDIOGRAMA" className="bg-surface-2">Electrocardiograma</option>
-                    <option value="ERGONOMETRIA" className="bg-surface-2">Ergometría</option>
+                    <option value="ERGONOMETRIA" className="bg-surface-2">ErgometrÃ­a</option>
                     <option value="OTRO" className="bg-surface-2">Otro</option>
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-xs text-white/60">Fecha de emisión (del papel)</span>
+                  <span className="text-xs text-white/60">Fecha de emisiÃ³n (del papel)</span>
                   <input
                     type="date"
                     value={docForm.fechaEmision}
@@ -2247,16 +1785,16 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                   <span className="text-xs text-white/40">{vigenciaHint()}</span>
                 </label>
                 <label className="block col-span-2">
-                  <span className="text-xs text-white/60">Descripción (opcional)</span>
+                  <span className="text-xs text-white/60">DescripciÃ³n (opcional)</span>
                   <input
                     value={docForm.descripcion}
                     onChange={(e) => setDocForm({ ...docForm, descripcion: e.target.value })}
                     className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                    placeholder="Renovación 2do semestre 2026"
+                    placeholder="RenovaciÃ³n 2do semestre 2026"
                   />
                 </label>
                 <label className="block col-span-2">
-                  <span className="text-xs text-white/60">Archivo (PDF o imagen, máx 2 MB) *</span>                  <input
+                  <span className="text-xs text-white/60">Archivo (PDF o imagen, mÃ¡x 2 MB) *</span>                  <input
                     type="file"
                     accept=".pdf,image/*,.jpg,.jpeg,.png"
                     onChange={(e) => setDocForm({ ...docForm, file: e.target.files?.[0] ?? null })}
@@ -2278,7 +1816,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
             <div className="mt-5">
               <p className="text-sm font-semibold text-white/80 mb-2">Documentos cargados</p>
               {docsList.length === 0 && (
-                <p className="text-sm text-white/40">Todavía no hay documentos cargados.</p>
+                <p className="text-sm text-white/40">TodavÃ­a no hay documentos cargados.</p>
               )}
               <ul className="space-y-2">
                 {docsList.map((d) => {
@@ -2288,22 +1826,22 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                     <li key={d.id} className="flex items-center gap-3 rounded-lg border border-outline bg-surface-1 px-3 py-2">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm truncate">
-                          <span className="text-white/40 text-xs">{labelTipo(d.tipo)} · </span>
+                          <span className="text-white/40 text-xs">{labelTipo(d.tipo)} Â· </span>
                           {d.fileName}
                         </p>
                         <p className="text-xs text-white/40">
                           {d.descripcion || ""}
                           {d.fechaEmision && (
                             <span className="text-white/40">
-                              {" "}· emitido {new Date(d.fechaEmision).toLocaleDateString("es-AR")}
+                              {" "}Â· emitido {new Date(d.fechaEmision).toLocaleDateString("es-AR")}
                             </span>
                           )}
                           {vence && (
                             <span className={vencido ? "text-red-400" : "text-white/50"}>
-                              {" "}· vence {vence.toLocaleDateString("es-AR")}
+                              {" "}Â· vence {vence.toLocaleDateString("es-AR")}
                             </span>
                           )}
-                          {!vence && " · sin fecha de vencimiento"}
+                          {!vence && " Â· sin fecha de vencimiento"}
                         </p>
                       </div>
                       <button
@@ -2332,10 +1870,10 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
           <div className="w-full max-w-md rounded-lg border border-outline bg-surface-2 p-6">
             <div className="flex items-start justify-between gap-4">
               <h2 className="font-display text-lg font-bold">Cambiar mis credenciales</h2>
-              <button onClick={() => setShowCredModal(false)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
+              <button onClick={() => setShowCredModal(false)} className="text-white/50 hover:text-white text-xl leading-none">Ã—</button>
             </div>
             <p className="text-xs text-white/50 mt-1">
-              Es tu único cambio de email/contraseña. Después, si necesitás otro, pedilo al administrador.
+              Es tu Ãºnico cambio de email/contraseÃ±a. DespuÃ©s, si necesitÃ¡s otro, pedilo al administrador.
             </p>
 
             <form
@@ -2353,25 +1891,25 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                 />
               </div>
               <div>
-                <label className="text-xs text-white/70 block mb-1">Contraseña actual</label>
+                <label className="text-xs text-white/70 block mb-1">ContraseÃ±a actual</label>
                 <input
                   type="password"
                   value={credForm.currentPassword}
                   onChange={(e) => setCredForm({ ...credForm, currentPassword: e.target.value })}
-                  placeholder="Necesaria para cambiar la contraseña"
+                  placeholder="Necesaria para cambiar la contraseÃ±a"
                   className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                   minLength={1}
                 />
               </div>
               <div>
                 <label className="text-xs text-white/70 block mb-1">
-                  Contraseña nueva (dejala vacía para no cambiarla)
+                  ContraseÃ±a nueva (dejala vacÃ­a para no cambiarla)
                 </label>
                 <input
                   type="password"
                   value={credForm.password}
                   onChange={(e) => setCredForm({ ...credForm, password: e.target.value })}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="MÃ­nimo 6 caracteres"
                   className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                   minLength={6}
                 />
@@ -2409,12 +1947,12 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
               <h2 className="font-display text-lg font-bold">
                 {delegadoEditingId ? "Editar delegado" : "Nuevo delegado"}
               </h2>
-              <button onClick={() => setShowDelegadoModal(false)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
+              <button onClick={() => setShowDelegadoModal(false)} className="text-white/50 hover:text-white text-xl leading-none">Ã—</button>
             </div>
             <p className="text-xs text-white/50 mt-1">
               {delegadoEditingId
-                ? "Cambiá los datos y guardá. Dejá la contraseña vacía para no modificarla."
-                : "Creá una cuenta para que el delegado gestione sus equipos."}
+                ? "CambiÃ¡ los datos y guardÃ¡. DejÃ¡ la contraseÃ±a vacÃ­a para no modificarla."
+                : "CreÃ¡ una cuenta para que el delegado gestione sus equipos."}
             </p>
 
             <form onSubmit={saveDelegado} className="mt-5 space-y-4">
@@ -2423,7 +1961,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                 <input
                   value={delegadoForm.fullName}
                   onChange={(e) => setDelegadoForm({ ...delegadoForm, fullName: e.target.value })}
-                  placeholder="Ej: Juan Pérez"
+                  placeholder="Ej: Juan PÃ©rez"
                   className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                   required
                 />
@@ -2441,13 +1979,13 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
               </div>
               <div>
                 <label className="text-xs text-white/70 block mb-1">
-                  Contraseña {delegadoEditingId && "(dejala vacía para no cambiarla)"}
+                  ContraseÃ±a {delegadoEditingId && "(dejala vacÃ­a para no cambiarla)"}
                 </label>
                 <input
                   type="password"
                   value={delegadoForm.password}
                   onChange={(e) => setDelegadoForm({ ...delegadoForm, password: e.target.value })}
-                  placeholder={delegadoEditingId ? "••••••••" : "Mínimo 6 caracteres"}
+                  placeholder={delegadoEditingId ? "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" : "MÃ­nimo 6 caracteres"}
                   className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                   required={!delegadoEditingId}
                   minLength={6}
@@ -2456,7 +1994,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
               <div>
                 <label className="text-xs text-white/70 block mb-1.5">Equipos asignados</label>
                 <p className="text-[11px] text-white/40 mb-2">
-                  Marcá las categorías que va a poder gestionar.
+                  MarcÃ¡ las categorÃ­as que va a poder gestionar.
                 </p>
                 <div className="grid grid-cols-2 gap-1.5 max-h-44 overflow-y-auto rounded-lg border border-outline bg-surface-1 p-2">
                   {allTeams.length === 0 && (
@@ -2522,16 +2060,16 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
               <h2 className="font-display text-lg font-bold">
                 {poliSlotEditingId ? "Editar bloque semanal" : "Nuevo bloque semanal"}
               </h2>
-              <button onClick={() => setShowPoliSlotModal(false)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
+              <button onClick={() => setShowPoliSlotModal(false)} className="text-white/50 hover:text-white text-xl leading-none">Ã—</button>
             </div>
             <p className="text-xs text-white/50 mt-1">
-              Se repite todas las semanas hasta que lo cambies. Para un solo día usá "Cambiar este día" en la grilla.
+              Se repite todas las semanas hasta que lo cambies. Para un solo dÃ­a usÃ¡ "Cambiar este dÃ­a" en la grilla.
             </p>
 
             <form onSubmit={savePoliSlot} className="mt-5 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Día</label>
+                  <label className="text-xs text-white/70 block mb-1">DÃ­a</label>
                   <select
                     value={poliSlotForm.dayOfWeek}
                     onChange={(e) => setPoliSlotForm({ ...poliSlotForm, dayOfWeek: Number(e.target.value) })}
@@ -2539,10 +2077,10 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                   >
                     <option value={1}>Lunes</option>
                     <option value={2}>Martes</option>
-                    <option value={3}>Miércoles</option>
+                    <option value={3}>MiÃ©rcoles</option>
                     <option value={4}>Jueves</option>
                     <option value={5}>Viernes</option>
-                    <option value={6}>Sábado</option>
+                    <option value={6}>SÃ¡bado</option>
                     <option value={7}>Domingo</option>
                   </select>
                 </div>
@@ -2558,7 +2096,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                     <option>Palermo</option>
                     <option>Borja</option>
                     <option>Gimnasio</option>
-                    <option>Cancha de césped</option>
+                    <option>Cancha de cÃ©sped</option>
                     <option>Otro</option>
                   </select>
                 </div>
@@ -2640,20 +2178,20 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
         </div>
       )}
 
-      {/* ===================== MODAL EXCEPCIÓN PUNTUAL (POLI) ===================== */}
+      {/* ===================== MODAL EXCEPCIÃ“N PUNTUAL (POLI) ===================== */}
       {showPoliExModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-md rounded-lg border border-outline bg-surface-2 p-6">
             <div className="flex items-start justify-between gap-4">
               <h2 className="font-display text-lg font-bold">
-                {showPoliExModal.bloque ? "Cambiar entrenamiento del día" : "Agregar entrenamiento puntual"}
+                {showPoliExModal.bloque ? "Cambiar entrenamiento del dÃ­a" : "Agregar entrenamiento puntual"}
               </h2>
-              <button onClick={() => setShowPoliExModal(null)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
+              <button onClick={() => setShowPoliExModal(null)} className="text-white/50 hover:text-white text-xl leading-none">Ã—</button>
             </div>
             <p className="text-xs text-white/50 mt-1">
               {showPoliExModal.bloque
-                ? <>Aplica solo al <span className="text-white capitalize">{showPoliExModal.fecha}</span>. Si cancelás, ese día no se entrena.</>
-                : <>Entrenamiento único para el <span className="text-white capitalize">{showPoliExModal.fecha}</span> (no se repite las semanas siguientes).</>}
+                ? <>Aplica solo al <span className="text-white capitalize">{showPoliExModal.fecha}</span>. Si cancelÃ¡s, ese dÃ­a no se entrena.</>
+                : <>Entrenamiento Ãºnico para el <span className="text-white capitalize">{showPoliExModal.fecha}</span> (no se repite las semanas siguientes).</>}
             </p>
 
             <form onSubmit={saveExcepcion} className="mt-5 space-y-4">
@@ -2661,8 +2199,8 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                 <div className="rounded-lg bg-surface-1 border border-outline p-3 text-sm">
                   <p className="text-white/80">
                     <span className="text-white/50">De: </span>{showPoliExModal.bloque.team?.name ?? "Actividad libre"}
-                    <span className="text-white/40"> · </span>{showPoliExModal.bloque.startTime}–{showPoliExModal.bloque.endTime}
-                    <span className="text-white/40"> · </span>{showPoliExModal.bloque.place}
+                    <span className="text-white/40"> Â· </span>{showPoliExModal.bloque.startTime}â€“{showPoliExModal.bloque.endTime}
+                    <span className="text-white/40"> Â· </span>{showPoliExModal.bloque.place}
                   </p>
                 </div>
               )}
@@ -2675,7 +2213,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                     onChange={(e) => setPoliExForm({ ...poliExForm, canceled: e.target.checked })}
                     className="accent-red-500 w-4 h-4"
                   />
-                  Cancelar el entrenamiento este día
+                  Cancelar el entrenamiento este dÃ­a
                 </label>
               )}
 
@@ -2711,7 +2249,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                     <option>Palermo</option>
                     <option>Borja</option>
                     <option>Gimnasio</option>
-                    <option>Cancha de césped</option>
+                    <option>Cancha de cÃ©sped</option>
                     <option>Otro</option>
                   </select>
                 </div>
@@ -2777,10 +2315,10 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
           <div className="w-full max-w-sm rounded-lg border border-outline bg-surface-2 p-6">
             <div className="flex items-start justify-between gap-4">
               <h2 className="font-display text-lg font-bold">Cuota mensual</h2>
-              <button onClick={() => setShowQuotaModal(false)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
+              <button onClick={() => setShowQuotaModal(false)} className="text-white/50 hover:text-white text-xl leading-none">Ã—</button>
             </div>
             <p className="text-xs text-white/50 mt-1">
-              La cuota por jugador de {presup?.categoria}. Dejalo vacío para quitar la cuota cargada.
+              La cuota por jugador de {presup?.categoria}. Dejalo vacÃ­o para quitar la cuota cargada.
             </p>
             <input
               type="number"
@@ -2810,11 +2348,11 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
               <h2 className="font-display text-lg font-bold">
                 {gastoModal.tipo === "fijo" ? "Nuevo gasto fijo" : `Gasto extra de ${monthShort(gastoModal.mes ?? mesActual())}`}
               </h2>
-              <button onClick={() => setGastoModal(null)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
+              <button onClick={() => setGastoModal(null)} className="text-white/50 hover:text-white text-xl leading-none">Ã—</button>
             </div>
             <p className="text-xs text-white/50 mt-1">
               {gastoModal.tipo === "fijo"
-                ? "Se repite todos los meses (cancha, árbitros, viáticos...)."
+                ? "Se repite todos los meses (cancha, Ã¡rbitros, viÃ¡ticos...)."
                 : "Gasto puntual solo de este mes (cancha extra por lluvia, etc.)."}
             </p>
             <div className="mt-4 space-y-3">
@@ -2852,14 +2390,14 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
               <h2 className="font-display text-lg font-bold">
                 {inactivoModal.status === "INACTIVO" ? "Ajustar mes de corte" : "Pasar a inactivo"}
               </h2>
-              <button onClick={() => setInactivoModal(null)} className="text-white/50 hover:text-white text-xl leading-none">×</button>
+              <button onClick={() => setInactivoModal(null)} className="text-white/50 hover:text-white text-xl leading-none">Ã—</button>
             </div>
             <p className="text-xs text-white/50 mt-1">
               {inactivoModal.firstName} {inactivoModal.lastName} deja de contar la cuota y el presupuesto.
               Su historial de pagos se conserva.
             </p>
             <label className="block mt-4">
-              <span className="text-xs text-white/60">Hasta qué mes jugó</span>
+              <span className="text-xs text-white/60">Hasta quÃ© mes jugÃ³</span>
               <input
                 type="month"
                 max={new Date().toISOString().slice(0, 7)}
@@ -2869,8 +2407,8 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
               />
             </label>
             <p className="text-xs text-white/40 mt-2 leading-relaxed">
-              Si tardaron en marcarlo (ej. dejó de venir en marzo y lo marcan ahora), elegí el mes en que dejó de jugar:
-              la deuda se congela ahí y los meses posteriores no corren cuota.
+              Si tardaron en marcarlo (ej. dejÃ³ de venir en marzo y lo marcan ahora), elegÃ­ el mes en que dejÃ³ de jugar:
+              la deuda se congela ahÃ­ y los meses posteriores no corren cuota.
             </p>
             <div className="mt-4 flex gap-2">
               <button
@@ -2902,22 +2440,22 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
               <div>
                 <h2 className="font-display text-lg font-bold">Importar plantel desde Excel</h2>
                 <p className="text-xs text-white/50 mt-1">
-                  Descargá la <button className="underline text-primary-light" onClick={descargarPlantilla}>plantilla</button>,
-                  completala y subila acá. El DNI es la clave: los jugadores ya existentes se actualizan y vinculan.
+                  DescargÃ¡ la <button className="underline text-primary-light" onClick={descargarPlantilla}>plantilla</button>,
+                  completala y subila acÃ¡. El DNI es la clave: los jugadores ya existentes se actualizan y vinculan.
                 </p>
               </div>
               <button
                 onClick={() => { setShowImport(false); setImportMsg(null); setImportFile(null); }}
                 className="text-white/50 hover:text-white text-xl leading-none"
               >
-                ×
+                Ã—
               </button>
             </div>
 
             {!importMsg && (
               <div className="mt-5 space-y-3">
                 <label className="block">
-                  <span className="text-xs text-white/60">Archivo .xlsx (máx 5 MB) *</span>
+                  <span className="text-xs text-white/60">Archivo .xlsx (mÃ¡x 5 MB) *</span>
                   <input
                     type="file"
                     accept=".xlsx"
@@ -2943,7 +2481,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                   </p>
                 ) : (
                   <div className="px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-300 text-sm">
-                    {importMsg.creados} creados · {importMsg.actualizados} actualizados · {importMsg.vinculados} vinculados
+                    {importMsg.creados} creados Â· {importMsg.actualizados} actualizados Â· {importMsg.vinculados} vinculados
                   </div>
                 )}
                 {importMsg.errores.length > 0 && (
