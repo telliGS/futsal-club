@@ -1266,7 +1266,7 @@ export default function Dashboard() {
     const safetyId = setTimeout(() => { controller.abort(); setPoliExSaving(false); }, 15000);
     try {
       const bloque = showPoliExModal.bloque;
-      const esExtra = !bloque; // "+ Extra": entrenamiento puntual nuevo
+      const esExtra = !bloque || bloque.tipo === "EXTRA"; // "+ Extra" o editar un extra existente
       const payload = {
         date: showPoliExModal.fecha,
         slotId: esExtra ? null : bloque.id,
