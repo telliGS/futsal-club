@@ -10,6 +10,9 @@ import PresupuestoView from "../components/panel/PresupuestoView";
 import PlayerListView from "../components/panel/PlayerListView";
 import PlayerModal from "../components/panel/PlayerModal";
 import CredencialesModal from "../components/panel/CredencialesModal";
+import PoliSlotModal from "../components/panel/PoliSlotModal";
+import PoliExModal from "../components/panel/PoliExModal";
+import ImportModal from "../components/panel/ImportModal";
 import { monthRange, monthShort, labelTipo, Icon } from "../lib/panel-helpers";
 import {
   Team,
@@ -1853,261 +1856,31 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
       )}
 
       {/* ===================== MODAL BLOQUE SEMANAL (POLI) ===================== */}
-      {showPoliSlotModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md rounded-lg border border-outline bg-surface-2 p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-start justify-between gap-4">
-              <h2 className="font-display text-lg font-bold">
-                {poliSlotEditingId ? "Editar bloque semanal" : "Nuevo bloque semanal"}
-              </h2>
-              <button onClick={() => setShowPoliSlotModal(false)} className="text-white/50 hover:text-white text-xl leading-none">Ã—</button>
-            </div>
-            <p className="text-xs text-white/50 mt-1">
-              Se repite todas las semanas hasta que lo cambies. Para un solo dÃ­a usÃ¡ "Cambiar este dÃ­a" en la grilla.
-            </p>
-
-            <form onSubmit={savePoliSlot} className="mt-5 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-white/70 block mb-1">DÃ­a</label>
-                  <select
-                    value={poliSlotForm.dayOfWeek}
-                    onChange={(e) => setPoliSlotForm({ ...poliSlotForm, dayOfWeek: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                  >
-                    <option value={1}>Lunes</option>
-                    <option value={2}>Martes</option>
-                    <option value={3}>MiÃ©rcoles</option>
-                    <option value={4}>Jueves</option>
-                    <option value={5}>Viernes</option>
-                    <option value={6}>SÃ¡bado</option>
-                    <option value={7}>Domingo</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-white/70 block mb-1">Lugar</label>
-                  <select
-                    value={poliSlotForm.place}
-                    onChange={(e) => setPoliSlotForm({ ...poliSlotForm, place: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                  >
-                    <option>Polideportivo</option>
-                    <option>La Toma</option>
-                    <option>Palermo</option>
-                    <option>Borja</option>
-                    <option>Gimnasio</option>
-                    <option>Cancha de cÃ©sped</option>
-                    <option>Otro</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-white/70 block mb-1">Desde</label>
-                  <input
-                    type="time"
-                    value={poliSlotForm.startTime}
-                    onChange={(e) => setPoliSlotForm({ ...poliSlotForm, startTime: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-white/70 block mb-1">Hasta</label>
-                  <input
-                    type="time"
-                    value={poliSlotForm.endTime}
-                    onChange={(e) => setPoliSlotForm({ ...poliSlotForm, endTime: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-white/70 block mb-1">Equipo / actividad</label>
-                <select
-                  value={poliSlotForm.teamId}
-                  onChange={(e) => setPoliSlotForm({ ...poliSlotForm, teamId: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                >
-                  {esAdmin && <option value="">Actividad libre (sin equipo)</option>}
-                  {equiposPoliEditables.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-white/70 block mb-1">Responsable (opcional)</label>
-                <input
-                  value={poliSlotForm.responsable}
-                  onChange={(e) => setPoliSlotForm({ ...poliSlotForm, responsable: e.target.value })}
-                  placeholder="Ej: DT Marcos"
-                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-white/70 block mb-1">Nota (opcional)</label>
-                <input
-                  value={poliSlotForm.note}
-                  onChange={(e) => setPoliSlotForm({ ...poliSlotForm, note: e.target.value })}
-                  placeholder="Ej: solo jugadores convocados"
-                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                />
-              </div>
-
-              {poliError && <p className="text-sm text-red-400">{poliError}</p>}
-
-              <div className="flex gap-3 justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowPoliSlotModal(false)}
-                  className="px-4 py-2 rounded-lg border border-outline text-white/70 text-sm hover:bg-surface-1"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={poliSlotSaving}
-                  className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-light disabled:opacity-50"
-                >
-                  {poliSlotSaving ? "Guardando..." : poliSlotEditingId ? "Guardar cambios" : "Crear bloque"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <PoliSlotModal
+        show={showPoliSlotModal}
+        setShow={setShowPoliSlotModal}
+        editingId={poliSlotEditingId}
+        form={poliSlotForm}
+        setForm={setPoliSlotForm}
+        esAdmin={esAdmin}
+        equiposPoliEditables={equiposPoliEditables}
+        error={poliError}
+        saving={poliSlotSaving}
+        save={savePoliSlot}
+      />
 
       {/* ===================== MODAL EXCEPCIÃ“N PUNTUAL (POLI) ===================== */}
-      {showPoliExModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md rounded-lg border border-outline bg-surface-2 p-6">
-            <div className="flex items-start justify-between gap-4">
-              <h2 className="font-display text-lg font-bold">
-                {showPoliExModal.bloque ? "Cambiar entrenamiento del dÃ­a" : "Agregar entrenamiento puntual"}
-              </h2>
-              <button onClick={() => setShowPoliExModal(null)} className="text-white/50 hover:text-white text-xl leading-none">Ã—</button>
-            </div>
-            <p className="text-xs text-white/50 mt-1">
-              {showPoliExModal.bloque
-                ? <>Aplica solo al <span className="text-white capitalize">{showPoliExModal.fecha}</span>. Si cancelÃ¡s, ese dÃ­a no se entrena.</>
-                : <>Entrenamiento Ãºnico para el <span className="text-white capitalize">{showPoliExModal.fecha}</span> (no se repite las semanas siguientes).</>}
-            </p>
-
-            <form onSubmit={saveExcepcion} className="mt-5 space-y-4">
-              {showPoliExModal.bloque && (
-                <div className="rounded-lg bg-surface-1 border border-outline p-3 text-sm">
-                  <p className="text-white/80">
-                    <span className="text-white/50">De: </span>{showPoliExModal.bloque.team?.name ?? "Actividad libre"}
-                    <span className="text-white/40"> Â· </span>{showPoliExModal.bloque.startTime}â€“{showPoliExModal.bloque.endTime}
-                    <span className="text-white/40"> Â· </span>{showPoliExModal.bloque.place}
-                  </p>
-                </div>
-              )}
-
-              {showPoliExModal.bloque && (
-                <label className="flex items-center gap-2 text-sm text-white/80 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={poliExForm.canceled}
-                    onChange={(e) => setPoliExForm({ ...poliExForm, canceled: e.target.checked })}
-                    className="accent-red-500 w-4 h-4"
-                  />
-                  Cancelar el entrenamiento este dÃ­a
-                </label>
-              )}
-
-              {!showPoliExModal.bloque && (
-                <div>
-                  <label className="text-xs text-white/70 block mb-1">Equipo / actividad</label>
-                  <select
-                    value={poliExForm.teamId}
-                    onChange={(e) => setPoliExForm({ ...poliExForm, teamId: e.target.value })}
-                    disabled={poliExForm.canceled}
-                    className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm disabled:opacity-50"
-                  >
-                    {esAdmin && <option value="">Actividad libre (sin equipo)</option>}
-                    {equiposPoliEditables.map((t) => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-white/70 block mb-1">Lugar</label>
-                  <select
-                    value={poliExForm.place}
-                    onChange={(e) => setPoliExForm({ ...poliExForm, place: e.target.value })}
-                    disabled={poliExForm.canceled}
-                    className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm disabled:opacity-50"
-                  >
-                    <option value="">Sin cambio</option>
-                    <option>Polideportivo</option>
-                    <option>La Toma</option>
-                    <option>Palermo</option>
-                    <option>Borja</option>
-                    <option>Gimnasio</option>
-                    <option>Cancha de cÃ©sped</option>
-                    <option>Otro</option>
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs text-white/70 block mb-1">Desde</label>
-                    <input
-                      type="time"
-                      value={poliExForm.startTime}
-                      onChange={(e) => setPoliExForm({ ...poliExForm, startTime: e.target.value })}
-                      disabled={poliExForm.canceled}
-                      className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm disabled:opacity-50"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-white/70 block mb-1">Hasta</label>
-                    <input
-                      type="time"
-                      value={poliExForm.endTime}
-                      onChange={(e) => setPoliExForm({ ...poliExForm, endTime: e.target.value })}
-                      disabled={poliExForm.canceled}
-                      className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm disabled:opacity-50"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-white/70 block mb-1">Nota (opcional)</label>
-                <input
-                  value={poliExForm.note}
-                  onChange={(e) => setPoliExForm({ ...poliExForm, note: e.target.value })}
-                  placeholder="Ej: cancha ocupada por lluvia"
-                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                />
-              </div>
-
-              {poliError && <p className="text-sm text-red-400">{poliError}</p>}
-
-              <div className="flex gap-3 justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowPoliExModal(null)}
-                  className="px-4 py-2 rounded-lg border border-outline text-white/70 text-sm hover:bg-surface-1"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={poliExSaving}
-                  className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-light disabled:opacity-50"
-                >
-                  {poliExSaving ? "Guardando..." : showPoliExModal.bloque ? "Aplicar cambio" : "Agregar entrenamiento"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <PoliExModal
+        modal={showPoliExModal}
+        setModal={setShowPoliExModal}
+        form={poliExForm}
+        setForm={setPoliExForm}
+        esAdmin={esAdmin}
+        equiposPoliEditables={equiposPoliEditables}
+        error={poliError}
+        saving={poliExSaving}
+        save={saveExcepcion}
+      />
 
       {/* ===================== MODAL CUOTA ===================== */}
       {showQuotaModal && (
@@ -2233,78 +2006,17 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
       )}
 
       {/* ===================== MODAL IMPORTAR EXCEL ===================== */}
-      {showImport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-lg rounded-lg border border-outline bg-surface-2 p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="font-display text-lg font-bold">Importar plantel desde Excel</h2>
-                <p className="text-xs text-white/50 mt-1">
-                  DescargÃ¡ la <button className="underline text-primary-light" onClick={descargarPlantilla}>plantilla</button>,
-                  completala y subila acÃ¡. El DNI es la clave: los jugadores ya existentes se actualizan y vinculan.
-                </p>
-              </div>
-              <button
-                onClick={() => { setShowImport(false); setImportMsg(null); setImportFile(null); }}
-                className="text-white/50 hover:text-white text-xl leading-none"
-              >
-                Ã—
-              </button>
-            </div>
-
-            {!importMsg && (
-              <div className="mt-5 space-y-3">
-                <label className="block">
-                  <span className="text-xs text-white/60">Archivo .xlsx (mÃ¡x 5 MB) *</span>
-                  <input
-                    type="file"
-                    accept=".xlsx"
-                    onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
-                    className="mt-1 w-full text-sm text-white/70 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-primary file:text-white file:text-sm file:font-semibold file:cursor-pointer"
-                  />
-                </label>
-                <button
-                  onClick={importarExcel}
-                  disabled={importing || !importFile}
-                  className="w-full px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-light disabled:opacity-50"
-                >
-                  {importing ? "Importando..." : "Importar"}
-                </button>
-              </div>
-            )}
-
-            {importMsg && (
-              <div className="mt-5 space-y-3">
-                {importMsg.error ? (
-                  <p className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
-                    {importMsg.error}
-                  </p>
-                ) : (
-                  <div className="px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-300 text-sm">
-                    {importMsg.creados} creados Â· {importMsg.actualizados} actualizados Â· {importMsg.vinculados} vinculados
-                  </div>
-                )}
-                {importMsg.errores.length > 0 && (
-                  <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-sm max-h-40 overflow-y-auto">
-                    <p className="font-semibold mb-1">Filas con errores ({importMsg.errores.length}):</p>
-                    <ul className="list-disc pl-4 space-y-0.5">
-                      {importMsg.errores.map((e, i) => (
-                        <li key={i}>fila {e.fila}: {e.motivo}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                <button
-                  onClick={() => { setShowImport(false); setImportMsg(null); setImportFile(null); }}
-                  className="w-full px-4 py-2 rounded-lg border border-outline text-sm hover:bg-surface-2"
-                >
-                  Cerrar
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <ImportModal
+        show={showImport}
+        close={() => { setShowImport(false); setImportMsg(null); setImportFile(null); }}
+        importFile={importFile}
+        setImportFile={setImportFile}
+        importMsg={importMsg}
+        setImportMsg={setImportMsg}
+        importing={importing}
+        importarExcel={importarExcel}
+        descargarPlantilla={descargarPlantilla}
+      />
     </div>
 
       {/* ===== TOASTS ===== */}
