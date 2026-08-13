@@ -178,7 +178,8 @@ export async function buildSemana(from: string, to: string): Promise<SemanaResul
       })
       .filter((b): b is SemanaBloque => b !== null)) as SemanaBloque[];
 
-    const extrasMapeados: SemanaBloque[] = extras.map((e) => ({
+    // Los extras cancelados se omiten (se eliminaron o se marcaron como cancelados).
+    const extrasMapeados: SemanaBloque[] = extras.filter((e) => !e.canceled).map((e) => ({
       id: `extra-${e.id}`,
       tipo: "EXTRA" as const,
       startTime: e.startTime ?? "00:00",

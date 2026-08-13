@@ -1267,21 +1267,45 @@ export default function Dashboard() {
     try {
       const bloque = showPoliExModal.bloque;
       const esExtra = !bloque || bloque.tipo === "EXTRA"; // "+ Extra" o editar un extra existente
-      const payload = {
-        date: showPoliExModal.fecha,
-        slotId: esExtra ? null : bloque.id,
-        // En un extra, teamId define la categoría que entrena; al modificar un
-        // slot de plantilla el equipo se hereda del slot (teamId null).
-        teamId: esExtra ? (poliExForm.teamId || null) : null,
-        place: poliExForm.canceled ? null : (poliExForm.place || null),
-        startTime: poliExForm.canceled ? null : (poliExForm.startTime || null),
-        endTime: poliExForm.canceled ? null : (poliExForm.endTime || null),
-        canceled: poliExForm.canceled,
-        note: poliExForm.note || null,
-      };
-      await apiFetch("/poli/exceptions", { method: "POST", body: JSON.stringify(payload), signal: controller.signal } as RequestInit, token);
+      // Si el bloque ya tiene una excepción (plantilla modificada o extra existente),
+      // la actualizamos/eliminamos en vez de crear una nueva (evita duplicados).
+      const exId = bloque?.excepcion?.id ?? (bloque?.tipo === "EXTRA" && bloque.id.startsWith("extra-")
+        ? bloque.id.replace("extra-", "")
+        : null);
+
+      if (exId) {
+        if (poliExForm.canceled && bloque?.tipo === "EXTRA") {
+          // Cancelar un extra = eliminarlo por completo (no queda rastro en la semana).
+          await apiFetch(`/poli/exceptions/${exId}`, { method: "DELETE", signal: controller.signal } as RequestInit, token);
+          setPoliMsg("Entrenamiento puntual eliminado.");
+        } else {
+          const patch = {
+            ...(poliExForm.canceled ? { canceled: true } : {}),
+            place: poliExForm.canceled ? null : (poliExForm.place || null),
+            startTime: poliExForm.canceled ? null : (poliExForm.startTime || null),
+            endTime: poliExForm.canceled ? null : (poliExForm.endTime || null),
+            note: poliExForm.note || null,
+          };
+          await apiFetch(`/poli/exceptions/${exId}`, { method: "PATCH", body: JSON.stringify(patch), signal: controller.signal } as RequestInit, token);
+          setPoliMsg(poliExForm.canceled ? "Entrenamiento cancelado para ese día." : "Cambio aplicado para ese día.");
+        }
+      } else {
+        const payload = {
+          date: showPoliExModal.fecha,
+          slotId: esExtra ? null : bloque.id,
+          // En un extra, teamId define la categoría que entrena; al modificar un
+          // slot de plantilla el equipo se hereda del slot (teamId null).
+          teamId: esExtra ? (poliExForm.teamId || null) : null,
+          place: poliExForm.canceled ? null : (poliExForm.place || null),
+          startTime: poliExForm.canceled ? null : (poliExForm.startTime || null),
+          endTime: poliExForm.canceled ? null : (poliExForm.endTime || null),
+          canceled: poliExForm.canceled,
+          note: poliExForm.note || null,
+        };
+        await apiFetch("/poli/exceptions", { method: "POST", body: JSON.stringify(payload), signal: controller.signal } as RequestInit, token);
+        setPoliMsg(poliExForm.canceled ? "Entrenamiento cancelado para ese día." : "Cambio aplicado para ese día.");
+      }
       clearTimeout(safetyId);
-      setPoliMsg(poliExForm.canceled ? "Entrenamiento cancelado para ese día." : "Cambio aplicado para ese día.");
       setTimeout(() => setPoliMsg(""), 3000);
       setShowPoliExModal(null);
       cargarPoli();
@@ -2334,7 +2358,7 @@ export default function Dashboard() {
                     className={`rounded-lg border overflow-hidden ${hoy ? "border-primary/60 shadow-[0_0_18px_rgba(0,147,66,0.12)]" : "border-outline bg-surface"}`}
                   >
                     <div className="px-3 py-2 border-b border-outline bg-surface-1 flex items-center justify-between">
-                      <p className="font-display font-bold text-sm capitalize">
+                      <p className="font-display font-bold text-sm capitalize flex-1">
                         {d.dia}
                         {hoy && (
                           <span className="ml-1.5 text-[9px] uppercase tracking-wider font-mono text-primary-light align-middle">
@@ -2342,7 +2366,14 @@ export default function Dashboard() {
                           </span>
                         )}
                       </p>
-                      <p className="text-[10px] font-mono text-white/40">{d.fecha.slice(8, 10)}/{d.fecha.slice(5, 7)}</p>
+                      <p className="text-[10px] font-mono text-white/40 mr-2">{d.fecha.slice(8, 10)}/{d.fecha.slice(5, 7)}</p>
+                      <button
+                        onClick={() => abrirExcepcion(d.fecha)}
+                        className="text-[11px] px-1.5 py-0.5 rounded bg-primary/15 border border-primary/30 text-primary-light hover:bg-primary/25 transition-colors"
+                        title="Agregar un entrenamiento puntual este día"
+                      >
+                        + Entrenamiento puntual
+                      </button>
                     </div>
                     <div className="p-2 space-y-1.5">
                       {/* Partidos del club ese día */}
