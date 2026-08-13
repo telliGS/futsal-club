@@ -285,71 +285,73 @@ export default function Home() {
       </div>
     )}
 
-    {/* Partido destacado con efecto vidrio */}
-    {/* Partido destacado - Sin fondo gris */}
+  {/* Partido destacado - Estilo marcador de cancha (sin vidrio) */}
 {!loading && destacado && (
   (() => {
     const estado = estadoPartido(destacado);
     const enCurso = estado === "en_curso";
     return (
       <div
-        className="mt-10 max-w-md animate-fade-up border-t-2 border-primary/50 pt-4"
+        className="mt-10 max-w-md animate-fade-up"
         style={{ animationDelay: "0.2s" }}
-      >
-        {/* Categoría */}
-        <div className="flex items-center justify-between">
-          <span className="px-3 py-1 bg-primary/20 text-primary-light text-[11px] font-mono uppercase tracking-wider border border-primary/30 rounded-sm">
-            {destacado.team.name}
-          </span>
-          {enCurso ? (
-            <BadgeEnCurso />
-          ) : (
-            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/30">
-              Próximo partido
+       >
+        {/* Contenedor: fondo sólido, sin gris */}
+        <div className="border-t-2 border-primary/50 pt-4">
+          {/* Categoría y badge */}
+          <div className="flex items-center justify-between">
+            <span className="px-3 py-1 bg-primary/20 text-primary-light text-[11px] font-mono uppercase tracking-wider border border-primary/30 rounded-sm">
+              {destacado.team.name}
             </span>
+            {enCurso ? (
+              <BadgeEnCurso />
+            ) : (
+              <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/30">
+                Próximo partido
+              </span>
+            )}
+          </div>
+
+          {/* Marcador estilo estadio */}
+          <div className="mt-4 flex items-center justify-between gap-4">
+            <p className="font-display font-black text-3xl md:text-4xl leading-tight tracking-tight">
+              {destacado.isHome ? "J.H." : destacado.rival}
+            </p>
+            <span className="font-mono text-white/20 text-sm tracking-widest">VS</span>
+            <p className="font-display font-black text-3xl md:text-4xl leading-tight tracking-tight text-right">
+              {destacado.isHome ? destacado.rival : "J.H."}
+            </p>
+          </div>
+
+          {/* Detalles en una línea */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/50">
+            <span className="text-white/70">{formatFechaLegible(destacado.dateTime)}</span>
+            <span className="text-white/20">·</span>
+            <span className="font-mono tabular-nums text-white/80">{formatHora(destacado.dateTime)}</span>
+            <span className="text-white/20">·</span>
+            <span className="uppercase tracking-wider text-xs">{destacado.venue}</span>
+          </div>
+
+          {/* Cuenta regresiva minimalista */}
+          {!enCurso && restante && (
+            <div className="mt-4 flex items-center gap-4 border-t border-white/10 pt-3">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-white/30">
+                ⌛
+              </span>
+              <span className="font-mono text-sm font-bold text-primary-light tabular-nums tracking-wide">
+                {restante.dias > 0
+                  ? `${restante.dias}d ${restante.horas}h`
+                  : restante.horas > 0
+                    ? `${restante.horas}h ${restante.mins}m`
+                    : `${restante.mins}m`}
+              </span>
+            </div>
           )}
         </div>
-
-        {/* Marcador estilo estadio */}
-        <div className="mt-4 flex items-center justify-between gap-4">
-          <p className="font-display font-black text-3xl md:text-4xl leading-tight tracking-tight">
-            {destacado.isHome ? "J.H." : destacado.rival}
-          </p>
-          <span className="font-mono text-white/20 text-sm tracking-widest">VS</span>
-          <p className="font-display font-black text-3xl md:text-4xl leading-tight tracking-tight text-right">
-            {destacado.isHome ? destacado.rival : "J.H."}
-          </p>
-        </div>
-
-        {/* Detalles en una línea */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/50">
-          <span className="text-white/70">{formatFechaLegible(destacado.dateTime)}</span>
-          <span className="text-white/20">·</span>
-          <span className="font-mono tabular-nums text-white/80">{formatHora(destacado.dateTime)}</span>
-          <span className="text-white/20">·</span>
-          <span className="uppercase tracking-wider text-xs">{destacado.venue}</span>
-        </div>
-
-        {/* Cuenta regresiva - minimalista */}
-        {!enCurso && restante && (
-          <div className="mt-4 flex items-center gap-4 border-t border-white/10 pt-3">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-white/30">
-              ⌛
-            </span>
-            <span className="font-mono text-sm font-bold text-primary-light tabular-nums tracking-wide">
-              {restante.dias > 0
-                ? `${restante.dias}d ${restante.horas}h`
-                : restante.horas > 0
-                  ? `${restante.horas}h ${restante.mins}m`
-                  : `${restante.mins}m`}
-            </span>
-          </div>
-        )}
       </div>
     );
   })()
 )}
-  </div>
+  
 </header>
 
       <main className="max-w-5xl mx-auto px-6 py-16">
