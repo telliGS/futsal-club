@@ -45,9 +45,6 @@ function formatFechaLegible(iso: string) {
   return `${formatDia(iso).charAt(0).toUpperCase()}${formatDia(iso).slice(1)} ${dia}`;
 }
 
-// Clave de día basada en la fecha local (YYYY-MM-DD).
-// Evita que partidos con timestamps en UTC/offset distinto se agrupen
-// en fechas distintas aunque su representación local sea el mismo día.
 function diaKeyLocal(iso: string) {
   const d = new Date(iso);
   const y = d.getFullYear();
@@ -60,10 +57,6 @@ function colorEquipo(tipo: string): string {
   return tipo === "FORMATIVA" ? "bg-primary/15 border-primary/30" : "bg-surface-1 border-outline";
 }
 
-// Estado de un partido según la hora actual:
-// - "proximo": todavía no arrancó
-// - "en_curso": ya empezó pero hace menos de ~2 h (ventana del server)
-// - "terminado": empezó hace más de ~2 h (el server ya no lo manda; igual lo protegemos)
 const EN_CURSO_WINDOW_MS = 2 * 3_600_000;
 function estadoPartido(m: Match): "proximo" | "en_curso" | "terminado" {
   const inicio = new Date(m.dateTime).getTime();
@@ -73,7 +66,6 @@ function estadoPartido(m: Match): "proximo" | "en_curso" | "terminado" {
   return "terminado";
 }
 
-// Badge "En curso" con pulso (verde live, mismo lenguaje que el hero)
 function BadgeEnCurso() {
   return (
     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-action-green/10 border border-action-green/30 text-[11px] font-mono uppercase tracking-wider text-action-green">
@@ -97,7 +89,6 @@ export default function Home() {
   const [teamLoading, setTeamLoading] = useState(false);
   const [teamError, setTeamError] = useState("");
 
-  // Cuenta regresiva al próximo partido (recalcula cada minuto)
   const [restante, setRestante] = useState<{ dias: number; horas: number; mins: number } | null>(null);
   useEffect(() => {
     if (!matches.length) return;
@@ -133,7 +124,6 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Cerrar el modal con Escape
   useEffect(() => {
     if (!selTeam) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSelTeam(null);
@@ -156,7 +146,6 @@ export default function Home() {
     }
   };
 
-  // Agrupar los partidos del equipo por día
   const porDia = new Map<string, Match[]>();
   for (const m of teamMatches ?? []) {
     const dia = diaKeyLocal(m.dateTime);
@@ -165,11 +154,6 @@ export default function Home() {
     porDia.set(dia, grupo);
   }
 
-  // La sección lista TODOS los partidos agrupados por día con su fecha
-  // (el finde actual + el que viene, para que nunca quede vacía).
-  // Antes se usaba matches.slice(1) para no repetir el destacado del hero,
-  // pero así se perdía información (p.ej. el C13 destacado no figuraba abajo
-  // y no se entendía qué categoría jugaba).
   const restoPorDia = new Map<string, Match[]>();
   for (const m of matches) {
     const dia = diaKeyLocal(m.dateTime);
@@ -187,172 +171,154 @@ export default function Home() {
   return (
     <Layout>
       {/* ============================ HERO ============================ */}
-      {/* Noche de estadio: el piso (fondo) es la cancha; la luz del
-          alumbrado sube desde abajo con verde profundo (pitch-deep) */}
       <header className="relative bg-surface overflow-hidden border-b border-outline">
-  {/* Luz del estadio: halos verdes ascendentes */}
-  <div
-    aria-hidden="true"
-    className="absolute inset-0"
-    style={{
-      background:
-        "radial-gradient(120% 90% at 50% 110%, rgba(0,147,66,0.35) 0%, rgba(0,99,43,0.15) 40%, transparent 70%)",
-    }}
-  />
-  
-  {/* Patrón de líneas de cancha (sutil) */}
-  <div
-    aria-hidden="true"
-    className="absolute inset-0 opacity-[0.03]"
-    style={{
-      backgroundImage: `
-        linear-gradient(45deg, #ffffff 1px, transparent 1px),
-        linear-gradient(-45deg, #ffffff 1px, transparent 1px)
-      `,
-      backgroundSize: "40px 40px",
-    }}
-  />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(120% 90% at 50% 110%, rgba(0,147,66,0.35) 0%, rgba(0,99,43,0.15) 40%, transparent 70%)",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `
+              linear-gradient(45deg, #ffffff 1px, transparent 1px),
+              linear-gradient(-45deg, #ffffff 1px, transparent 1px)
+            `,
+            backgroundSize: "40px 40px",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute right-[-12rem] top-1/2 -translate-y-1/2 w-[40rem] h-[40rem] rounded-full border border-white/[0.05]"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute right-[-10rem] top-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/[0.05]"
+        />
 
-  {/* Círculo central de la cancha */}
-  <div
-    aria-hidden="true"
-    className="absolute right-[-12rem] top-1/2 -translate-y-1/2 w-[40rem] h-[40rem] rounded-full border border-white/[0.05]"
-  />
-  <div
-    aria-hidden="true"
-    className="absolute right-[-10rem] top-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/[0.05]"
-  />
+        <div className="relative max-w-5xl mx-auto px-6 py-20 md:py-32">
+          <div className="flex flex-col md:flex-row md:items-center gap-8 md:gap-12">
+            <div className="flex items-center gap-5 animate-fade-up">
+              <div className="logo-hover shrink-0">
+                <img
+                  src="/escudo-jh.png"
+                  alt="Escudo Club José Hernández"
+                  className="w-28 h-28 md:w-36 md:h-36 drop-shadow-[0_0_40px_rgba(0,255,102,0.20)]"
+                />
+              </div>
+              <div>
+                <p className="text-primary-light font-mono text-xs uppercase tracking-[0.2em]">
+                  Club José Hernández
+                </p>
+                <h1 className="font-display text-5xl md:text-7xl font-bold mt-2 leading-[1.1]">
+                  Futsal de{" "}
+                  <span className="text-primary-light">Paraná</span>
+                </h1>
+                <p className="mt-2 text-white/50 text-sm md:text-base max-w-md font-mono tracking-wider">
+                  10 equipos · más de 100 jugadores · una pasión
+                </p>
+                <p className="mt-1 text-white/70 text-sm md:text-base max-w-md">
+                  Competencia Oficial APFS
+                </p>
+              </div>
+            </div>
 
-  <div className="relative max-w-5xl mx-auto px-6 py-20 md:py-32">
-    <div className="flex flex-col md:flex-row md:items-center gap-8 md:gap-12">
-      <div className="flex items-center gap-5 animate-fade-up">
-        <div className="logo-hover shrink-0">
-          <img
-            src="/escudo-jh.png"
-            alt="Escudo Club José Hernández"
-            className="w-28 h-28 md:w-36 md:h-36 drop-shadow-[0_0_40px_rgba(0,255,102,0.20)]"
-          />
-        </div>
-        <div>
-          <p className="text-primary-light font-mono text-xs uppercase tracking-[0.2em]">
-            Club José Hernández
-          </p>
-          <h1 className="font-display text-5xl md:text-7xl font-bold mt-2 leading-[1.1]">
-            Futsal de{" "}
-            <span className="text-primary-light">Paraná</span>
-          </h1>
-          <p className="mt-2 text-white/50 text-sm md:text-base max-w-md font-mono tracking-wider">
-            10 equipos · más de 100 jugadores · una pasión
-          </p>
-          <p className="mt-1 text-white/70 text-sm md:text-base max-w-md">
-            Competencia Oficial APFS
-          </p>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-3 animate-fade-up md:flex-col md:items-end" style={{ animationDelay: "0.1s" }}>
-       <Link
-        to="/mi-cuota"
-         className="btn-primary"
-         >
-           Consultar mi cuota
-        </Link>
-        <Link
-  to="/ingresar"
-  className="btn-secondary"
->
-  Área delegados
-</Link>
-      </div>
-    </div>
-
-    {/* Stats del club - Más grandes */}
-    {!loading && stats && (
-      <div
-        className="mt-16 grid grid-cols-3 gap-6 max-w-lg animate-fade-up"
-        style={{ animationDelay: "0.15s" }}
-      >
-        {[
-          { n: stats.jugadores, l: "Jugadores" },
-          { n: stats.equipos, l: "Equipos" },
-          { n: stats.partidosProximos, l: "Partidos por jugar" },
-        ].map((s) => (
-          <div key={s.l} className="rounded-lg bg-surface-1 border border-outline px-5 py-4 text-center bg-noise">
-            <p className="font-display font-bold text-3xl md:text-4xl tabular-nums text-white">{s.n}</p>
-            <p className="text-[11px] uppercase tracking-wider text-white/50 mt-1 font-mono">{s.l}</p>
-          </div>
-        ))}
-      </div>
-    )}
-
-  {/* Partido destacado - Estilo marcador de cancha (sin vidrio) */}
-{!loading && destacado && (
-  (() => {
-    const estado = estadoPartido(destacado);
-    const enCurso = estado === "en_curso";
-    return (
-      <div
-        className="mt-10 max-w-md animate-fade-up"
-        style={{ animationDelay: "0.2s" }}
-       >
-        {/* Contenedor: fondo sólido, sin gris */}
-        <div className="border-t-2 border-primary/50 pt-4">
-          {/* Categoría y badge */}
-          <div className="flex items-center justify-between">
-            <span className="px-3 py-1 bg-primary/20 text-primary-light text-[11px] font-mono uppercase tracking-wider border border-primary/30 rounded-sm">
-              {destacado.team.name}
-            </span>
-            {enCurso ? (
-              <BadgeEnCurso />
-            ) : (
-              <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/30">
-                Próximo partido
-              </span>
-            )}
+            <div className="flex flex-wrap gap-3 animate-fade-up md:flex-col md:items-end" style={{ animationDelay: "0.1s" }}>
+              <Link
+                to="/mi-cuota"
+                className="btn-primary"
+              >
+                Consultar mi cuota
+              </Link>
+              <Link
+                to="/ingresar"
+                className="btn-secondary"
+              >
+                Área delegados
+              </Link>
+            </div>
           </div>
 
-          {/* Marcador estilo estadio */}
-          <div className="mt-4 flex items-center justify-between gap-4">
-            <p className="font-display font-black text-3xl md:text-4xl leading-tight tracking-tight">
-              {destacado.isHome ? "J.H." : destacado.rival}
-            </p>
-            <span className="font-mono text-white/20 text-sm tracking-widest">VS</span>
-            <p className="font-display font-black text-3xl md:text-4xl leading-tight tracking-tight text-right">
-              {destacado.isHome ? destacado.rival : "J.H."}
-            </p>
-          </div>
-
-          {/* Detalles en una línea */}
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/50">
-            <span className="text-white/70">{formatFechaLegible(destacado.dateTime)}</span>
-            <span className="text-white/20">·</span>
-            <span className="font-mono tabular-nums text-white/80">{formatHora(destacado.dateTime)}</span>
-            <span className="text-white/20">·</span>
-            <span className="uppercase tracking-wider text-xs">{destacado.venue}</span>
-          </div>
-
-          {/* Cuenta regresiva minimalista */}
-          {!enCurso && restante && (
-            <div className="mt-4 flex items-center gap-4 border-t border-white/10 pt-3">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-white/30">
-                ⌛
-              </span>
-              <span className="font-mono text-sm font-bold text-primary-light tabular-nums tracking-wide">
-                {restante.dias > 0
-                  ? `${restante.dias}d ${restante.horas}h`
-                  : restante.horas > 0
-                    ? `${restante.horas}h ${restante.mins}m`
-                    : `${restante.mins}m`}
-              </span>
+          {!loading && stats && (
+            <div
+              className="mt-16 grid grid-cols-3 gap-6 max-w-lg animate-fade-up"
+              style={{ animationDelay: "0.15s" }}
+            >
+              {[
+                { n: stats.jugadores, l: "Jugadores" },
+                { n: stats.equipos, l: "Equipos" },
+                { n: stats.partidosProximos, l: "Partidos por jugar" },
+              ].map((s) => (
+                <div key={s.l} className="rounded-lg bg-surface-1 border border-outline px-5 py-4 text-center bg-noise">
+                  <p className="font-display font-bold text-3xl md:text-4xl tabular-nums text-white">{s.n}</p>
+                  <p className="text-[11px] uppercase tracking-wider text-white/50 mt-1 font-mono">{s.l}</p>
+                </div>
+              ))}
             </div>
           )}
+
+          {/* Partido destacado */}
+          {!loading && destacado && (
+            (() => {
+              const estado = estadoPartido(destacado);
+              const enCurso = estado === "en_curso";
+              return (
+                <div className="mt-10 max-w-md animate-fade-up" style={{ animationDelay: "0.2s" }}>
+                  <div className="border-t-2 border-primary/50 pt-4">
+                    <div className="flex items-center justify-between">
+                      <span className="px-3 py-1 bg-primary/20 text-primary-light text-[11px] font-mono uppercase tracking-wider border border-primary/30 rounded-sm">
+                        {destacado.team.name}
+                      </span>
+                      {enCurso ? (
+                        <BadgeEnCurso />
+                      ) : (
+                        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/30">
+                          Próximo partido
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between gap-4">
+                      <p className="font-display font-black text-3xl md:text-4xl leading-tight tracking-tight">
+                        {destacado.isHome ? "J.H." : destacado.rival}
+                      </p>
+                      <span className="font-mono text-white/20 text-sm tracking-widest">VS</span>
+                      <p className="font-display font-black text-3xl md:text-4xl leading-tight tracking-tight text-right">
+                        {destacado.isHome ? destacado.rival : "J.H."}
+                      </p>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/50">
+                      <span className="text-white/70">{formatFechaLegible(destacado.dateTime)}</span>
+                      <span className="text-white/20">·</span>
+                      <span className="font-mono tabular-nums text-white/80">{formatHora(destacado.dateTime)}</span>
+                      <span className="text-white/20">·</span>
+                      <span className="uppercase tracking-wider text-xs">{destacado.venue}</span>
+                    </div>
+
+                    {!enCurso && restante && (
+                      <div className="mt-4 flex items-center gap-4 border-t border-white/10 pt-3">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-white/30">⌛</span>
+                        <span className="font-mono text-sm font-bold text-primary-light tabular-nums tracking-wide">
+                          {restante.dias > 0
+                            ? `${restante.dias}d ${restante.horas}h`
+                            : restante.horas > 0
+                              ? `${restante.horas}h ${restante.mins}m`
+                              : `${restante.mins}m`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()
+          )}
         </div>
-      </div>
-    );
-  })()
-)}
-  
-</header>
+      </header>
 
       <main className="max-w-5xl mx-auto px-6 py-16">
         {/* ========================= PRÓXIMOS PARTIDOS ========================= */}
@@ -378,8 +344,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Todos los partidos del finde actual + el que viene, agrupados
-            por día con su fecha (incluido el destacado del hero) */}
         {restoPorDia.size > 0 && matches.length >= 1 && (
           <div className="mt-4 space-y-6">
             {[...restoPorDia.entries()].map(([dia, parts]) => (
@@ -389,61 +353,50 @@ export default function Home() {
                 </p>
                 <div className="grid md:grid-cols-2 gap-4 gap-y-3">
                   {parts.map((m, i) => (
-  <article 
-    key={m.id} 
-    className="group animate-fade-up relative pl-4 border-l-4 border-primary/60 hover:border-primary transition-all duration-300"
-    style={{ animationDelay: `${0.05 * i}s` }}
-  >
-    {/* Badge "¡Este finde!" */}
-    {i === 0 && (
-      <span className="absolute -top-2 -right-2 z-10 px-2.5 py-0.5 rounded-full bg-primary text-white text-[10px] font-mono uppercase tracking-wider shadow-lg">
-        ¡Este finde!
-      </span>
-    )}
-    <div className="flex items-start gap-4 py-3 border-b border-white/5 hover:border-white/10 transition-colors">
-      {/* Fecha */}
-      <div className="shrink-0 w-14 rounded-lg bg-primary/10 border border-primary/20 text-center py-2 transition-colors duration-200 group-hover:bg-primary/20">
-        <p className="text-[10px] uppercase tracking-wide text-primary-light font-mono">
-          {formatDia(m.dateTime).slice(0, 3)}
-        </p>
-        <p className="font-display font-bold text-lg leading-none mt-1">
-          {new Date(m.dateTime).getDate()}
-        </p>
-      </div>
-      
-      {/* Info del partido */}
-      <div className="flex-1 min-w-0">
-        <p className="font-display font-bold text-lg leading-snug">
-          {m.isHome ? "J.H." : m.rival}{" "}
-          <span className="text-white/30 font-light">vs</span>{" "}
-          {m.isHome ? m.rival : "J.H."}
-        </p>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
-          <span className="text-sm text-white/50">
-            {m.team.name}
-          </span>
-          <span className="text-white/20">·</span>
-          <span className="text-xs text-white/40 uppercase tracking-wider">
-            {m.venue}
-          </span>
-          {estadoPartido(m) === "en_curso" && <BadgeEnCurso />}
-        </div>
-      </div>
-      
-      {/* Hora */}
-      <div className="shrink-0 text-right">
-        <p className={`font-display font-bold text-2xl tabular-nums transition-colors duration-200 group-hover:text-primary-light ${estadoPartido(m) === "en_curso" ? "text-action-green" : ""}`}>
-          {formatHora(m.dateTime)}
-        </p>
-        {estadoPartido(m) === "en_curso" && (
-          <p className="text-[10px] font-mono uppercase tracking-wider text-action-green/80 mt-0.5">
-            jugándose
-          </p>
-        )}
-      </div>
-    </div>
-  </article>
-))}
+                    <article
+                      key={m.id}
+                      className="group animate-fade-up relative pl-4 border-l-4 border-primary/60 hover:border-primary transition-all duration-300"
+                      style={{ animationDelay: `${0.05 * i}s` }}
+                    >
+                      {i === 0 && (
+                        <span className="absolute -top-2 -right-2 z-10 px-2.5 py-0.5 rounded-full bg-primary text-white text-[10px] font-mono uppercase tracking-wider shadow-lg">
+                          ¡Este finde!
+                        </span>
+                      )}
+                      <div className="flex items-start gap-4 py-3 border-b border-white/5 hover:border-white/10 transition-colors">
+                        <div className="shrink-0 w-14 rounded-lg bg-primary/10 border border-primary/20 text-center py-2 transition-colors duration-200 group-hover:bg-primary/20">
+                          <p className="text-[10px] uppercase tracking-wide text-primary-light font-mono">
+                            {formatDia(m.dateTime).slice(0, 3)}
+                          </p>
+                          <p className="font-display font-bold text-lg leading-none mt-1">
+                            {new Date(m.dateTime).getDate()}
+                          </p>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-display font-bold text-lg leading-snug">
+                            {m.isHome ? "J.H." : m.rival}{" "}
+                            <span className="text-white/30 font-light">vs</span>{" "}
+                            {m.isHome ? m.rival : "J.H."}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
+                            <span className="text-sm text-white/50">{m.team.name}</span>
+                            <span className="text-white/20">·</span>
+                            <span className="text-xs text-white/40 uppercase tracking-wider">{m.venue}</span>
+                            {estadoPartido(m) === "en_curso" && <BadgeEnCurso />}
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className={`font-display font-bold text-2xl tabular-nums transition-colors duration-200 group-hover:text-primary-light ${estadoPartido(m) === "en_curso" ? "text-action-green" : ""}`}>
+                            {formatHora(m.dateTime)}
+                          </p>
+                          {estadoPartido(m) === "en_curso" && (
+                            <p className="text-[10px] font-mono uppercase tracking-wider text-action-green/80 mt-0.5">
+                              jugándose
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </article>
                   ))}
                 </div>
               </div>
@@ -496,56 +449,50 @@ export default function Home() {
             <p className="mt-4 text-white/50 text-sm">Las categorías se cargan al configurar el club.</p>
           )}
         </section>
-{/* ========================= HISTORIA ========================= */}
-<section className="mt-16 border-t border-outline pt-12">
-  <div className="grid md:grid-cols-2 gap-8 items-center">
-    <div>
-      <h2 className="font-display text-3xl font-bold flex items-center gap-3">
-        <span className="inline-block w-1.5 h-8 bg-primary rounded-full" />
-        Nuestra historia
-      </h2>
-      <p className="mt-4 text-white/70 leading-relaxed">
-        Somos el Club José Hernández. Nacimos en un barrio de Paraná, con una
-        pelota y un sueño. Perdimos finales, pero nunca bajamos los brazos.
-        En 2016 dimos la vuelta: campeones de la Copa de Oro Norte en Corrientes.
-        Después llegaron el Apertura, el segundo título oficial, y más festejos.
-        Hoy somos 10 equipos, más de 100 jugadores, y seguimos siendo un club
-        de barrio: familia, esfuerzo y pasión por la camiseta verde. Somos JH Futsal.
-      </p>
-      <div className="mt-6 flex flex-wrap gap-4">
-       <Link
-  to="/historia"
-  className="btn-primary inline-flex items-center gap-2"
->
-  Conocé más
-  <span aria-hidden>→</span>
-</Link>
-        <a
-  href="https://www.instagram.com/josehernandezfs/"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="btn-secondary inline-flex items-center gap-2"
->
-  📸 Seguinos en Instagram
-</a>
-      </div>
-    </div>
-    <div className="rounded-xl overflow-hidden border border-outline shadow-xl bg-surface-1 flex items-center justify-center aspect-[4/3]">
-      {/* ⚠️ REPLACÉ ESTO POR UNA FOTO REAL CUANDO TENGAS */}
-      <div className="text-center p-8">
-        <span className="text-6xl block mb-2">🏆</span>
-        <p className="text-white/40 text-sm">Fotos del club muy pronto</p>
-      </div>
-      {/* CUANDO TENGAS LA FOTO, DESCOMENTÁ ESTO Y BORRÁ EL DIV DE ARRIBA:
-      <img
-        src="/images/historia-1.jpg"
-        alt="Equipo campeón del Club José Hernández"
-        className="w-full h-full object-cover"
-      />
-      */}
-    </div>
-  </div>
-</section>
+
+        {/* ========================= HISTORIA ========================= */}
+        <section className="mt-16 border-t border-outline pt-12">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div>
+              <h2 className="font-display text-3xl font-bold flex items-center gap-3">
+                <span className="inline-block w-1.5 h-8 bg-primary rounded-full" />
+                Nuestra historia
+              </h2>
+              <p className="mt-4 text-white/70 leading-relaxed">
+                Somos el Club José Hernández. Nacimos en un barrio de Paraná, con una
+                pelota y un sueño. Perdimos finales, pero nunca bajamos los brazos.
+                En 2016 dimos la vuelta: campeones de la Copa de Oro Norte en Corrientes.
+                Después llegaron el Apertura, el segundo título oficial, y más festejos.
+                Hoy somos 10 equipos, más de 100 jugadores, y seguimos siendo un club
+                de barrio: familia, esfuerzo y pasión por la camiseta verde. Somos JH Futsal.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-4">
+                <Link
+                  to="/historia"
+                  className="btn-primary inline-flex items-center gap-2"
+                >
+                  Conocé más
+                  <span aria-hidden>→</span>
+                </Link>
+                <a
+                  href="https://www.instagram.com/josehernandezfs/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary inline-flex items-center gap-2"
+                >
+                  📸 Seguinos en Instagram
+                </a>
+              </div>
+            </div>
+            <div className="rounded-xl overflow-hidden border border-outline shadow-xl bg-surface-1 flex items-center justify-center aspect-[4/3]">
+              <div className="text-center p-8">
+                <span className="text-6xl block mb-2">🏆</span>
+                <p className="text-white/40 text-sm">Fotos del club muy pronto</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ========================= EL CLUB ========================= */}
         <section className="mt-16">
           <h2 className="font-display text-2xl font-bold flex items-center gap-3 animate-fade-up">
@@ -553,7 +500,7 @@ export default function Home() {
             El club
           </h2>
           <div className="mt-6 grid md:grid-cols-3 gap-4">
-            <div className="card p-6 animate-fade-up">
+            <div className="card p-6 animate-fade-up bg-noise">
               <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
                 🎽
               </span>
@@ -563,7 +510,7 @@ export default function Home() {
                 para la primera división del club.
               </p>
             </div>
-            <div className="card p-6 animate-fade-up" style={{ animationDelay: "0.05s" }}>
+            <div className="card p-6 animate-fade-up bg-noise" style={{ animationDelay: "0.05s" }}>
               <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
                 ⚽
               </span>
@@ -572,13 +519,13 @@ export default function Home() {
                 Primera Femenina, JH C, JH NEGRO y JH ELITE en la Competencia Oficial APFS.
               </p>
             </div>
-            <div className="card p-6 animate-fade-up" style={{ animationDelay: "0.1s" }}>
+            <div className="card p-6 animate-fade-up bg-noise" style={{ animationDelay: "0.1s" }}>
               <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
                 🏟️
               </span>
               <h3 className="font-display font-bold mt-4">Futsal de Paraná</h3>
               <p className="text-sm text-white/60 mt-2 leading-relaxed">
-                Jugamos los findes en las canchas de la ciudad (Berduc, Unión Árabe,
+                Jugamos los fines en las canchas de la ciudad (Berduc, Unión Árabe,
                 Toma Vieja) con la APFS.
               </p>
             </div>
@@ -594,14 +541,11 @@ export default function Home() {
           aria-modal="true"
           aria-label={`Partidos de ${selTeam.name}`}
         >
-          {/* backdrop */}
           <div
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setSelTeam(null)}
           />
-
           <div className="relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-lg border border-outline bg-surface-2 shadow-lg">
-            {/* header */}
             <div className="flex items-center gap-3 p-5 border-b border-outline">
               <img src="/escudo-jh.png" alt="" className="w-10 h-10 shrink-0" />
               <div className="flex-1 min-w-0">
@@ -620,7 +564,6 @@ export default function Home() {
               </button>
             </div>
 
-            {/* body */}
             <div className="flex-1 overflow-y-auto p-5">
               {teamLoading && <p className="text-white/60 text-center py-8">Cargando partidos...</p>}
               {teamError && (
@@ -646,8 +589,7 @@ export default function Home() {
                       <div className="space-y-2">
                         {parts.map((m) => {
                           const yaJugado = new Date(m.dateTime) < new Date();
-                          const conResultado =
-                            m.clubGoals != null && m.rivalGoals != null && yaJugado;
+                          const conResultado = m.clubGoals != null && m.rivalGoals != null && yaJugado;
                           const ganado = conResultado && m.clubGoals! > m.rivalGoals!;
                           const perdido = conResultado && m.clubGoals! < m.rivalGoals!;
                           return (
@@ -719,7 +661,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* footer */}
             <div className="p-3 border-t border-outline text-center text-[11px] text-white/40">
               Los partidos se sincronizan automáticamente desde el fixture de la APFS.
             </div>
