@@ -137,3 +137,7 @@ tr:hover .row-actions {
 .btn-secondary:hover::after {
   @apply w-full;
 }
+/* Card estática (sin hover de borde) */
+.card-static {
+  @apply rounded-lg border border-outline bg-surface-1 bg-noise p-6 transition-all duration-200 hover:-translate-y-1;
+}
