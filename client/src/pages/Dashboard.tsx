@@ -2419,7 +2419,7 @@ export default function Dashboard() {
                     className={`rounded-lg border overflow-hidden ${hoy ? "border-primary/60 shadow-[0_0_18px_rgba(0,147,66,0.12)]" : "border-outline bg-surface"}`}
                   >
                     <div className="px-3 py-2 border-b border-outline bg-surface-1 flex items-center justify-between">
-                      <p className="font-display font-bold text-sm capitalize flex-1">
+                      <p className="font-display font-bold text-sm capitalize">
                         {d.dia}
                         {hoy && (
                           <span className="ml-1.5 text-[9px] uppercase tracking-wider font-mono text-primary-light align-middle">
@@ -2427,14 +2427,7 @@ export default function Dashboard() {
                           </span>
                         )}
                       </p>
-                      <p className="text-[10px] font-mono text-white/40 mr-2">{d.fecha.slice(8, 10)}/{d.fecha.slice(5, 7)}</p>
-                      <button
-                        onClick={() => abrirExcepcion(d.fecha)}
-                        className="text-[11px] px-1.5 py-0.5 rounded bg-primary/15 border border-primary/30 text-primary-light hover:bg-primary/25 transition-colors"
-                        title="Agregar un entrenamiento puntual este día"
-                      >
-                        + Entrenamiento puntual
-                      </button>
+                      <p className="text-[10px] font-mono text-white/40">{d.fecha.slice(8, 10)}/{d.fecha.slice(5, 7)}</p>
                     </div>
                     <div className="p-2 space-y-1.5">
                       {/* Partidos del club ese día */}
@@ -2447,9 +2440,16 @@ export default function Dashboard() {
                           ))}
                         </div>
                       )}
-                      {d.bloques.length === 0 && d.partidos.length === 0 && (
+                      {d.bloques.length === 0 && (
                         <div className="py-2 text-center">
                           <p className="text-xs text-white/30">Sin actividad</p>
+                          <button
+                            onClick={() => abrirExcepcion(d.fecha)}
+                            className="mt-1.5 text-[11px] px-2 py-0.5 rounded bg-white/5 hover:bg-primary/15 hover:text-primary-light border border-outline hover:border-primary/40 transition-colors"
+                            title="Agregar un entrenamiento puntual este día"
+                          >
+                            + Agregar entrenamiento
+                          </button>
                         </div>
                       )}
                       {d.bloques.map((b) => (
@@ -2477,6 +2477,13 @@ export default function Dashboard() {
                               title={puedeOperarPoli(b.team?.id) ? "Cambiar lugar/hora o cancelar para este día puntual" : "Solo el admin o el encargado de este equipo"}
                             >
                               Cambiar este día
+                            </button>
+                            <button
+                              onClick={() => abrirExcepcion(d.fecha)}
+                              className="text-[11px] px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 transition-colors"
+                              title="Agregar un entrenamiento puntual extra este día"
+                            >
+                              + Extra
                             </button>
                           </div>
                         </div>
