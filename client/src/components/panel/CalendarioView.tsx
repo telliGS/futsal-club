@@ -5,12 +5,11 @@ interface CalendarioViewProps {
   plantel: Player[];
   months: string[];
   currentMonth: string;
-  toggleCuota: (p: Player, month: string, paid: boolean) => void;
-  ponerEstado: (p: Player, month: string) => void;
+  abrirPago: (p: Player, month: string) => void;
   estadoLocal: (p: Player, now?: Date) => NonNullable<Player["estadoCuota"]>;
 }
 
-export default function CalendarioView({ plantel, months, currentMonth, toggleCuota, ponerEstado, estadoLocal }: CalendarioViewProps) {
+export default function CalendarioView({ plantel, months, currentMonth, abrirPago, estadoLocal }: CalendarioViewProps) {
   return (
     <div className="mt-6">
       {/* Header + leyenda */}
@@ -93,12 +92,12 @@ export default function CalendarioView({ plantel, months, currentMonth, toggleCu
                       <td key={m} className={`p-1 text-center ${esFuturo ? "opacity-25" : ""}`}>
                         <button
                           disabled={esFuturo}
-                          onClick={() => (marcado ? ponerEstado(p, m) : toggleCuota(p, m, true))}
+                          onClick={() => abrirPago(p, m)}
                           title={
                             esFuturo
                               ? "Mes futuro"
                               : marcado
-                                ? `Cambiar estado de ${monthShort(m)} (pagado / impago / nulo)`
+                                ? `Ver / cambiar pago de ${monthShort(m)}`
                                 : `Marcar pago de ${monthShort(m)}`
                           }
                           className={`w-full h-8 inline-flex items-center justify-center rounded-md text-xs font-bold transition-all duration-150 active:scale-95 ${

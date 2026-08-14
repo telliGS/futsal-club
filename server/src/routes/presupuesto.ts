@@ -166,6 +166,7 @@ router.get("/presupuesto/total", requireAuth, async (req, res) => {
           player: {
             select: {
               status: true,
+              deadline: true,
               payments: { select: { month: true, paid: true } },
               teams: { include: { team: { select: { name: true, type: true, category: true } } } },
             },
@@ -196,7 +197,10 @@ router.get("/presupuesto/total", requireAuth, async (req, res) => {
       const gastosExtra = t.gastosExtra.reduce((a, g) => a + g.monto, 0);
       const gastos = gastosFijos + gastosExtra;
       const deuda = pagantes.reduce(
-        (a, l) => a + calcularEstadoCuota(l.player.payments).mesesDebe * cuota,
+        (a, l) =>
+          a +
+          calcularEstadoCuota(l.player.payments, new Date(), { deadline: l.player.deadline }).mesesDebe *
+            cuota,
         0
       );
       return {

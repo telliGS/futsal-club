@@ -12,6 +12,7 @@ interface StatusResult {
   esTecnico?: boolean;
   sinCuota?: boolean;
   diasParaPagar: number;
+  deadline: number;
   totalDeuda: number;
   unpaidMonths: Array<{ month: string; amount: number }>;
   lastPayment: { month: string } | null;
@@ -95,7 +96,7 @@ export default function Status() {
                 <div className="flex items-center gap-3 rounded-lg bg-surface-2 border border-outline px-4 py-3">
                   <span className="w-8 h-8 shrink-0 rounded-lg bg-amber-500/25 border border-amber-500/40 flex items-center justify-center text-amber-300">⏳</span>
                   <p className="text-white/85 text-xs leading-relaxed">
-                    <span className="font-semibold text-white">En plazo:</span> la cuota se paga del 1 al 10. Si no pagaste todavía y estamos dentro de esos días, estás a tiempo.
+                    <span className="font-semibold text-white">En plazo:</span> la cuota tiene un día límite por jugador (por defecto el 10). Si no pagaste todavía y estás dentro de esos días, estás a tiempo.
                   </p>
                 </div>
                 <div className="flex items-center gap-3 rounded-lg bg-surface-2 border border-outline px-4 py-3">
@@ -206,7 +207,7 @@ export default function Status() {
                         <p className="text-amber-300 font-semibold text-lg">⏳ Todavía no pagaste</p>
                         <p className="text-sm text-white/70">Cuota de {result.currentMonth} pendiente</p>
                         <p className="mt-2 text-xs text-white/80 leading-relaxed">
-                          Estás dentro del plazo (1 al 10).{" "}
+                          Estás dentro del plazo (hasta el día {result.deadline}).{" "}
                           {result.diasParaPagar > 0 ? (
                             <>
                               Te quedan{" "}

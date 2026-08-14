@@ -16,6 +16,7 @@ export interface PlayerFormState {
   position: string;
   jersey: string;
   hasInsurance: boolean;
+  deadline: string;
 }
 
 interface PlayerModalProps {
@@ -151,6 +152,21 @@ export default function PlayerModal({
                 className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
                 placeholder="10"
               />
+            </label>
+            <label className="block">
+              <span className="text-xs text-white/60">Día límite de pago</span>
+              <input
+                type="number"
+                min={1}
+                max={31}
+                value={form.deadline}
+                onChange={(e) => setForm({ ...form, deadline: e.target.value.replace(/\D/g, "") })}
+                className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                placeholder="10"
+              />
+              <span className="text-[10px] text-white/40 mt-0.5 block">
+                Último día para pagar la cuota sin quedar deudor (1-31).
+              </span>
             </label>
             <label className="flex items-end gap-2 pb-2">
               <input

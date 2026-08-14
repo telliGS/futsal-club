@@ -56,7 +56,8 @@ export interface Player {
   pagaAca?: boolean;
   categoriaPago?: string[];
   hasInsurance?: boolean;
-  payments: Array<{ month: string; paid: boolean; amount: number }>;
+  deadline?: number; // día límite para pagar la cuota del mes (default 10)
+  payments: Array<{ month: string; paid: boolean; amount: number; note?: string | null }>;
   estadoCuota?: {
     deudor: boolean;
     alDia: boolean;

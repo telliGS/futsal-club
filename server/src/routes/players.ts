@@ -47,7 +47,10 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
       const congelado = l.player.status === "INACTIVO" && l.player.inactiveSince
         ? l.player.inactiveSince.toISOString().slice(0, 7)
         : undefined;
-      const estadoCuota = calcularEstadoCuota(l.player.payments, new Date(), congelado ? { congelarDesde: congelado } : {});
+      const estadoCuota = calcularEstadoCuota(l.player.payments, new Date(), {
+        congelarDesde: congelado,
+        deadline: l.player.deadline,
+      });
       const estadoFichas = calcularDocumentos(l.player.documentos, new Date(), categoriasFicha);
       const apto = aptoParaJugar(estadoCuota.puedeJugar, estadoFichas);
       // Regla nativo/formativa: ¿dónde paga la cuota este jugador?
@@ -72,6 +75,7 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
         document: l.player.document,
         birthDate: l.player.birthDate,
         hasInsurance: l.player.hasInsurance,
+        deadline: l.player.deadline,
         status: l.player.status,
         inactiveSince: l.player.inactiveSince,
         role: l.role,
@@ -83,7 +87,8 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
         pagaAca,
         categoriaPago,
         payments: l.player.payments,
-        // regla de cuota: pago del 1 al 10; del 11 sin pagar = deudor, no juega
+        // regla de cuota: cada jugador tiene un día límite (default 10); al
+        // pasar ese día sin pagar el mes en curso = deudor, no juega
         estadoCuota,
         // ficha médica / estudios
         fichas: estadoFichas,
@@ -100,6 +105,7 @@ const createPlayerSchema = z.object({
   firstName: z.string().min(1),
   birthDate: z.string().optional().nullable(),
   hasInsurance: z.boolean().optional(),
+  deadline: z.number().int().min(1).max(31).optional(), // día límite de pago por jugador
   role: z.string().optional(),
   position: z.string().optional().nullable(),
   jersey: z.number().int().optional().nullable(),
@@ -115,7 +121,7 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
   }
-  const { document, lastName, firstName, birthDate, hasInsurance, role, position, jersey, cuentaPresupuesto } = parsed.data;
+  const { document, lastName, firstName, birthDate, hasInsurance, deadline, role, position, jersey, cuentaPresupuesto } = parsed.data;
 
   // upsert jugador por DNI (si ya existe en otro equipo, solo se vincula)
   let player = await prisma.player.findUnique({ where: { document } });
@@ -128,6 +134,7 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
         firstName,
         birthDate: birthDate ? new Date(birthDate) : null,
         hasInsurance: hasInsurance ?? false,
+        deadline: deadline ?? 10,
       },
     });
   }
@@ -317,14 +324,17 @@ router.patch("/players/:id/status", requireAuth, async (req, res) => {
       await registrarAvisoSeguro({ playerId: id, tipo: "BAJA", creadoPorId: req.user!.id });
     }
     const congelado = desde.toISOString().slice(0, 7);
-    const estadoCuota = calcularEstadoCuota(player.payments, new Date(), { congelarDesde: congelado });
+    const estadoCuota = calcularEstadoCuota(player.payments, new Date(), {
+      congelarDesde: congelado,
+      deadline: player.deadline,
+    });
     res.json({ ok: true, status: "INACTIVO", inactiveSince: desde, estadoCuota });
     return;
   }
 
   // REACTIVAR: si debe meses (antes de irse) vuelve DEUDA → no puede jugar
   await prisma.player.update({ where: { id }, data: { status: "ACTIVO", inactiveSince: null } });
-  const estadoCuota = calcularEstadoCuota(player.payments);
+  const estadoCuota = calcularEstadoCuota(player.payments, new Date(), { deadline: player.deadline });
   const statusFinal = estadoCuota.deudor ? "DEUDA" : "ACTIVO";
   if (statusFinal === "DEUDA") {
     await prisma.player.update({ where: { id }, data: { status: "DEUDA" } });
@@ -344,6 +354,7 @@ const updatePlayerSchema = z.object({
   hasInsurance: z.boolean().optional(),
   status: z.string().optional(), // ACTIVO | DEUDA | INACTIVO
   notes: z.string().optional().nullable(),
+  deadline: z.number().int().min(1).max(31).optional(), // día límite de pago por jugador
   role: z.string().optional(),
   position: z.string().optional().nullable(),
   jersey: z.number().int().optional().nullable(),
@@ -451,13 +462,13 @@ async function checkPlayerAccess(req: any, res: any, playerId: string): Promise<
 }
 
 // Recalcula la regla de cuota tras un cambio y sincroniza el status del jugador.
-async function recalcularTrasPago(player: { id: string; status: string }) {
+async function recalcularTrasPago(player: { id: string; status: string; deadline?: number | null }) {
   const payments = await prisma.payment.findMany({
     where: { playerId: player.id },
     orderBy: { month: "desc" },
     take: 24,
   });
-  const estadoCuota = calcularEstadoCuota(payments);
+  const estadoCuota = calcularEstadoCuota(payments, new Date(), { deadline: player.deadline ?? undefined });
   let nuevoStatus = player.status;
   if (estadoCuota.deudor) {
     nuevoStatus = "DEUDA";
@@ -488,11 +499,12 @@ router.post("/players/:id/payments/:month", requireAuth, async (req, res) => {
   }
   const paid = Boolean(req.body?.paid);
   const amount = typeof req.body?.amount === "number" ? req.body.amount : 0;
+  const note = typeof req.body?.note === "string" && req.body.note.trim() ? req.body.note.trim() : null;
 
   const payment = await prisma.payment.upsert({
     where: { playerId_month: { playerId: player.id, month } },
-    update: { paid, amount, paidAt: paid ? new Date() : null },
-    create: { playerId: player.id, month, paid, amount, paidAt: paid ? new Date() : null },
+    update: { paid, amount, note, paidAt: paid ? new Date() : null },
+    create: { playerId: player.id, month, paid, amount, note, paidAt: paid ? new Date() : null },
   });
 
   const { estadoCuota, status } = await recalcularTrasPago(player);

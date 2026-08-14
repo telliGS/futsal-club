@@ -74,6 +74,9 @@ model Player {
   birthDate    DateTime?
   hasInsurance Boolean  @default(false)
   status       String   @default("ACTIVO") // ACTIVO | DEUDA | INACTIVO (rojo del sheet)
+  // Día límite para pagar la cuota del mes en curso. Hasta ese día el jugador
+  // está "pendiente"; desde el día siguiente sin pagar pasa a DEUDOR (no juega).
+  deadline     Int      @default(10)
   // Se setea al pasar a INACTIVO: hasta qué mes jugó. Al volver, la deuda
   // se congela en esa fecha (no corre cuota durante el tiempo inactivo).
   inactiveSince DateTime?
@@ -161,6 +164,7 @@ model Payment {
   playerId  String
   month     String   // "YYYY-MM"  ejemplo: "2026-08"
   amount    Float    @default(0)    // monto de la cuota
+  note      String?                // detalle opcional (ej. "pagó la mitad, resta $X")
   paid      Boolean  @default(false)
   paidAt    DateTime?
 

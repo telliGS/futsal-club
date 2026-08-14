@@ -52,11 +52,13 @@ router.get("/status", async (req, res) => {
     });
   }
 
-  // Regla del club: la cuota se paga del 1 al 10 de cada mes.
-  // Desde el día 11 sin pagar el mes en curso → DEUDOR y sin permiso de jugar.
+  // Regla del club: cada jugador tiene un día límite (deadline) para pagar la
+  // cuota del mes en curso (por defecto el 10). Desde el día siguiente sin
+  // pagar → DEUDOR y sin permiso de jugar.
   const now = new Date();
   const currentMonth = now.toISOString().slice(0, 7); // "YYYY-MM"
   const day = now.getDate();
+  const deadline = player.deadline && player.deadline >= 1 && player.deadline <= 31 ? player.deadline : 10;
   // Solo cuentan los meses ≤ al actual (un registro futuro es un error de datos)
   const pagosHastaHoy = player.payments.filter((p) => p.month <= currentMonth);
   const currentPayment = pagosHastaHoy.find((p) => p.month === currentMonth);
@@ -66,11 +68,11 @@ router.get("/status", async (req, res) => {
   const unpaid = pagosHastaHoy.filter((p) => !p.paid && p.month < currentMonth);
   const totalDeuda = unpaid.reduce((acc, p) => acc + p.amount, 0);
 
-  // vence el plazo el día 10: del día 11 en adelante sin pago del mes → deudor
-  const periodoSinPagar = day > 10 && !pagoMesActual;
+  // vence el plazo en el día límite del jugador: del día siguiente sin pago del mes → deudor
+  const periodoSinPagar = day > deadline && !pagoMesActual;
   const isPaid = pagoMesActual && unpaid.length === 0;
   const deudor = unpaid.length > 0 || periodoSinPagar;
-  // Dentro del plazo (días 1-10) y todavía no pagó el mes en curso → pendiente
+  // Dentro del plazo (hasta el día límite) y todavía no pagó el mes en curso → pendiente
   const pendiente = !pagoMesActual && !deudor;
   const puedeJugarCuota = !deudor;
 
@@ -98,7 +100,8 @@ router.get("/status", async (req, res) => {
     deudor,
     puedeJugar: apto.puedeJugar,
     motivo: apto.puedeJugar ? null : motivo,
-    diasParaPagar: deudor ? 0 : Math.max(0, 10 - day), // días restantes del plazo (1-10)
+    diasParaPagar: deudor ? 0 : Math.max(0, deadline - day), // días restantes del plazo
+    deadline, // día límite de pago del jugador
     lastPayment: pagosHastaHoy.find((p) => p.paid) ?? null,
     unpaidMonths: unpaid.map((p) => ({ month: p.month, amount: p.amount })),
     totalDeuda,

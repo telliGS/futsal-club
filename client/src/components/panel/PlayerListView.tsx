@@ -13,8 +13,7 @@ interface PlayerListViewProps {
   currentMonth: string;
   categoriaActual: string | null;
   estadoLocal: (p: Player) => NonNullable<Player["estadoCuota"]>;
-  toggleCuota: (p: Player, month: string, paid: boolean) => void;
-  ponerEstado: (p: Player, month: string) => void;
+  abrirPago: (p: Player, month: string) => void;
   abrirInactivo: (p: Player) => void;
   reactivar: (p: Player) => void;
   openDocs: (p: Player) => void;
@@ -34,8 +33,7 @@ export default function PlayerListView({
   currentMonth,
   categoriaActual,
   estadoLocal,
-  toggleCuota,
-  ponerEstado,
+  abrirPago,
   abrirInactivo,
   reactivar,
   openDocs,
@@ -165,7 +163,7 @@ export default function PlayerListView({
               {p.status !== "INACTIVO" && (
                 <div className="mt-2.5 flex items-center gap-2">
                   <button
-                    onClick={() => toggleCuota(p, currentMonth, !thisMonth?.paid)}
+                    onClick={() => abrirPago(p, currentMonth)}
                     className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-150 active:scale-95 ${
                       thisMonth?.paid
                         ? "bg-green-500/25 text-green-300"
@@ -177,9 +175,9 @@ export default function PlayerListView({
                   </button>
                   {thisMonth && (
                     <button
-                      onClick={() => ponerEstado(p, currentMonth)}
+                      onClick={() => abrirPago(p, currentMonth)}
                       className="w-11 h-10 inline-flex items-center justify-center rounded-lg bg-surface-2 text-white/50 active:scale-95"
-                      title="Cambiar estado: pagado / impago / nulo"
+                      title="Ver / cambiar el pago del mes"
                     >
                       <Icon name="nulo" className="w-4 h-4" />
                     </button>
@@ -315,7 +313,7 @@ export default function PlayerListView({
                     ) : (
                       <div className="flex items-center gap-1.5">
                         <button
-                          onClick={() => toggleCuota(p, currentMonth, !thisMonth?.paid)}
+                          onClick={() => abrirPago(p, currentMonth)}
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 active:scale-95 ${
                             thisMonth?.paid
                               ? "bg-green-500/25 text-green-300 hover:bg-green-500/35"
@@ -327,9 +325,9 @@ export default function PlayerListView({
                         </button>
                         {thisMonth && (
                           <button
-                            onClick={() => ponerEstado(p, currentMonth)}
+                            onClick={() => abrirPago(p, currentMonth)}
                             className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-surface-2 transition-colors"
-                            title="Cambiar estado: pagado / impago / nulo (quitar registro)"
+                            title="Ver / cambiar el pago del mes"
                           >
                             <Icon name="nulo" className="w-4 h-4" />
                           </button>

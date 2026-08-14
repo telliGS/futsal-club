@@ -19,6 +19,7 @@ import QuotaModal from "../components/panel/QuotaModal";
 import GastoModal from "../components/panel/GastoModal";
 import InactivoModal from "../components/panel/InactivoModal";
 import SeguroModal from "../components/panel/SeguroModal";
+import PagoModal from "../components/panel/PagoModal";
 import { monthRange, monthShort, Icon } from "../lib/panel-helpers";
 import {
   Team,
@@ -146,6 +147,7 @@ export default function Dashboard() {
     position: "",
     jersey: "",
     hasInsurance: false,
+    deadline: "10",
   });
   const [cuentaPresupuesto, setCuentaPresupuesto] = useState(true);
 
@@ -199,6 +201,7 @@ export default function Dashboard() {
     setForm({
       lastName: "", firstName: "", document: "", birthDate: "",
       role: "JUGADOR", position: "", jersey: "", hasInsurance: false,
+      deadline: "10",
     });
     setCuentaPresupuesto(true);
     setFormError("");
@@ -216,6 +219,7 @@ export default function Dashboard() {
       position: p.position ?? "",
       jersey: p.jersey != null ? String(p.jersey) : "",
       hasInsurance: Boolean((p as unknown as { hasInsurance?: boolean }).hasInsurance),
+      deadline: String(p.deadline ?? 10),
     });
     setCuentaPresupuesto(p.cuentaPresupuesto ?? true);
     setFormError("");
@@ -239,6 +243,7 @@ export default function Dashboard() {
       position: form.position.trim() || null,
       jersey: form.jersey ? Number(form.jersey) : null,
       hasInsurance: form.hasInsurance,
+      deadline: Math.min(31, Math.max(1, Number(form.deadline) || 10)),
       cuentaPresupuesto,
     };
     try {
@@ -590,6 +595,10 @@ export default function Dashboard() {
   const [gastoModal, setGastoModal] = useState<null | { tipo: "fijo" | "extra"; mes?: string }>(null);
   const [gastoForm, setGastoForm] = useState({ nombre: "", monto: "" });
   const [gastoSaving, setGastoSaving] = useState(false);
+
+  // ---------- Pago de cuota (monto + detalle) ----------
+  const [pagoModal, setPagoModal] = useState<{ player: Player; month: string } | null>(null);
+  const [pagoSaving, setPagoSaving] = useState(false);
 
   // ---------- Total del club (solo ADMIN) ----------
   const [verTotal, setVerTotal] = useState(false);
@@ -1107,32 +1116,30 @@ export default function Dashboard() {
     }
   }
 
-  async function toggleCuota(p: Player, month: string, paid: boolean) {
-    if (!token) return;
-    // Protección anti-accidente: quitar un pago ya registrado pide confirmación
-    if (!paid) {
-      const yaPago = p.payments.some((x) => x.month === month && x.paid);
-      if (yaPago) {
-        const ok = window.confirm(
-          `¿Quitar el pago de la cuota ${monthShort(month)} de ${p.firstName} ${p.lastName}?`
-        );
-        if (!ok) return;
-      }
-    }
+  // Abrir el modal de pago de un jugador para un mes. Se usa desde la lista y
+  // desde el calendario (celda vacía o ya marcada).
+  function abrirPago(p: Player, month: string) {
+    setPagoModal({ player: p, month });
+  }
+
+  // Guarda/actualiza el pago del mes con su monto real y detalle.
+  async function guardarPago(amount: number, note: string) {
+    if (!token || !pagoModal) return;
+    const { player, month } = pagoModal;
+    setPagoSaving(true);
     try {
       const res = await apiFetch<{ estadoCuota: Player["estadoCuota"]; status: string }>(
-        `/players/${p.id}/payments/${month}`,
-        { method: "POST", body: JSON.stringify({ paid, amount: 0 }) },
+        `/players/${player.id}/payments/${month}`,
+        { method: "POST", body: JSON.stringify({ paid: true, amount, note }) },
         token
       );
-      // refresh local con lo que devolvió el server (estado recalculado según día y mes)
       setPlayers((prev) =>
         prev.map((x) =>
-          x.id === p.id
+          x.id === player.id
             ? {
                 ...x,
                 payments: [
-                  { month, paid, amount: 0 },
+                  { month, paid: true, amount, note },
                   ...x.payments.filter((y) => y.month !== month),
                 ],
                 estadoCuota: res.estadoCuota,
@@ -1141,29 +1148,74 @@ export default function Dashboard() {
             : x
         )
       );
+      setPagoModal(null);
+      mostrarToast(`Pago de ${monthShort(month)} registrado (${formatPesos(amount)}).`, "success");
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setPagoSaving(false);
     }
   }
 
-  // Poner un mes en NULO: ni pagado ni adeudado. Elimina el registro del mes
-  // (ej. mes anterior a la incorporación del jugador: Mateo entró en febrero,
-  // el enero "impago" que quedó mal no le corresponde → se saca).
-  async function quitarRegistro(p: Player, month: string) {
-    if (!token) return;
+  // Quitar el pago (marca el mes como impago → cuenta como deuda).
+  async function quitarPago() {
+    if (!token || !pagoModal) return;
+    const { player, month } = pagoModal;
     const ok = window.confirm(
-      `¿Quitar el registro de ${monthShort(month)} de ${p.firstName} ${p.lastName}?\n\nQueda vacío: ni pagado ni adeudado (útil cuando ese mes no le corresponde, ej. todavía no se había incorporado).`
+      `¿Quitar el pago de la cuota ${monthShort(month)} de ${player.firstName} ${player.lastName}? Queda como impago (cuenta como deuda).`
     );
     if (!ok) return;
+    setPagoSaving(true);
     try {
       const res = await apiFetch<{ estadoCuota: Player["estadoCuota"]; status: string }>(
-        `/players/${p.id}/payments/${month}`,
+        `/players/${player.id}/payments/${month}`,
+        { method: "POST", body: JSON.stringify({ paid: false, amount: 0 }) },
+        token
+      );
+      setPlayers((prev) =>
+        prev.map((x) =>
+          x.id === player.id
+            ? {
+                ...x,
+                payments: [
+                  { month, paid: false, amount: 0 },
+                  ...x.payments.filter((y) => y.month !== month),
+                ],
+                estadoCuota: res.estadoCuota,
+                status: res.status,
+              }
+            : x
+        )
+      );
+      setPagoModal(null);
+      mostrarToast(`Pago de ${monthShort(month)} quitado.`, "warning");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPagoSaving(false);
+    }
+  }
+
+  // Poner el mes en NULO: ni pagado ni adeudado. Elimina el registro del mes
+  // (ej. mes anterior a la incorporación del jugador: Mateo entró en febrero,
+  // el enero "impago" que quedó mal no le corresponde → se saca).
+  async function ponerNulo() {
+    if (!token || !pagoModal) return;
+    const { player, month } = pagoModal;
+    const ok = window.confirm(
+      `¿Quitar el registro de ${monthShort(month)} de ${player.firstName} ${player.lastName}?\n\nQueda vacío: ni pagado ni adeudado (útil cuando ese mes no le corresponde, ej. todavía no se había incorporado).`
+    );
+    if (!ok) return;
+    setPagoSaving(true);
+    try {
+      const res = await apiFetch<{ estadoCuota: Player["estadoCuota"]; status: string }>(
+        `/players/${player.id}/payments/${month}`,
         { method: "DELETE" },
         token
       );
       setPlayers((prev) =>
         prev.map((x) =>
-          x.id === p.id
+          x.id === player.id
             ? {
                 ...x,
                 payments: x.payments.filter((y) => y.month !== month),
@@ -1173,35 +1225,22 @@ export default function Dashboard() {
             : x
         )
       );
-} catch (e) {
+      setPagoModal(null);
+      mostrarToast(`Registro de ${monthShort(month)} quitado (nulo).`, "info");
+    } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setPagoSaving(false);
     }
   }
-
-  // Menú de 3 estados para una celda con registro (calendario): al tocar un
-  // mes ya marcado (pagado o impago) se puede cambiar a pagado, impago o a
-  // NULL (quitar el registro — para meses que no le corresponden).
-  async function ponerEstado(p: Player, month: string) {
-    if (!token) return;
-    const actual = p.payments.find((x) => x.month === month);
-    const opcion = window.prompt(
-      `Estado de ${monthShort(month)} para ${p.firstName} ${p.lastName}:\n\n` +
-        `1 = Pagado\n2 = Impago (cuenta como deuda)\n3 = Nulo (ni pagado ni adeudado — sin registro)\n\n` +
-        `Respondé 1, 2 o 3. Cancelá para no tocar nada.`,
-      actual ? (actual.paid ? "1" : "2") : "1"
-    );
-    if (opcion === null) return;
-    const v = opcion.trim();
-    if (v === "1") await toggleCuota(p, month, true);
-    else if (v === "2") await toggleCuota(p, month, false);
-    else if (v === "3") await quitarRegistro(p, month);
-  }
-  // pago del 1 al 10; del día 11 sin pago del mes en curso = deudor, no juega)
+  // regla de cuota: cada jugador tiene un día límite (default 10); al pasar
+  // ese día sin pagar el mes en curso = deudor, no juega)
   function estadoLocal(p: Player, now = new Date()): NonNullable<Player["estadoCuota"]> {
     const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const deadline = p.deadline && p.deadline >= 1 && p.deadline <= 31 ? p.deadline : 10;
     const pagadoMesActual = p.payments.some((x) => x.month === cur && x.paid);
     const deudaPrevia = p.payments.filter((x) => !x.paid && x.month < cur).length;
-    const vencio = now.getDate() > 10 && !pagadoMesActual;
+    const vencio = now.getDate() > deadline && !pagadoMesActual;
     const deudor = deudaPrevia > 0 || vencio;
     return {
       deudor,
@@ -1501,8 +1540,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
           currentMonth={currentMonth}
           categoriaActual={categoriaActual}
           estadoLocal={estadoLocal}
-          toggleCuota={toggleCuota}
-          ponerEstado={ponerEstado}
+          abrirPago={abrirPago}
           abrirInactivo={abrirInactivo}
           reactivar={reactivar}
           openDocs={openDocs}
@@ -1517,8 +1555,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
           plantel={plantel}
           months={months}
           currentMonth={currentMonth}
-          toggleCuota={toggleCuota}
-          ponerEstado={ponerEstado}
+          abrirPago={abrirPago}
           estadoLocal={estadoLocal}
         />
       )}
@@ -1780,6 +1817,17 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
         token={token}
         onExportado={cargarAvisosSeguro}
         onMsg={mostrarToast}
+      />
+
+      {/* ===================== MODAL PAGO DE CUOTA (monto + detalle) ===================== */}
+      <PagoModal
+        modal={pagoModal}
+        setModal={setPagoModal}
+        cuotaSugerida={presup?.cuota ?? null}
+        saving={pagoSaving}
+        guardarPago={guardarPago}
+        quitarPago={quitarPago}
+        ponerNulo={ponerNulo}
       />
     </div>
 

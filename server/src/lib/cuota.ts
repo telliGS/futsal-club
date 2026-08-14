@@ -1,7 +1,7 @@
 // Reglas de cuota del club José Hernández
-// La cuota se paga del 1 al 10 de cada mes.
-// Desde el día 11 sin pagar el mes en curso → el jugador es DEUDOR
-// y NO tiene permiso de jugar (hasta regularizar).
+// Cada jugador tiene un día límite para pagar la cuota del mes en curso
+// (deadline, por defecto 10). Desde el día siguiente sin pagar el mes en
+// curso → el jugador es DEUDOR y NO tiene permiso de jugar (hasta regularizar).
 
 export interface PagoLike {
   month: string; // YYYY-MM
@@ -20,15 +20,18 @@ function mesKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-// Día de corte: la cuota se paga del 1 al 10 de cada mes.
+// Día límite por defecto: la cuota se paga del 1 al 10 de cada mes.
 export const DIA_CORTE = 10;
 
 export function calcularEstadoCuota(
   payments: PagoLike[],
   now: Date = new Date(),
-  opts: { congelarDesde?: string } = {}
+  opts: { congelarDesde?: string; deadline?: number } = {}
 ): EstadoCuota {
   const { congelarDesde } = opts;
+  // Día límite del jugador: por defecto 10, pero cada jugador puede tener uno
+  // propio (Player.deadline). Se valida 1..31 con fallback a 10.
+  const deadline = opts.deadline && opts.deadline >= 1 && opts.deadline <= 31 ? opts.deadline : DIA_CORTE;
   const mesActual = mesKey(now);
   const dia = now.getDate();
 
@@ -40,8 +43,8 @@ export function calcularEstadoCuota(
   const deudaPrevia = payments.filter(
     (p) => !p.paid && p.month < mesActual && (!congelarDesde || p.month < congelarDesde)
   ).length;
-  // si estamos del día 11 en adelante y el mes en curso no está pago → venció
-  const vencioMesActual = dia > DIA_CORTE && !pagadoMesActual && !congelarDesde;
+  // si pasó el día límite del jugador y el mes en curso no está pago → venció
+  const vencioMesActual = dia > deadline && !pagadoMesActual && !congelarDesde;
 
   const deudor = deudaPrevia > 0 || vencioMesActual;
   const pendiente = !pagadoMesActual && !vencioMesActual;
