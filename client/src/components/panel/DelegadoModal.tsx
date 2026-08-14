@@ -4,6 +4,7 @@ export interface DelegadoFormState {
   fullName: string;
   email: string;
   password: string;
+  role: "DELEGADO" | "ADMIN";
   teamIds: string[];
 }
 
@@ -83,42 +84,72 @@ export default function DelegadoModal({
             />
           </div>
           <div>
-            <label className="text-xs text-white/70 block mb-1.5">Equipos asignados</label>
-            <p className="text-[11px] text-white/40 mb-2">
-              Marcá las categorías que va a poder gestionar.
-            </p>
-            <div className="grid grid-cols-2 gap-1.5 max-h-44 overflow-y-auto rounded-lg border border-outline bg-surface-1 p-2">
-              {allTeams.length === 0 && (
-                <p className="text-xs text-white/40 col-span-2 p-2">Cargando equipos...</p>
-              )}
-              {allTeams.map((team) => {
-                const checked = form.teamIds.includes(team.id);
-                return (
-                  <label
-                    key={team.id}
-                    className={`flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer text-sm transition-colors ${
-                      checked ? "bg-primary/15 text-white border border-primary/30" : "hover:bg-surface-2 text-white/80 border border-transparent"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(e) => {
-                        setForm({
-                          ...form,
-                          teamIds: e.target.checked
-                            ? [...form.teamIds, team.id]
-                            : form.teamIds.filter((id) => id !== team.id),
-                        });
-                      }}
-                      className="accent-[#008f39]"
-                    />
-                    {team.name}
-                  </label>
-                );
-              })}
+            <label className="text-xs text-white/70 block mb-1.5">Tipo de cuenta</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, role: "DELEGADO" })}
+                className={`flex-1 px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95 ${
+                  form.role === "DELEGADO" ? "bg-primary text-white" : "bg-surface-1 border border-outline text-white/70 hover:text-white"
+                }`}
+              >
+                Delegado
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, role: "ADMIN" })}
+                className={`flex-1 px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95 ${
+                  form.role === "ADMIN" ? "bg-primary text-white" : "bg-surface-1 border border-outline text-white/70 hover:text-white"
+                }`}
+              >
+                Admin (acceso total)
+              </button>
             </div>
+            <p className="text-[11px] text-white/40 mt-1.5">
+              {form.role === "ADMIN"
+                ? "Ve y gestiona TODO el club (todos los equipos, seguro y cuentas)."
+                : "Ve solo los equipos que le asignás."}
+            </p>
           </div>
+          {form.role === "DELEGADO" && (
+            <div>
+              <label className="text-xs text-white/70 block mb-1.5">Equipos asignados</label>
+              <p className="text-[11px] text-white/40 mb-2">
+                Marcá las categorías que va a poder gestionar.
+              </p>
+              <div className="grid grid-cols-2 gap-1.5 max-h-44 overflow-y-auto rounded-lg border border-outline bg-surface-1 p-2">
+                {allTeams.length === 0 && (
+                  <p className="text-xs text-white/40 col-span-2 p-2">Cargando equipos...</p>
+                )}
+                {allTeams.map((team) => {
+                  const checked = form.teamIds.includes(team.id);
+                  return (
+                    <label
+                      key={team.id}
+                      className={`flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer text-sm transition-colors ${
+                        checked ? "bg-primary/15 text-white border border-primary/30" : "hover:bg-surface-2 text-white/80 border border-transparent"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          setForm({
+                            ...form,
+                            teamIds: e.target.checked
+                              ? [...form.teamIds, team.id]
+                              : form.teamIds.filter((id) => id !== team.id),
+                          });
+                        }}
+                        className="accent-[#008f39]"
+                      />
+                      {team.name}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {error && <p className="text-sm text-red-400">{error}</p>}
 
@@ -128,7 +159,7 @@ export default function DelegadoModal({
               disabled={saving}
               className="flex-1 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-light disabled:opacity-50"
             >
-              {saving ? "Guardando..." : editingId ? "Guardar cambios" : "Crear delegado"}
+              {saving ? "Guardando..." : editingId ? "Guardar cambios" : form.role === "ADMIN" ? "Crear admin" : "Crear delegado"}
             </button>
             <button
               type="button"

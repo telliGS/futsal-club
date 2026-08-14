@@ -51,10 +51,17 @@ export default function Dashboard() {
   const [delegados, setDelegados] = useState<DelegadoAdmin[]>([]);
   const [delegadosLoading, setDelegadosLoading] = useState(false);
   const [delegadosError, setDelegadosError] = useState("");
-  const [delegadoForm, setDelegadoForm] = useState({
+  const [delegadoForm, setDelegadoForm] = useState<{
+    fullName: string;
+    email: string;
+    password: string;
+    role: "DELEGADO" | "ADMIN";
+    teamIds: string[];
+  }>({
     fullName: "",
     email: "",
     password: "",
+    role: "DELEGADO",
     teamIds: [] as string[],
   });
   const [delegadoEditingId, setDelegadoEditingId] = useState<string | null>(null);
@@ -766,7 +773,8 @@ export default function Dashboard() {
         fullName: delegadoForm.fullName,
         email: delegadoForm.email,
         password: delegadoForm.password || undefined,
-        teamIds: delegadoForm.teamIds,
+        role: delegadoForm.role,
+        teamIds: delegadoForm.role === "ADMIN" ? undefined : delegadoForm.teamIds,
       };
 
       if (delegadoEditingId) {
@@ -777,7 +785,7 @@ export default function Dashboard() {
 
       const refreshed = await apiFetch<DelegadoAdmin[]>("/auth/delegados", {}, token);
       setDelegados(refreshed);
-      setDelegadoForm({ fullName: "", email: "", password: "", teamIds: [] });
+      setDelegadoForm({ fullName: "", email: "", password: "", role: "DELEGADO", teamIds: [] });
       setDelegadoEditingId(null);
       setShowDelegadoModal(false);
       setDelegadoMsg(delegadoEditingId ? "Cambios guardados." : "Delegado creado.");
@@ -791,7 +799,7 @@ export default function Dashboard() {
 
   function openNuevoDelegado() {
     setDelegadoEditingId(null);
-    setDelegadoForm({ fullName: "", email: "", password: "", teamIds: [] });
+    setDelegadoForm({ fullName: "", email: "", password: "", role: "DELEGADO", teamIds: [] });
     setDelegadosError("");
     setShowDelegadoModal(true);
   }
@@ -802,6 +810,7 @@ export default function Dashboard() {
       fullName: d.fullName,
       email: d.email,
       password: "",
+      role: d.role === "ADMIN" ? "ADMIN" : "DELEGADO",
       teamIds: d.teamAccess.map((a) => a.team.id),
     });
     setDelegadosError("");

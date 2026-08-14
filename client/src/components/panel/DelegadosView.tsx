@@ -82,16 +82,32 @@ export default function DelegadosView({
             <tbody>
               {delegados.map((d) => (
                 <tr key={d.id} className={`border-t border-outline/60 ${d.active ? "" : "opacity-50"}`}>
-                  <td className="py-3">{d.fullName}</td>
+                  <td className="py-3">
+                    <div className="flex items-center gap-2">
+                      <span>{d.fullName}</span>
+                      {d.role === "ADMIN" && (
+                        <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary-light border border-primary/25 text-[10px] font-bold">
+                          Admin
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="py-3">{d.email}</td>
                   <td className="py-3">
                     <div className="flex flex-wrap gap-1.5">
-                      {d.teamAccess.length === 0 && <span className="text-white/40 text-xs">Sin equipos</span>}
-                      {d.teamAccess.map((a) => (
-                        <span key={a.team.id} className="px-2 py-0.5 rounded-full bg-surface-2 border border-outline text-xs">
-                          {a.team.name}
+                      {d.role === "ADMIN" ? (
+                        <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-xs text-primary-light">
+                          Todos los equipos
                         </span>
-                      ))}
+                      ) : d.teamAccess.length === 0 ? (
+                        <span className="text-white/40 text-xs">Sin equipos</span>
+                      ) : (
+                        d.teamAccess.map((a) => (
+                          <span key={a.team.id} className="px-2 py-0.5 rounded-full bg-surface-2 border border-outline text-xs">
+                            {a.team.name}
+                          </span>
+                        ))
+                      )}
                     </div>
                   </td>
                   <td className="py-3">
@@ -156,7 +172,7 @@ export default function DelegadosView({
       )}
 
       <p className="mt-4 text-xs text-white/40">
-        La cuenta admin (todos los equipos) no aparece acá. Para cambiarla, usá el panel de credenciales.
+        Los admin tienen acceso a todo el club. La cuenta del admin logueado no aparece acá para que no puedas modificarla por error.
       </p>
     </div>
   );
