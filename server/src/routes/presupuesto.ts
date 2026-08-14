@@ -245,7 +245,37 @@ router.get("/presupuesto/total", requireAuth, async (req, res) => {
     { jugadores: 0, ingreso: 0, gastos: 0, deuda: 0, balance: 0 }
   );
 
-  res.json({ mes, porEquipo, totales });
+  // --- Gimnasio: gasto variable por jugador que va (vaAlGym, activo o con
+  // deuda). El costo de cada uno es su gymPrecio propio o el global de
+  // GymConfig. Se paga con las cuotas de gym de los jugadores que van
+  // (GymPayment del mes): lo recaudado es lo que entró realmente.
+  const gymConfig = await prisma.gymConfig.upsert({
+    where: { id: "global" },
+    update: {},
+    create: { id: "global", precio: 0 },
+  });
+  const gymJugadores = await prisma.player.findMany({
+    where: { vaAlGym: true, status: { not: "INACTIVO" } },
+    select: {
+      id: true,
+      gymPrecio: true,
+      gymPayments: { where: { month: mes }, select: { paid: true, amount: true } },
+    },
+  });
+  const gymGasto = gymJugadores.reduce((a, p) => a + (p.gymPrecio ?? gymConfig.precio), 0);
+  const gymRecaudado = gymJugadores.reduce(
+    (a, p) => a + (p.gymPayments[0]?.paid ? p.gymPayments[0].amount : 0),
+    0
+  );
+  const gym = {
+    precio: gymConfig.precio,
+    jugadores: gymJugadores.length,
+    gasto: gymGasto,
+    recaudado: gymRecaudado,
+    faltaCobrar: Math.max(0, gymGasto - gymRecaudado),
+  };
+
+  res.json({ mes, porEquipo, totales, gym });
 });
 
 export default router;

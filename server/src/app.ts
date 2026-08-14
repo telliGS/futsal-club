@@ -11,6 +11,7 @@ import syncRoutes from "./routes/sync.js";
 import publicRoutes from "./routes/public.js";
 import poliRoutes from "./routes/poli.js";
 import seguroRoutes from "./routes/seguro.js";
+import gymRoutes from "./routes/gym.js";
 
 export const app = express();
 app.use(cors());
@@ -31,6 +32,7 @@ app.use("/api/sync", syncRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/poli", poliRoutes);
 app.use("/api", seguroRoutes);
+app.use("/api", gymRoutes);
 
 app.use((_req, res) => res.status(404).json({ error: "Ruta no encontrada" }));
 

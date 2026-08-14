@@ -73,6 +73,11 @@ model Player {
   firstName    String
   birthDate    DateTime?
   hasInsurance Boolean  @default(false)
+  // Gimnasio: el jugador va y paga su cuota de gym por mes. Todos los de élite
+  // van; algunos C20 / JH NEGRO también. gymPrecio opcional = costo propio
+  // (si es null se usa el precio global de GymConfig).
+  vaAlGym      Boolean  @default(false)
+  gymPrecio    Float?
   status       String   @default("ACTIVO") // ACTIVO | DEUDA | INACTIVO (rojo del sheet)
   // Día límite para pagar la cuota del mes en curso. Hasta ese día el jugador
   // está "pendiente"; desde el día siguiente sin pagar pasa a DEUDOR (no juega).
@@ -84,6 +89,7 @@ model Player {
 
   teams   PlayerTeam[]
   payments Payment[]
+  gymPayments GymPayment[]
   documentos JugadorDocumento[]
 }
 
@@ -171,6 +177,53 @@ model Payment {
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, month])
+}
+
+// ---------------- Gimnasio (config global + pagos por jugador) ----------------
+
+// Precio global del gimnasio: el costo mensual que paga el club por jugador
+// que va (variable por jugador). Cada jugador con vaAlGym paga su cuota de gym
+// por mes; si tiene gymPrecio propio usa ese, si no usa el global de acá.
+model GymConfig {
+  id     String @id @default("global") // única fila
+  precio Float  @default(0)
+}
+
+// Pago mensual de gimnasio por jugador (espejo del Payment de cuota):
+// permite monto real (pago parcial, ej. Telli Guillermo paga la mitad) + nota.
+model GymPayment {
+  id        String   @id @default(cuid())
+  playerId  String
+  month     String   // "YYYY-MM"  ejemplo: "2026-08"
+  amount    Float    @default(0)    // monto de gym pagado
+  note      String?                // detalle opcional (ej. "va 1 día de los 2")
+  paid      Boolean  @default(false)
+  paidAt    DateTime?
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, month])
+}
+
+// Aviso de alta/baja del gimnasio: se registra cuando un jugador empieza o
+// deja de ir al gym (vaAlGym cambia), igual que el seguro. Se limpia al
+// exportar la lista completa del gym (resueltoAt).
+model AvisoGym {
+  id          String    @id @default(cuid())
+  playerId    String?
+  tipo        String    // "ALTA" | "BAJA"
+  document    String
+  lastName    String
+  firstName   String
+  birthDate   DateTime?
+  teamId      String?
+  creadoPorId String?
+  createdAt   DateTime  @default(now())
+  resueltoAt  DateTime?
+
+  @@index([tipo])
+  @@index([creadoPorId])
+  @@index([resueltoAt])
 }
 
 // ---------------- Lista de asegurados (seguro) ----------------

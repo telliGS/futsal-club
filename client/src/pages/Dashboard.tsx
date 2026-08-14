@@ -20,6 +20,8 @@ import GastoModal from "../components/panel/GastoModal";
 import InactivoModal from "../components/panel/InactivoModal";
 import SeguroModal from "../components/panel/SeguroModal";
 import PagoModal from "../components/panel/PagoModal";
+import GymModal from "../components/panel/GymModal";
+import PagoGymModal from "../components/panel/PagoGymModal";
 import { monthRange, monthShort, Icon } from "../lib/panel-helpers";
 import {
   Team,
@@ -36,6 +38,7 @@ import {
   PresupuestoData,
   TotalPresupuesto,
   SeguroAvisos,
+  GymAvisos,
 } from "../lib/panel-types";
 
 export default function Dashboard() {
@@ -91,8 +94,27 @@ export default function Dashboard() {
     }
   }
 
+  // ----- Gimnasio (lista de los que van + avisos + pagos mensuales) -----
+  const [showGym, setShowGym] = useState(false);
+  const [gymAvisos, setGymAvisos] = useState<GymAvisos | null>(null);
+  const [gymPrecioGlobal, setGymPrecioGlobal] = useState<number | null>(null);
+
+  async function cargarAvisosGym() {
+    if (!token) return;
+    try {
+      const r = await apiFetch<GymAvisos>("/gym/avisos", {}, token);
+      setGymAvisos(r);
+      const cfg = await apiFetch<{ precio: number }>("/gym/config", {}, token);
+      setGymPrecioGlobal(cfg.precio);
+    } catch {
+      setGymAvisos(null);
+      setGymPrecioGlobal(null);
+    }
+  }
+
   useEffect(() => {
     cargarAvisosSeguro();
+    cargarAvisosGym();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -147,6 +169,8 @@ export default function Dashboard() {
     position: "",
     jersey: "",
     hasInsurance: false,
+    vaAlGym: false,
+    gymPrecio: "",
     deadline: "10",
   });
   const [cuentaPresupuesto, setCuentaPresupuesto] = useState(true);
@@ -201,6 +225,7 @@ export default function Dashboard() {
     setForm({
       lastName: "", firstName: "", document: "", birthDate: "",
       role: "JUGADOR", position: "", jersey: "", hasInsurance: false,
+      vaAlGym: false, gymPrecio: "",
       deadline: "10",
     });
     setCuentaPresupuesto(true);
@@ -219,6 +244,8 @@ export default function Dashboard() {
       position: p.position ?? "",
       jersey: p.jersey != null ? String(p.jersey) : "",
       hasInsurance: Boolean((p as unknown as { hasInsurance?: boolean }).hasInsurance),
+      vaAlGym: Boolean((p as unknown as { vaAlGym?: boolean }).vaAlGym),
+      gymPrecio: (p as unknown as { gymPrecio?: number | null }).gymPrecio != null ? String((p as unknown as { gymPrecio?: number | null }).gymPrecio) : "",
       deadline: String(p.deadline ?? 10),
     });
     setCuentaPresupuesto(p.cuentaPresupuesto ?? true);
@@ -243,6 +270,8 @@ export default function Dashboard() {
       position: form.position.trim() || null,
       jersey: form.jersey ? Number(form.jersey) : null,
       hasInsurance: form.hasInsurance,
+      vaAlGym: form.vaAlGym,
+      gymPrecio: form.gymPrecio ? Number(form.gymPrecio) : null,
       deadline: Math.min(31, Math.max(1, Number(form.deadline) || 10)),
       cuentaPresupuesto,
     };
@@ -599,6 +628,10 @@ export default function Dashboard() {
   // ---------- Pago de cuota (monto + detalle) ----------
   const [pagoModal, setPagoModal] = useState<{ player: Player; month: string } | null>(null);
   const [pagoSaving, setPagoSaving] = useState(false);
+
+  // ---------- Pago de gimnasio (monto + detalle, discrimina igual que la cuota) ----------
+  const [pagoGymModal, setPagoGymModal] = useState<{ player: Player; month: string } | null>(null);
+  const [pagoGymSaving, setPagoGymSaving] = useState(false);
 
   // ---------- Total del club (solo ADMIN) ----------
   const [verTotal, setVerTotal] = useState(false);
@@ -1233,6 +1266,112 @@ export default function Dashboard() {
       setPagoSaving(false);
     }
   }
+
+  // ----- Pago de gimnasio (mismo flujo que la cuota, contra /gym) -----
+  function abrirPagoGym(p: Player, month: string) {
+    setPagoGymModal({ player: p, month });
+  }
+
+  async function guardarPagoGym(amount: number, note: string) {
+    if (!token || !pagoGymModal) return;
+    const { player, month } = pagoGymModal;
+    setPagoGymSaving(true);
+    try {
+      await apiFetch(`/gym/players/${player.id}/pagos/${month}`, {
+        method: "POST",
+        body: JSON.stringify({ paid: true, amount, note }),
+      }, token);
+      setPlayers((prev) =>
+        prev.map((x) =>
+          x.id === player.id
+            ? {
+                ...x,
+                gymPayments: [
+                  { month, paid: true, amount, note },
+                  ...(x.gymPayments ?? []).filter((y) => y.month !== month),
+                ],
+              }
+            : x
+        )
+      );
+      setPagoGymModal(null);
+      mostrarToast(`Gym de ${monthShort(month)} registrado (${formatPesos(amount)}).`, "success");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPagoGymSaving(false);
+    }
+  }
+
+  async function quitarPagoGym() {
+    if (!token || !pagoGymModal) return;
+    const { player, month } = pagoGymModal;
+    const ok = window.confirm(
+      `¿Quitar el pago del gym ${monthShort(month)} de ${player.firstName} ${player.lastName}? Queda como impago (debe el gym).`
+    );
+    if (!ok) return;
+    setPagoGymSaving(true);
+    try {
+      await apiFetch(`/gym/players/${player.id}/pagos/${month}`, {
+        method: "POST",
+        body: JSON.stringify({ paid: false, amount: 0 }),
+      }, token);
+      setPlayers((prev) =>
+        prev.map((x) =>
+          x.id === player.id
+            ? {
+                ...x,
+                gymPayments: [
+                  { month, paid: false, amount: 0 },
+                  ...(x.gymPayments ?? []).filter((y) => y.month !== month),
+                ],
+              }
+            : x
+        )
+      );
+      setPagoGymModal(null);
+      mostrarToast(`Gym de ${monthShort(month)} quitado.`, "warning");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPagoGymSaving(false);
+    }
+  }
+
+  async function ponerNuloGym() {
+    if (!token || !pagoGymModal) return;
+    const { player, month } = pagoGymModal;
+    const ok = window.confirm(
+      `¿Quitar el registro del gym ${monthShort(month)} de ${player.firstName} ${player.lastName}?\n\nQueda vacío: ni pagado ni adeudado.`
+    );
+    if (!ok) return;
+    setPagoGymSaving(true);
+    try {
+      await apiFetch(`/gym/players/${player.id}/pagos/${month}`, { method: "DELETE" }, token);
+      setPlayers((prev) =>
+        prev.map((x) =>
+          x.id === player.id
+            ? { ...x, gymPayments: (x.gymPayments ?? []).filter((y) => y.month !== month) }
+            : x
+        )
+      );
+      setPagoGymModal(null);
+      mostrarToast(`Registro del gym de ${monthShort(month)} quitado (nulo).`, "info");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPagoGymSaving(false);
+    }
+  }
+
+  // Estado del gym de un jugador para el mes actual (usa el mismo deadline).
+  function estadoLocalGym(p: Player, now = new Date()): "PAGO" | "DEBE" | "PENDIENTE" {
+    const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const deadline = p.deadline && p.deadline >= 1 && p.deadline <= 31 ? p.deadline : 10;
+    const pago = (p.gymPayments ?? []).find((x) => x.month === cur);
+    if (pago?.paid) return "PAGO";
+    return now.getDate() > deadline ? "DEBE" : "PENDIENTE";
+  }
   // regla de cuota: cada jugador tiene un día límite (default 10); al pasar
   // ese día sin pagar el mes en curso = deudor, no juega)
   function estadoLocal(p: Player, now = new Date()): NonNullable<Player["estadoCuota"]> {
@@ -1397,6 +1536,14 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
               Seguro
             </button>
             <button
+              onClick={() => setShowGym(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-surface-1 border border-outline text-white/80 transition-all duration-200 hover:bg-surface-2 active:scale-95"
+              title="Lista del gimnasio, avisos y cuotas de gym por mes"
+            >
+              <Icon name="doc" className="w-3.5 h-3.5" />
+              Gym
+            </button>
+            <button
               onClick={openNuevo}
               className="px-4 py-2 rounded-lg text-sm bg-primary text-white font-semibold transition-all duration-200 hover:bg-primary-light active:scale-95"
               title="Agregar jugador o cuerpo t�cnico"
@@ -1526,6 +1673,29 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
   </div>
 )}
 
+      {/* Aviso: lista del gimnasio desactualizada (altas/bajas pendientes) */}
+      {gymAvisos && gymAvisos.total > 0 && (
+  <div className="mt-4 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <p className="text-sm font-semibold text-green-300">
+        💪 Cambios pendientes en la lista del gimnasio
+      </p>
+      <p className="text-xs text-green-200/70 mt-1">
+        {gymAvisos.altas > 0 && `${gymAvisos.altas} alta${gymAvisos.altas === 1 ? "" : "s"}`}
+        {gymAvisos.altas > 0 && gymAvisos.bajas > 0 && " y "}
+        {gymAvisos.bajas > 0 && `${gymAvisos.bajas} baja${gymAvisos.bajas === 1 ? "" : "s"}`}
+        {" "}— exportá la lista completa del gym para actualizarla.
+      </p>
+    </div>
+    <button
+      onClick={() => setShowGym(true)}
+      className="px-4 py-1.5 rounded-lg bg-green-500/20 text-green-300 border border-green-500/40 hover:bg-green-500/30 transition-colors text-sm font-medium whitespace-nowrap"
+    >
+      Exportar lista
+    </button>
+  </div>
+)}
+
       {/* ===================== VISTA LISTA ===================== */}
       {view === "lista" && (
         <PlayerListView
@@ -1541,6 +1711,8 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
           categoriaActual={categoriaActual}
           estadoLocal={estadoLocal}
           abrirPago={abrirPago}
+          abrirPagoGym={abrirPagoGym}
+          estadoLocalGym={estadoLocalGym}
           abrirInactivo={abrirInactivo}
           reactivar={reactivar}
           openDocs={openDocs}
@@ -1819,6 +1991,20 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
         onMsg={mostrarToast}
       />
 
+      {/* ===================== MODAL GIMNASIO (lista + avisos + pagos) ===================== */}
+      <GymModal
+        show={showGym}
+        setShow={setShowGym}
+        esAdmin={esAdmin}
+        teams={esAdmin ? allTeams : (me?.teams ?? [])}
+        teamId={teamId}
+        token={token}
+        precioGlobal={gymPrecioGlobal}
+        setPrecioGlobal={setGymPrecioGlobal}
+        onExportado={cargarAvisosGym}
+        onMsg={mostrarToast}
+      />
+
       {/* ===================== MODAL PAGO DE CUOTA (monto + detalle) ===================== */}
       <PagoModal
         modal={pagoModal}
@@ -1828,6 +2014,17 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
         guardarPago={guardarPago}
         quitarPago={quitarPago}
         ponerNulo={ponerNulo}
+      />
+
+      {/* ===================== MODAL PAGO DE GIMNASIO (monto + detalle) ===================== */}
+      <PagoGymModal
+        modal={pagoGymModal}
+        setModal={setPagoGymModal}
+        precioGlobal={gymPrecioGlobal}
+        saving={pagoGymSaving}
+        guardarPago={guardarPagoGym}
+        quitarPago={quitarPagoGym}
+        ponerNulo={ponerNuloGym}
       />
     </div>
 

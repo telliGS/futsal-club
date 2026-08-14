@@ -14,6 +14,8 @@ interface PlayerListViewProps {
   categoriaActual: string | null;
   estadoLocal: (p: Player) => NonNullable<Player["estadoCuota"]>;
   abrirPago: (p: Player, month: string) => void;
+  abrirPagoGym: (p: Player, month: string) => void;
+  estadoLocalGym: (p: Player) => "PAGO" | "DEBE" | "PENDIENTE";
   abrirInactivo: (p: Player) => void;
   reactivar: (p: Player) => void;
   openDocs: (p: Player) => void;
@@ -34,6 +36,8 @@ export default function PlayerListView({
   categoriaActual,
   estadoLocal,
   abrirPago,
+  abrirPagoGym,
+  estadoLocalGym,
   abrirInactivo,
   reactivar,
   openDocs,
@@ -182,6 +186,20 @@ export default function PlayerListView({
                       <Icon name="nulo" className="w-4 h-4" />
                     </button>
                   )}
+                  {p.vaAlGym && (
+                    <button
+                      onClick={() => abrirPagoGym(p, currentMonth)}
+                      className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-150 active:scale-95 ${
+                        estadoLocalGym(p) === "PAGO"
+                          ? "bg-green-500/25 text-green-300"
+                          : "bg-surface-2 text-white/80 hover:bg-green-500/25 hover:text-green-300"
+                      }`}
+                      title="Pago del gimnasio del mes"
+                    >
+                      <Icon name="gym" className="w-4 h-4" />
+                      {estadoLocalGym(p) === "PAGO" ? "Gym pago" : estadoLocalGym(p) === "DEBE" ? "Gym debe" : "Gym"}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -256,6 +274,7 @@ export default function PlayerListView({
               <th className="panel-th">Jugador</th>
               <th className="panel-th">Estado de cuota</th>
               <th className="panel-th">Pago {monthShort(currentMonth)}</th>
+              <th className="panel-th">Gym {monthShort(currentMonth)}</th>
               <th className="panel-th">Fichas</th>
               <th className="panel-th">Deuda</th>
               <th className="panel-th text-right">Acciones</th>
@@ -334,6 +353,28 @@ export default function PlayerListView({
                         )}
                       </div>
                     )}
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center gap-1.5">
+                      {p.vaAlGym ? (
+                        <button
+                          onClick={() => abrirPagoGym(p, currentMonth)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 active:scale-95 ${
+                            estadoLocalGym(p) === "PAGO"
+                              ? "bg-green-500/25 text-green-300 hover:bg-green-500/35"
+                              : estadoLocalGym(p) === "DEBE"
+                                ? "bg-red-500/15 text-red-300 hover:bg-red-500/25"
+                                : "bg-surface-2 text-white/70 hover:bg-green-500/25 hover:text-green-300"
+                          }`}
+                          title="Pago del gimnasio del mes"
+                        >
+                          <Icon name="gym" className="w-3.5 h-3.5" />
+                          {estadoLocalGym(p) === "PAGO" ? "Gym pago" : estadoLocalGym(p) === "DEBE" ? "Gym debe" : "Gym"}
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-white/25">—</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-2.5">
                     <span className="flex flex-col gap-0.5" title={p.fichas?.resumen ?? "Sin datos de fichas"}>
@@ -417,7 +458,7 @@ export default function PlayerListView({
             })}
             {plantel.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-white/40">
+                <td colSpan={7} className="p-8 text-center text-white/40">
                   Sin jugadores en este equipo. Usá "+ Agregar" o importá desde Excel.
                 </td>
               </tr>

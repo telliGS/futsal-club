@@ -244,6 +244,34 @@ export default function PresupuestoView({
                     </p>
                   </div>
 
+                  {/* Gimnasio: gasto variable por jugador que va + lo recaudado */}
+                  <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="card p-4">
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Gym · jugadores</p>
+                      <p className="mt-1.5 text-2xl font-bold tabular-nums">{totalData.gym.jugadores}</p>
+                      <p className="mt-1 text-xs text-white/60">van al gym {formatPesos(totalData.gym.precio)} c/u (global)</p>
+                    </div>
+                    <div className="card p-4">
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Gym · gasto (variable)</p>
+                      <p className="mt-1.5 text-2xl font-bold text-red-400 tabular-nums">{formatPesos(totalData.gym.gasto)}</p>
+                      <p className="mt-1 text-xs text-white/60">lo que cuesta el gym por los que van</p>
+                    </div>
+                    <div className="card p-4">
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Gym · recaudado</p>
+                      <p className="mt-1.5 text-2xl font-bold text-green-400 tabular-nums">{formatPesos(totalData.gym.recaudado)}</p>
+                      <p className="mt-1 text-xs text-white/60">lo que pagaron los que van</p>
+                    </div>
+                    <div className={`card p-4 ${totalData.gym.faltaCobrar > 0 ? "border-amber-500/30 bg-amber-500/5" : "border-green-500/30 bg-green-500/5"}`}>
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Gym · falta cobrar</p>
+                      <p className={`mt-1.5 text-2xl font-bold tabular-nums ${totalData.gym.faltaCobrar > 0 ? "text-amber-300" : "text-green-400"}`}>
+                        {formatPesos(totalData.gym.faltaCobrar)}
+                      </p>
+                      <p className="mt-1 text-xs text-white/60">
+                        {totalData.gym.faltaCobrar > 0 ? "quedan cuotas de gym por cobrar" : "todo el gym cobrado"}
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Tabla por equipo, ordenada por pérdida */}
                   <div className="mt-4 overflow-x-auto rounded-lg border border-outline">
                     <table className="w-full text-sm">

@@ -6,6 +6,7 @@ import { calcularEstadoCuota } from "../lib/cuota.js";
 import { calcularDocumentos, MAX_DOC_BYTES, TipoDocumento, TIPOS_DOCUMENTO, aptoParaJugar, vencimientoPorRegla } from "../lib/ficha.js";
 import { pagaCuotaEnEquipo, categoriasPagoJugador } from "../lib/nativo.js";
 import { registrarAvisoSeguro } from "../lib/seguro.js";
+import { registrarAvisoGym } from "../lib/gym.js";
 
 const router = Router();
 
@@ -25,6 +26,7 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
       player: {
         include: {
           payments: { orderBy: { month: "desc" }, take: 24 },
+          gymPayments: { orderBy: { month: "desc" }, take: 24 },
           documentos: { select: { tipo: true, fechaVencimiento: true } },
           teams: { include: { team: { select: { name: true, type: true, category: true } } } },
         },
@@ -75,6 +77,8 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
         document: l.player.document,
         birthDate: l.player.birthDate,
         hasInsurance: l.player.hasInsurance,
+        vaAlGym: l.player.vaAlGym,
+        gymPrecio: l.player.gymPrecio,
         deadline: l.player.deadline,
         status: l.player.status,
         inactiveSince: l.player.inactiveSince,
@@ -87,6 +91,7 @@ router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
         pagaAca,
         categoriaPago,
         payments: l.player.payments,
+        gymPayments: l.player.gymPayments,
         // regla de cuota: cada jugador tiene un día límite (default 10); al
         // pasar ese día sin pagar el mes en curso = deudor, no juega
         estadoCuota,
@@ -105,6 +110,8 @@ const createPlayerSchema = z.object({
   firstName: z.string().min(1),
   birthDate: z.string().optional().nullable(),
   hasInsurance: z.boolean().optional(),
+  vaAlGym: z.boolean().optional(),
+  gymPrecio: z.number().optional().nullable(),
   deadline: z.number().int().min(1).max(31).optional(), // día límite de pago por jugador
   role: z.string().optional(),
   position: z.string().optional().nullable(),
@@ -121,7 +128,7 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
   }
-  const { document, lastName, firstName, birthDate, hasInsurance, deadline, role, position, jersey, cuentaPresupuesto } = parsed.data;
+  const { document, lastName, firstName, birthDate, hasInsurance, vaAlGym, gymPrecio, deadline, role, position, jersey, cuentaPresupuesto } = parsed.data;
 
   // upsert jugador por DNI (si ya existe en otro equipo, solo se vincula)
   let player = await prisma.player.findUnique({ where: { document } });
@@ -134,6 +141,8 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
         firstName,
         birthDate: birthDate ? new Date(birthDate) : null,
         hasInsurance: hasInsurance ?? false,
+        vaAlGym: vaAlGym ?? false,
+        gymPrecio: gymPrecio ?? null,
         deadline: deadline ?? 10,
       },
     });
@@ -183,6 +192,10 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
       creadoPorId: req.user!.id,
       teamId,
     });
+  }
+  // Alta en el gimnasio: solo jugadores nuevos y solo si van al gym.
+  if (esNuevo && vaAlGym) {
+    await registrarAvisoGym({ playerId: player.id, tipo: "ALTA", creadoPorId: req.user!.id, teamId });
   }
 
   res.status(201).json(player);
@@ -322,6 +335,7 @@ router.patch("/players/:id/status", requireAuth, async (req, res) => {
     // Baja de la lista de asegurados (si estaba activo/deuda → pasa a inactivo)
     if (player.status !== "INACTIVO") {
       await registrarAvisoSeguro({ playerId: id, tipo: "BAJA", creadoPorId: req.user!.id });
+      if (player.vaAlGym) await registrarAvisoGym({ playerId: id, tipo: "BAJA", creadoPorId: req.user!.id });
     }
     const congelado = desde.toISOString().slice(0, 7);
     const estadoCuota = calcularEstadoCuota(player.payments, new Date(), {
@@ -342,6 +356,7 @@ router.patch("/players/:id/status", requireAuth, async (req, res) => {
   // Alta de la lista de asegurados: vuelve ACTIVO/DEUDA (ambos cuentan)
   if (player.status === "INACTIVO") {
     await registrarAvisoSeguro({ playerId: id, tipo: "ALTA", creadoPorId: req.user!.id });
+    if (player.vaAlGym) await registrarAvisoGym({ playerId: id, tipo: "ALTA", creadoPorId: req.user!.id });
   }
   res.json({ ok: true, status: statusFinal, inactiveSince: null, estadoCuota });
 });
@@ -352,6 +367,8 @@ const updatePlayerSchema = z.object({
   firstName: z.string().min(1).optional(),
   birthDate: z.string().optional().nullable(),
   hasInsurance: z.boolean().optional(),
+  vaAlGym: z.boolean().optional(),
+  gymPrecio: z.number().optional().nullable(),
   status: z.string().optional(), // ACTIVO | DEUDA | INACTIVO
   notes: z.string().optional().nullable(),
   deadline: z.number().int().min(1).max(31).optional(), // día límite de pago por jugador
@@ -393,8 +410,19 @@ router.patch("/players/:id", requireAuth, async (req, res) => {
   // Cambio de estado global por edición → alta/baja de la lista de asegurados
   if (nuevoStatus === "INACTIVO" && player.status !== "INACTIVO") {
     await registrarAvisoSeguro({ playerId: player.id, tipo: "BAJA", creadoPorId: req.user!.id });
+    if (player.vaAlGym) await registrarAvisoGym({ playerId: player.id, tipo: "BAJA", creadoPorId: req.user!.id });
   } else if (nuevoStatus && nuevoStatus !== "INACTIVO" && player.status === "INACTIVO") {
     await registrarAvisoSeguro({ playerId: player.id, tipo: "ALTA", creadoPorId: req.user!.id });
+    if (player.vaAlGym) await registrarAvisoGym({ playerId: player.id, tipo: "ALTA", creadoPorId: req.user!.id });
+  }
+
+  // Cambio del flag de gimnasio por edición → alta/baja de la lista del gym
+  if (rest.vaAlGym !== undefined && rest.vaAlGym !== player.vaAlGym) {
+    await registrarAvisoGym({
+      playerId: player.id,
+      tipo: rest.vaAlGym ? "ALTA" : "BAJA",
+      creadoPorId: req.user!.id,
+    });
   }
 
   // rol/pos/número/cuentaPresupuesto se guardan en el vínculo del equipo indicado (o el primero con acceso)
@@ -437,6 +465,20 @@ router.delete("/players/:id", requireAuth, async (req, res) => {
           birthDate: player.birthDate,
         },
       });
+      if (player.vaAlGym) {
+        await registrarAvisoGym({
+          playerId: player.id,
+          tipo: "BAJA",
+          creadoPorId: req.user!.id,
+          teamId: links[0].teamId,
+          snapshot: {
+            document: player.document,
+            lastName: player.lastName,
+            firstName: player.firstName,
+            birthDate: player.birthDate,
+          },
+        });
+      }
     }
     await prisma.player.delete({ where: { id: player.id } });
   } else {

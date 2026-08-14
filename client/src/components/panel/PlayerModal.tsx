@@ -16,6 +16,8 @@ export interface PlayerFormState {
   position: string;
   jersey: string;
   hasInsurance: boolean;
+  vaAlGym: boolean;
+  gymPrecio: string;
   deadline: string;
 }
 
@@ -177,6 +179,31 @@ export default function PlayerModal({
               />
               <span className="text-xs text-white/60">Tiene seguro/ficha hoy</span>
             </label>
+            <label className="flex items-end gap-2 pb-2">
+              <input
+                type="checkbox"
+                checked={form.vaAlGym}
+                onChange={(e) => setForm({ ...form, vaAlGym: e.target.checked })}
+                className="w-4 h-4"
+              />
+              <span className="text-xs text-white/60">Va al gimnasio</span>
+            </label>
+            {form.vaAlGym && (
+              <label className="block col-span-2">
+                <span className="text-xs text-white/60">Costo de gym propio (por mes)</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.gymPrecio}
+                  onChange={(e) => setForm({ ...form, gymPrecio: e.target.value.replace(/\D/g, "") })}
+                  className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
+                  placeholder="Dejalo vacío para usar el precio global del club"
+                />
+                <span className="text-[10px] text-white/40 mt-0.5 block">
+                  Si va menos días (ej. paga la mitad), cargá acá el monto propio.
+                </span>
+              </label>
+            )}
           </div>
 
           {editing && form.role === "JUGADOR" && (

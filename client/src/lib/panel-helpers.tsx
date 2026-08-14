@@ -99,6 +99,15 @@ export const ICONS = {
       <path d="M4 20h16" />
     </>
   ),
+  gym: (
+    <>
+      <path d="M2.5 17v-6.5M4 17V8M8 17v-3M5.5 9.5l6.5-4.5 6.5 4.5" />
+      <path d="M12 15.5V5" />
+      <path d="M9.5 17h5" />
+      <path d="M20 17v-6.5M21.5 17V8" />
+      <circle cx="12" cy="17" r="1" />
+    </>
+  ),
 } as const;
 
 export function Icon({ name, className = "w-4 h-4" }: { name: keyof typeof ICONS; className?: string }) {

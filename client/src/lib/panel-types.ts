@@ -56,8 +56,13 @@ export interface Player {
   pagaAca?: boolean;
   categoriaPago?: string[];
   hasInsurance?: boolean;
+  // Gimnasio: va al gym y paga su cuota de gym mensual. gymPrecio = costo
+  // propio por mes (si es null se usa el precio global de GymConfig).
+  vaAlGym?: boolean;
+  gymPrecio?: number | null;
   deadline?: number; // día límite para pagar la cuota del mes (default 10)
   payments: Array<{ month: string; paid: boolean; amount: number; note?: string | null }>;
+  gymPayments?: Array<{ month: string; paid: boolean; amount: number; note?: string | null }>;
   estadoCuota?: {
     deudor: boolean;
     alDia: boolean;
@@ -203,6 +208,14 @@ export interface TotalPresupuesto {
     deuda: number;
     balance: number;
   };
+  // Gimnasio: gasto variable por jugador que va + lo recaudado de sus cuotas
+  gym: {
+    precio: number;
+    jugadores: number;
+    gasto: number;
+    recaudado: number;
+    faltaCobrar: number;
+  };
 }
 
 // ---------- Seguro (lista de asegurados + avisos de altas/bajas) ----------
@@ -237,6 +250,54 @@ export interface SeguroFilaCompleta {
 }
 
 export interface SeguroFilaCambio {
+  tipo: "ALTA" | "BAJA";
+  fecha: string;
+  document: string;
+  lastName: string;
+  firstName: string;
+  birthDate?: string | null;
+  equipo: string;
+}
+
+// ---------- Gimnasio (lista de los que van + avisos de altas/bajas) ----------
+export interface AvisoGym {
+  id: string;
+  playerId?: string | null;
+  tipo: "ALTA" | "BAJA";
+  document: string;
+  lastName: string;
+  firstName: string;
+  birthDate?: string | null;
+  teamId?: string | null;
+  creadoPorId?: string | null;
+  createdAt: string;
+  resueltoAt?: string | null;
+}
+
+export interface GymAvisos {
+  total: number;
+  altas: number;
+  bajas: number;
+  avisos: AvisoGym[];
+}
+
+// Una fila del export del gym (lista completa): datos del jugador + estado
+// del gym del mes + estado de la cuota del mes (para saber quién debe qué).
+export interface GymFilaCompleta {
+  document: string;
+  lastName: string;
+  firstName: string;
+  birthDate?: string | null;
+  estado: string;
+  gymEstado: "PAGO" | "DEBE" | "PENDIENTE";
+  gymMonto: number;
+  gymNota?: string | null;
+  cuotaEstado: "AL_DIA" | "DEBE" | "PENDIENTE";
+  cuotaMonto: number;
+  equipos: string[];
+}
+
+export interface GymFilaCambio {
   tipo: "ALTA" | "BAJA";
   fecha: string;
   document: string;
