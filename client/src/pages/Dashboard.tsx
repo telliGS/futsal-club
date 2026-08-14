@@ -13,7 +13,12 @@ import CredencialesModal from "../components/panel/CredencialesModal";
 import PoliSlotModal from "../components/panel/PoliSlotModal";
 import PoliExModal from "../components/panel/PoliExModal";
 import ImportModal from "../components/panel/ImportModal";
-import { monthRange, monthShort, labelTipo, Icon } from "../lib/panel-helpers";
+import FichasModal from "../components/panel/FichasModal";
+import DelegadoModal from "../components/panel/DelegadoModal";
+import QuotaModal from "../components/panel/QuotaModal";
+import GastoModal from "../components/panel/GastoModal";
+import InactivoModal from "../components/panel/InactivoModal";
+import { monthRange, monthShort, Icon } from "../lib/panel-helpers";
 import {
   Team,
   FichaEstado,
@@ -1593,145 +1598,20 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
         savePlayer={savePlayer}
       />
       {/* ===================== MODAL FICHAS / DOCUMENTOS ===================== */}
-      {docsPlayer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-lg rounded-lg border border-outline bg-surface-2 p-6 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="font-display text-lg font-bold">
-                  Fichas: {docsPlayer.firstName} {docsPlayer.lastName}
-                </h2>
-                <p className="text-xs text-white/50 mt-1">
-                  Ergo vence a los 2 aÃ±os, electro al aÃ±o de la emisiÃ³n. Se calcula automÃ¡ticamente.
-                </p>
-              </div>
-              <button
-                onClick={() => setDocsPlayer(null)}
-                className="text-white/50 hover:text-white text-xl leading-none"
-              >
-                Ã—
-              </button>
-            </div>
-
-            {/* Estado general */}
-            {docsEstado && (
-              <div className={`mt-4 px-3 py-2 rounded-lg text-sm border ${docsEstado.aptoFichas ? "border-green-500/30 bg-green-500/10 text-green-300" : "border-red-500/30 bg-red-500/10 text-red-300"}`}>
-                {docsEstado.aptoFichas
-                  ? "Apto por documentaciÃ³n âœ“"
-                  : "DocumentaciÃ³n incompleta â€” no puede jugar âœ•"}
-                <span className="block text-xs opacity-80 mt-0.5">{docsEstado.resumen}</span>
-              </div>
-            )}
-
-            {/* Formulario de subida */}
-            <div className="mt-5 rounded-lg border border-outline bg-surface-1 p-4 space-y-3">
-              <p className="text-sm font-semibold text-white/80">Subir documento</p>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block">
-                  <span className="text-xs text-white/60">Tipo *</span>
-                  <select
-                    value={docForm.tipo}
-                    onChange={(e) => setDocForm({ ...docForm, tipo: e.target.value })}
-                    className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                  >
-                    <option value="FICHA_MEDICA" className="bg-surface-2">Ficha mÃ©dica</option>
-                    <option value="ELECTROCARDIOGRAMA" className="bg-surface-2">Electrocardiograma</option>
-                    <option value="ERGONOMETRIA" className="bg-surface-2">ErgometrÃ­a</option>
-                    <option value="OTRO" className="bg-surface-2">Otro</option>
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="text-xs text-white/60">Fecha de emisiÃ³n (del papel)</span>
-                  <input
-                    type="date"
-                    value={docForm.fechaEmision}
-                    onChange={(e) => setDocForm({ ...docForm, fechaEmision: e.target.value })}
-                    className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm [color-scheme:dark]"
-                  />
-                </label>
-                <label className="block col-span-2">
-                  <span className="text-xs text-white/40">{vigenciaHint()}</span>
-                </label>
-                <label className="block col-span-2">
-                  <span className="text-xs text-white/60">DescripciÃ³n (opcional)</span>
-                  <input
-                    value={docForm.descripcion}
-                    onChange={(e) => setDocForm({ ...docForm, descripcion: e.target.value })}
-                    className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                    placeholder="RenovaciÃ³n 2do semestre 2026"
-                  />
-                </label>
-                <label className="block col-span-2">
-                  <span className="text-xs text-white/60">Archivo (PDF o imagen, mÃ¡x 2 MB) *</span>                  <input
-                    type="file"
-                    accept=".pdf,image/*,.jpg,.jpeg,.png"
-                    onChange={(e) => setDocForm({ ...docForm, file: e.target.files?.[0] ?? null })}
-                    className="mt-1 w-full text-sm text-white/70 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-primary file:text-white file:text-sm file:font-semibold file:cursor-pointer"
-                  />
-                </label>
-              </div>
-              {docsMsg && <p className="text-sm text-white/60">{docsMsg}</p>}
-              <button
-                onClick={subirDoc}
-                disabled={docsLoading}
-                className="w-full px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-light disabled:opacity-50"
-              >
-                {docsLoading ? "Subiendo..." : "Subir documento"}
-              </button>
-            </div>
-
-            {/* Lista de documentos cargados */}
-            <div className="mt-5">
-              <p className="text-sm font-semibold text-white/80 mb-2">Documentos cargados</p>
-              {docsList.length === 0 && (
-                <p className="text-sm text-white/40">TodavÃ­a no hay documentos cargados.</p>
-              )}
-              <ul className="space-y-2">
-                {docsList.map((d) => {
-                  const vence = d.fechaVencimiento ? new Date(d.fechaVencimiento) : null;
-                  const vencido = vence && vence.getTime() < Date.now();
-                  return (
-                    <li key={d.id} className="flex items-center gap-3 rounded-lg border border-outline bg-surface-1 px-3 py-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm truncate">
-                          <span className="text-white/40 text-xs">{labelTipo(d.tipo)} Â· </span>
-                          {d.fileName}
-                        </p>
-                        <p className="text-xs text-white/40">
-                          {d.descripcion || ""}
-                          {d.fechaEmision && (
-                            <span className="text-white/40">
-                              {" "}Â· emitido {new Date(d.fechaEmision).toLocaleDateString("es-AR")}
-                            </span>
-                          )}
-                          {vence && (
-                            <span className={vencido ? "text-red-400" : "text-white/50"}>
-                              {" "}Â· vence {vence.toLocaleDateString("es-AR")}
-                            </span>
-                          )}
-                          {!vence && " Â· sin fecha de vencimiento"}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => descargarDoc(d)}
-                        className="px-2 py-1 rounded text-xs text-white/60 hover:text-white hover:bg-surface-2"
-                      >
-                        Descargar
-                      </button>
-                      <button
-                        onClick={() => borrarDoc(d)}
-                        className="px-2 py-1 rounded text-xs text-white/60 hover:text-red-400 hover:bg-red-500/10"
-                      >
-                        Eliminar
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
+      <FichasModal
+        player={docsPlayer}
+        setPlayer={setDocsPlayer}
+        estado={docsEstado}
+        form={docForm}
+        setForm={setDocForm}
+        list={docsList}
+        loading={docsLoading}
+        msg={docsMsg}
+        vigenciaHint={vigenciaHint}
+        subirDoc={subirDoc}
+        descargarDoc={descargarDoc}
+        borrarDoc={borrarDoc}
+      />
     {/* ===================== MODAL DELEGADO ===================== */}
       <CredencialesModal
         show={showCredModal}
@@ -1743,117 +1623,17 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
         guardarCredenciales={guardarCredenciales}
       />
 
-      {showDelegadoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md rounded-lg border border-outline bg-surface-2 p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-start justify-between gap-4">
-              <h2 className="font-display text-lg font-bold">
-                {delegadoEditingId ? "Editar delegado" : "Nuevo delegado"}
-              </h2>
-              <button onClick={() => setShowDelegadoModal(false)} className="text-white/50 hover:text-white text-xl leading-none">Ã—</button>
-            </div>
-            <p className="text-xs text-white/50 mt-1">
-              {delegadoEditingId
-                ? "CambiÃ¡ los datos y guardÃ¡. DejÃ¡ la contraseÃ±a vacÃ­a para no modificarla."
-                : "CreÃ¡ una cuenta para que el delegado gestione sus equipos."}
-            </p>
-
-            <form onSubmit={saveDelegado} className="mt-5 space-y-4">
-              <div>
-                <label className="text-xs text-white/70 block mb-1">Nombre y apellido</label>
-                <input
-                  value={delegadoForm.fullName}
-                  onChange={(e) => setDelegadoForm({ ...delegadoForm, fullName: e.target.value })}
-                  placeholder="Ej: Juan PÃ©rez"
-                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-xs text-white/70 block mb-1">Email de acceso</label>
-                <input
-                  type="email"
-                  value={delegadoForm.email}
-                  onChange={(e) => setDelegadoForm({ ...delegadoForm, email: e.target.value })}
-                  placeholder="delegado@josehernandez.futbol"
-                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-xs text-white/70 block mb-1">
-                  ContraseÃ±a {delegadoEditingId && "(dejala vacÃ­a para no cambiarla)"}
-                </label>
-                <input
-                  type="password"
-                  value={delegadoForm.password}
-                  onChange={(e) => setDelegadoForm({ ...delegadoForm, password: e.target.value })}
-                  placeholder={delegadoEditingId ? "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" : "MÃ­nimo 6 caracteres"}
-                  className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-                  required={!delegadoEditingId}
-                  minLength={6}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-white/70 block mb-1.5">Equipos asignados</label>
-                <p className="text-[11px] text-white/40 mb-2">
-                  MarcÃ¡ las categorÃ­as que va a poder gestionar.
-                </p>
-                <div className="grid grid-cols-2 gap-1.5 max-h-44 overflow-y-auto rounded-lg border border-outline bg-surface-1 p-2">
-                  {allTeams.length === 0 && (
-                    <p className="text-xs text-white/40 col-span-2 p-2">Cargando equipos...</p>
-                  )}
-                  {allTeams.map((team) => {
-                    const checked = delegadoForm.teamIds.includes(team.id);
-                    return (
-                      <label
-                        key={team.id}
-                        className={`flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer text-sm transition-colors ${
-                          checked ? "bg-primary/15 text-white border border-primary/30" : "hover:bg-surface-2 text-white/80 border border-transparent"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={(e) => {
-                            setDelegadoForm((f) => ({
-                              ...f,
-                              teamIds: e.target.checked
-                                ? [...f.teamIds, team.id]
-                                : f.teamIds.filter((id) => id !== team.id),
-                            }));
-                          }}
-                          className="accent-[#008f39]"
-                        />
-                        {team.name}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {delegadosError && <p className="text-sm text-red-400">{delegadosError}</p>}
-
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="submit"
-                  disabled={delegadoSaving}
-                  className="flex-1 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-light disabled:opacity-50"
-                >
-                  {delegadoSaving ? "Guardando..." : delegadoEditingId ? "Guardar cambios" : "Crear delegado"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowDelegadoModal(false)}
-                  className="px-4 py-2 rounded-lg border border-outline text-white/70 text-sm hover:bg-surface-1"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <DelegadoModal
+        show={showDelegadoModal}
+        setShow={setShowDelegadoModal}
+        editingId={delegadoEditingId}
+        form={delegadoForm}
+        setForm={setDelegadoForm}
+        allTeams={allTeams}
+        error={delegadosError}
+        saving={delegadoSaving}
+        save={saveDelegado}
+      />
 
       {/* ===================== MODAL BLOQUE SEMANAL (POLI) ===================== */}
       <PoliSlotModal
@@ -1883,127 +1663,35 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
       />
 
       {/* ===================== MODAL CUOTA ===================== */}
-      {showQuotaModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-sm rounded-lg border border-outline bg-surface-2 p-6">
-            <div className="flex items-start justify-between gap-4">
-              <h2 className="font-display text-lg font-bold">Cuota mensual</h2>
-              <button onClick={() => setShowQuotaModal(false)} className="text-white/50 hover:text-white text-xl leading-none">Ã—</button>
-            </div>
-            <p className="text-xs text-white/50 mt-1">
-              La cuota por jugador de {presup?.categoria}. Dejalo vacÃ­o para quitar la cuota cargada.
-            </p>
-            <input
-              type="number"
-              min="0"
-              step="500"
-              value={quotaInput}
-              onChange={(e) => setQuotaInput(e.target.value)}
-              placeholder="Ej: 30000"
-              className="mt-4 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-            />
-            <button
-              onClick={guardarQuota}
-              disabled={quotaSaving}
-              className="mt-4 w-full px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-light disabled:opacity-50"
-            >
-              {quotaSaving ? "Guardando..." : "Guardar cuota"}
-            </button>
-          </div>
-        </div>
-      )}
+      <QuotaModal
+        show={showQuotaModal}
+        setShow={setShowQuotaModal}
+        categoria={presup?.categoria}
+        quotaInput={quotaInput}
+        setQuotaInput={setQuotaInput}
+        saving={quotaSaving}
+        save={guardarQuota}
+      />
 
       {/* ===================== MODAL GASTO ===================== */}
-      {gastoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-sm rounded-lg border border-outline bg-surface-2 p-6">
-            <div className="flex items-start justify-between gap-4">
-              <h2 className="font-display text-lg font-bold">
-                {gastoModal.tipo === "fijo" ? "Nuevo gasto fijo" : `Gasto extra de ${monthShort(gastoModal.mes ?? mesActual())}`}
-              </h2>
-              <button onClick={() => setGastoModal(null)} className="text-white/50 hover:text-white text-xl leading-none">Ã—</button>
-            </div>
-            <p className="text-xs text-white/50 mt-1">
-              {gastoModal.tipo === "fijo"
-                ? "Se repite todos los meses (cancha, Ã¡rbitros, viÃ¡ticos...)."
-                : "Gasto puntual solo de este mes (cancha extra por lluvia, etc.)."}
-            </p>
-            <div className="mt-4 space-y-3">
-              <input
-                value={gastoForm.nombre}
-                onChange={(e) => setGastoForm((f) => ({ ...f, nombre: e.target.value }))}
-                placeholder="Nombre (ej: Cancha)"
-                className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-              />
-              <input
-                type="number"
-                min="0"
-                value={gastoForm.monto}
-                onChange={(e) => setGastoForm((f) => ({ ...f, monto: e.target.value }))}
-                placeholder="Monto (ej: 45000)"
-                className="w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-              />
-            </div>
-            <button
-              onClick={guardarGasto}
-              disabled={gastoSaving}
-              className="mt-4 w-full px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-light disabled:opacity-50"
-            >
-              {gastoSaving ? "Guardando..." : "Agregar gasto"}
-            </button>
-          </div>
-        </div>
-      )}
+      <GastoModal
+        modal={gastoModal}
+        setModal={setGastoModal}
+        form={gastoForm}
+        setForm={setGastoForm}
+        saving={gastoSaving}
+        mesActual={mesActual}
+        save={guardarGasto}
+      />
 
       {/* ===================== MODAL INACTIVO (elegir mes de corte) ===================== */}
-      {inactivoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-sm rounded-lg border border-outline bg-surface-2 p-6">
-            <div className="flex items-start justify-between gap-4">
-              <h2 className="font-display text-lg font-bold">
-                {inactivoModal.status === "INACTIVO" ? "Ajustar mes de corte" : "Pasar a inactivo"}
-              </h2>
-              <button onClick={() => setInactivoModal(null)} className="text-white/50 hover:text-white text-xl leading-none">Ã—</button>
-            </div>
-            <p className="text-xs text-white/50 mt-1">
-              {inactivoModal.firstName} {inactivoModal.lastName} deja de contar la cuota y el presupuesto.
-              Su historial de pagos se conserva.
-            </p>
-            <label className="block mt-4">
-              <span className="text-xs text-white/60">Hasta quÃ© mes jugÃ³</span>
-              <input
-                type="month"
-                max={new Date().toISOString().slice(0, 7)}
-                value={inactivoMes}
-                onChange={(e) => setInactivoMes(e.target.value)}
-                className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
-              />
-            </label>
-            <p className="text-xs text-white/40 mt-2 leading-relaxed">
-              Si tardaron en marcarlo (ej. dejÃ³ de venir en marzo y lo marcan ahora), elegÃ­ el mes en que dejÃ³ de jugar:
-              la deuda se congela ahÃ­ y los meses posteriores no corren cuota.
-            </p>
-            <div className="mt-4 flex gap-2">
-              <button
-                onClick={() => setInactivoModal(null)}
-                className="flex-1 px-4 py-2 rounded-xl bg-surface-1 border border-outline text-white/70 text-sm font-semibold hover:text-white"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  const p = inactivoModal;
-                  setInactivoModal(null);
-                  if (p && inactivoMes) setInactivo(p, inactivoMes);
-                }}
-                className="flex-1 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-light"
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <InactivoModal
+        player={inactivoModal}
+        setPlayer={setInactivoModal}
+        mes={inactivoMes}
+        setMes={setInactivoMes}
+        confirmar={setInactivo}
+      />
 
       {/* ===================== MODAL IMPORTAR EXCEL ===================== */}
       <ImportModal
