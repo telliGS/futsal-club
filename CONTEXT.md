@@ -19,7 +19,7 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 
 ---
 
-## Estado actual (12/08/2026 — después de mejoras visuales)
+## Estado actual (14/08/2026 — después del refactor del Dashboard)
 
 ### Frontend: Cambios visuales y de contenido (commits recientes)
 - **Sección "Historia" en el Home**: bloque con texto emotivo, foto placeholder (🏆), botón "Conocé más" y enlace a Instagram.
@@ -39,9 +39,22 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 ### Backend (sin cambios relevantes en este bloque)
 - Todo lo documentado en versiones anteriores se mantiene: delegados, cronograma, presupuesto, fichas médicas, TIMBO, RLS, etc.
 
+### Dashboard: refactor completo en componentes (14/08/2026)
+- **`client/src/pages/Dashboard.tsx` pasó de ~3900 a 1732 líneas**: ahora es orquestador (estado, handlers y modales importados).
+- **Librerías compartidas**:
+  - `client/src/lib/panel-types.ts`: tipos del panel (Team, Player, FichaEstado, DocItem, Toast, MeData, DelegadoAdmin, PoliSlot/Bloque/Dia/Semana, PresupuestoData, TotalPresupuesto, etc.).
+  - `client/src/lib/panel-helpers.tsx`: helpers (MONTHS, monthRange, monthShort, labelTipo, esCategoriaMayor, tiposBloqueantes, BadgeFicha, ICONS, Icon).
+- **5 vistas** en `client/src/components/panel/`: `CalendarioView`, `DelegadosView`, `PoliView`, `PresupuestoView`, `PlayerListView`.
+- **10 modales** en `client/src/components/panel/`: `PlayerModal`, `CredencialesModal`, `PoliSlotModal`, `PoliExModal`, `ImportModal`, `FichasModal` (documentos), `DelegadoModal`, `QuotaModal`, `GastoModal`, `InactivoModal`.
+- **Toasts** (commit `e2b6377`): `mostrarToast` con tipos success/error/warning/info, contenedor fijo bottom-right, animación `animate-fade-up` definida en `tailwind.config.js`.
+- **Exportación a Excel** (commit `624fb4e`): botón "📊 Exportar" tras "Importar Excel", usa `xlsx` ^0.18.5 (instalado con `--save`).
+
+### Toasts y Excel en producción
+- Bundle actual en `jh-futsal.vercel.app`: `index-DxJSi9lA.js` (verificado tras el refactor).
+
 ---
 
-## Roadmap (actualizado 12/08/2026)
+## Roadmap (actualizado 14/08/2026)
 
 ### Prioridades actuales (según conversación con el usuario)
 1. **Darle vida al club con contenido visual y emocional** (✅ en proceso):
@@ -55,9 +68,9 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
    - Cronograma con filtros por categoría (pendiente).
    - Más visibilidad de partidos (✅ badge "¡Este finde!").
 
-3. **Dashboard para delegados** (se prioriza después de lo público):
-   - Refactorizar en componentes más pequeños (postergado).
-   - Mejoras de usabilidad (postergado).
+3. **Dashboard para delegados**:
+   - ✅ **Refactor completo en componentes** (14/08/2026): Dashboard orquestador de 1732 líneas, 5 vistas + 10 modales extraídos.
+   - Mejoras de usabilidad (pendiente).
 
 4. **Roadmap de Marucha** (pendiente):
    - Panel para profesores.
@@ -68,7 +81,7 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 ---
 
 ## Decisiones técnicas recientes
-- **No refactorizar el Dashboard por ahora**: se prioriza el contenido público y la identidad del club.
+- **Refactor del Dashboard completado** (14/08/2026): el archivo quedó como orquestador de 1732 líneas; todo lo de UI vive en `components/panel/` y la lógica compartida en `lib/panel-types.ts` + `lib/panel-helpers.tsx`.
 - **Placeholder de fotos**: se usa 🏆 hasta que el club proporcione imágenes reales.
 - **Botón "Compartir"**: usa `navigator.share` en móviles y `clipboard` en desktop.
 - **Hero**: se mantiene la cuenta regresiva (usa `restante`) para mantener la funcionalidad existente.
@@ -80,10 +93,25 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 - Las fotos deben ir en `public/images/` y usar rutas relativas.
 - El badge "¡Este finde!" se muestra solo en el primer partido de la lista (`i === 0`).
 - La página `/historia` está ruteada en `App.tsx`.
+- El Dashboard es orquestador: las vistas están en `client/src/components/panel/` y los tipos/helpers en `client/src/lib/`. Antes de tocar UI, mirar ahí.
+- Para exportar Excel se usa `xlsx` ^0.18.5 (no desinstalar).
 
 ---
 
 ## Commits recientes (frontend)
+- `bd2aa1f`: refactor: extraer modales restantes (Fichas, Delegado, Quota, Gasto, Inactivo) del Dashboard
+- `546c324`: refactor: extraer modales PoliSlot, PoliEx e Import del Dashboard
+- `510dc93`: refactor: extraer CredencialesModal del Dashboard
+- `b75645a`: refactor: extraer PlayerModal del Dashboard
+- `862d529`: refactor: extraer PlayerListView del Dashboard
+- `398c2f6`: refactor: extraer PresupuestoView del Dashboard
+- `784d6e7`: refactor: extraer PoliView del Dashboard
+- `db73b71`: refactor: extraer DelegadosView del Dashboard
+- `36c16fa`: refactor: extraer CalendarioView del Dashboard
+- `820720c`: refactor: extraer helpers compartidos (panel-helpers)
+- `57a696c`: refactor: extraer tipos compartidos (panel-types)
+- `624fb4e`: feat: exportar plantel a Excel
+- `e2b6377`: feat: toasts en el panel
 - `784d33a`: feat: agregar badge '¡Este finde!' en próximos partidos
 - `71cbe4b`: feat: agregar sección Historia y página /historia con redes sociales
 - `9d50779`: feat: mejorar Hero con más impacto visual (con corrección de countdown)
@@ -91,4 +119,4 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 
 ---
 
-**Última actualización**: 12/08/2026
+**Última actualización**: 14/08/2026

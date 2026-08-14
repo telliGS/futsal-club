@@ -1302,10 +1302,10 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
         </div>
       </div>
 
-      {/* selector de equipo */}
+      {/* selector de equipo + acciones */}
       {me && me.teams.length > 0 && (
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <label className="text-sm text-white/70">EstÃ¡s viendo: </label>
+          <label className="text-sm text-white/70">Estás viendo: </label>
           <select
             value={teamId}
             onChange={(e) => setTeamId(e.target.value)}
@@ -1318,46 +1318,11 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
             ))}
           </select>
 
-{/* toggle de vista + acciones */}
           <div className="ml-auto flex flex-wrap items-center gap-2">
-            <div className="flex rounded-lg border border-outline overflow-hidden">
-              <button
-                onClick={() => setView("lista")}
-                className={`px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${view === "lista" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
-              >
-                Lista
-              </button>
-              <button
-                onClick={() => setView("calendario")}
-                className={`px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${view === "calendario" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
-              >
-                Calendario de cuotas
-              </button>
-              <button
-                onClick={() => setView("presupuesto")}
-                className={`px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${view === "presupuesto" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
-              >
-                Presupuesto
-              </button>
-              {me?.role === "ADMIN" && (
-                <button
-                  onClick={() => setView("delegados")}
-                  className={`px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${view === "delegados" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
-                >
-                  Delegados
-                </button>
-              )}
-              <button
-                onClick={() => setView("poli")}
-                className={`px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${view === "poli" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
-              >
-                Cronograma
-              </button>
-            </div>
             <button
               onClick={openNuevo}
-              className="px-4 py-1.5 rounded-lg text-sm bg-primary text-white font-semibold transition-all duration-200 hover:bg-primary-light active:scale-95"
-              title="Agregar jugador o cuerpo tÃ©cnico"
+              className="px-4 py-2 rounded-lg text-sm bg-primary text-white font-semibold transition-all duration-200 hover:bg-primary-light active:scale-95"
+              title="Agregar jugador o cuerpo técnico"
             >
               + Agregar
             </button>
@@ -1365,7 +1330,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
               <button
                 onClick={descargarPlantilla}
                 disabled={exporting}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface-1 text-white/80 transition-all duration-200 hover:bg-surface-2 active:scale-95 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-surface-1 text-white/80 transition-all duration-200 hover:bg-surface-2 active:scale-95 disabled:opacity-50"
                 title="Descargar plantilla Excel para cargar el plantel"
               >
                 <Icon name="download" className="w-3.5 h-3.5" />
@@ -1373,22 +1338,60 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
               </button>
               <button
                 onClick={() => setShowImport(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface-1 text-white/80 transition-all duration-200 hover:bg-surface-2 active:scale-95"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-surface-1 text-white/80 transition-all duration-200 hover:bg-surface-2 active:scale-95"
                 title="Importar plantel desde Excel"
               >
                 <Icon name="upload" className="w-3.5 h-3.5" />
-                Importar Excel
+                Importar
               </button>
               <button
                 onClick={exportarExcel}
                 disabled={exportando}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface-1 text-white/80 transition-all duration-200 hover:bg-surface-2 active:scale-95 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-surface-1 text-white/80 transition-all duration-200 hover:bg-surface-2 active:scale-95 disabled:opacity-50"
                 title="Exportar lista de jugadores a Excel"
               >
-                {exportando ? "Generando..." : "ðŸ“Š Exportar"}
+                {exportando ? "Generando..." : "📊 Exportar"}
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* navegación de vistas */}
+      {me && (
+        <div className="mt-4 flex rounded-lg border border-outline overflow-x-auto whitespace-nowrap scrollbar-none">
+          <button
+            onClick={() => setView("lista")}
+            className={`px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1 ${view === "lista" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+          >
+            Lista
+          </button>
+          <button
+            onClick={() => setView("calendario")}
+            className={`px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1 ${view === "calendario" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+          >
+            Cuotas
+          </button>
+          <button
+            onClick={() => setView("presupuesto")}
+            className={`px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1 ${view === "presupuesto" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+          >
+            Presupuesto
+          </button>
+          {me?.role === "ADMIN" && (
+            <button
+              onClick={() => setView("delegados")}
+              className={`px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1 ${view === "delegados" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+            >
+              Delegados
+            </button>
+          )}
+          <button
+            onClick={() => setView("poli")}
+            className={`px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1 ${view === "poli" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+          >
+            Cronograma
+          </button>
         </div>
       )}
 
