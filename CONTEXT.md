@@ -49,8 +49,13 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 - **Toasts** (commit `e2b6377`): `mostrarToast` con tipos success/error/warning/info, contenedor fijo bottom-right, animación `animate-fade-up` definida en `tailwind.config.js`.
 - **Exportación a Excel** (commit `624fb4e`): botón "📊 Exportar" tras "Importar Excel", usa `xlsx` ^0.18.5 (instalado con `--save`).
 
+### Usabilidad del panel (14/08/2026, commit `e0bbbe5`)
+- **Header reorganizado en 2 filas**: fila 1 = selector de equipo + acciones ("+ Agregar" y grupo Excel: Plantilla / Importar / Exportar); fila 2 = barra de navegación de vistas (Lista, Cuotas, Presupuesto, Delegados, Cronograma).
+- **Móvil**: los tabs scrollean horizontalmente sin desbordarse (`shrink-0 md:flex-1` + `overflow-x-auto`), scrollbar oculto con la nueva utilidad `scrollbar-none` en `tailwind.config.js`.
+- Etiquetas de tabs más cortas ("Cuotas" en vez de "Calendario de cuotas") y botones de Excel compactados.
+
 ### Toasts y Excel en producción
-- Bundle actual en `jh-futsal.vercel.app`: `index-DxJSi9lA.js` (verificado tras el refactor).
+- Bundle actual en `jh-futsal.vercel.app`: `index-BzWcPtOc.js` (tras el commit `e0bbbe5`).
 
 ---
 
@@ -70,7 +75,8 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 
 3. **Dashboard para delegados**:
    - ✅ **Refactor completo en componentes** (14/08/2026): Dashboard orquestador de 1732 líneas, 5 vistas + 10 modales extraídos.
-   - Mejoras de usabilidad (pendiente).
+   - ✅ **Usabilidad** (14/08/2026): header en 2 filas, tabs con scroll horizontal en móvil (commit `e0bbbe5`).
+   - Mejoras de usabilidad pendientes (para próxima sesión): confirmaciones para acciones destructivas, persistir vista/equipo, resumen de cobros del mes, aviso de cobros pendientes.
 
 4. **Roadmap de Marucha** (pendiente):
    - Panel para profesores.
@@ -95,10 +101,13 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 - La página `/historia` está ruteada en `App.tsx`.
 - El Dashboard es orquestador: las vistas están en `client/src/components/panel/` y los tipos/helpers en `client/src/lib/`. Antes de tocar UI, mirar ahí.
 - Para exportar Excel se usa `xlsx` ^0.18.5 (no desinstalar).
+- La utilidad `scrollbar-none` está definida como plugin en `tailwind.config.js` (oculta scrollbar de los tabs en móvil).
+- **Mobile-first**: muchos delegados entran desde el celular. Diseñar y verificar siempre en pantalla chica primero (máx. ~375px), usando `flex-wrap`, `overflow-x-auto`, `shrink-0 md:flex-1` y botones táctiles (`py-2`+). No dejar filas horizontales que desborden.
 
 ---
 
 ## Commits recientes (frontend)
+- `e0bbbe5`: feat: ordenar botones del panel y mejorar navegación en móvil
 - `bd2aa1f`: refactor: extraer modales restantes (Fichas, Delegado, Quota, Gasto, Inactivo) del Dashboard
 - `546c324`: refactor: extraer modales PoliSlot, PoliEx e Import del Dashboard
 - `510dc93`: refactor: extraer CredencialesModal del Dashboard

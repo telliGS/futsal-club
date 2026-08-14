@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { apiFetch, API, getToken, setToken } from "../lib/api";
@@ -64,7 +64,7 @@ export default function Dashboard() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [toastCounter, setToastCounter] = useState(0);
 
-  // ----- ExportaciÃ³n -----
+  // ----- Exportación -----
   const [exportando, setExportando] = useState(false);
 
   // ---------- Cambio de credenciales propio (1 sola vez) ----------
@@ -104,7 +104,7 @@ export default function Dashboard() {
   });
   const [poliExSaving, setPoliExSaving] = useState(false);
 
-  // ---------- Alta / ediciÃ³n de jugadores ----------
+  // ---------- Alta / edición de jugadores ----------
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Player | null>(null);
   const [saving, setSaving] = useState(false);
@@ -131,7 +131,7 @@ export default function Dashboard() {
   const [foundPlayer, setFoundPlayer] = useState<PlayerEncontrado | null>(null);
   const [buscandoDni, setBuscandoDni] = useState(false);
 
-  // Al escribir un DNI en alta: Â¿ya existe? (debounce 450 ms)
+  // Al escribir un DNI en alta: ¿ya existe? (debounce 450 ms)
   useEffect(() => {
     if (editing || !showForm) return;
     const dni = form.document.replace(/\D/g, "");
@@ -197,7 +197,7 @@ export default function Dashboard() {
   async function savePlayer() {
     if (!token || !teamId) return;
     if (!form.lastName.trim() || !form.firstName.trim() || form.document.trim().length < 6) {
-      setFormError("CompletÃ¡ apellido, nombre y un DNI vÃ¡lido (mÃ­n. 6 dÃ­gitos).");
+      setFormError("Completá apellido, nombre y un DNI válido (mín. 6 dígitos).");
       return;
     }
     setSaving(true);
@@ -225,11 +225,11 @@ export default function Dashboard() {
       mostrarToast(editing ? `Jugador actualizado: ${body.firstName} ${body.lastName}` : `Jugador agregado: ${body.firstName} ${body.lastName}`, "success");
     } catch (e) {
       const err = e as Error & { code?: string; playerId?: string; equipoActual?: { id: string; name: string } };
-      // Ya es JUGADOR en otra PRIMERA â†’ preguntar y mover (sin perder datos)
+      // Ya es JUGADOR en otra PRIMERA → preguntar y mover (sin perder datos)
       if (!editing && err.code === "CAMBIO_PRIMERA" && err.playerId && err.equipoActual) {
         const aNombre = me?.teams.find((t) => t.id === teamId)?.name ?? "este equipo";
         const confirma = window.confirm(
-          `${err.message}\n\nÂ¿Moverlo a ${aNombre}? SaldrÃ¡ automÃ¡ticamente de ${err.equipoActual.name}. Se conservan todos sus datos, pagos y fichas mÃ©dicas.`
+          `${err.message}\n\n¿Moverlo a ${aNombre}? Saldrá automáticamente de ${err.equipoActual.name}. Se conservan todos sus datos, pagos y fichas médicas.`
         );
         if (confirma) {
           try {
@@ -260,7 +260,7 @@ export default function Dashboard() {
 
   async function removePlayer(p: Player) {
     if (!token) return;
-    const ok = window.confirm(`Â¿Quitar a ${p.firstName} ${p.lastName} del equipo? (el jugador se elimina si no estÃ¡ en otro equipo)`);
+    const ok = window.confirm(`¿Quitar a ${p.firstName} ${p.lastName} del equipo? (el jugador se elimina si no está en otro equipo)`);
     if (!ok) return;
     try {
       await apiFetch(`/players/${p.id}`, { method: "DELETE" }, token);
@@ -272,10 +272,10 @@ export default function Dashboard() {
 
   // ---------- Inactivo / Reactivar ----------
   // INACTIVO: deja de contar la cuota y su deuda se congela (no acumula
-  // mientras estÃ¡ fuera). El mes de corte se elige en un modal (a veces se
-  // tardan en marcar la baja â€” el corte va al mes en que dejÃ³ de jugar).
-  // REACTIVAR: si tenÃ­a deuda real vuelve DEUDOR y no puede jugar hasta
-  // ponerse al dÃ­a.
+  // mientras está fuera). El mes de corte se elige en un modal (a veces se
+  // tardan en marcar la baja — el corte va al mes en que dejó de jugar).
+  // REACTIVAR: si tenía deuda real vuelve DEUDOR y no puede jugar hasta
+  // ponerse al día.
   const [inactivoModal, setInactivoModal] = useState<Player | null>(null);
   const [inactivoMes, setInactivoMes] = useState(() => new Date().toISOString().slice(0, 7));
 
@@ -301,7 +301,7 @@ export default function Dashboard() {
   async function reactivar(p: Player) {
     if (!token) return;
     const ok = window.confirm(
-      `Â¿Reactivar a ${p.firstName} ${p.lastName}?\n\nSi tiene meses de deuda de antes de irse, quedarÃ¡ DEUDOR y no podrÃ¡ jugar hasta ponerse al dÃ­a.`
+      `¿Reactivar a ${p.firstName} ${p.lastName}?\n\nSi tiene meses de deuda de antes de irse, quedará DEUDOR y no podrá jugar hasta ponerse al día.`
     );
     if (!ok) return;
     try {
@@ -313,7 +313,7 @@ export default function Dashboard() {
       if (r.status === "DEUDA" && r.estadoCuota.deudor) {
         const n = r.estadoCuota.mesesDebe;
         window.alert(
-          `${p.firstName} ${p.lastName} vuelve con ${n} ${n === 1 ? "mes de deuda" : "meses de deuda"} (de antes de irse). Queda como DEUDOR: no tiene permiso de jugar hasta ponerse al dÃ­a.`
+          `${p.firstName} ${p.lastName} vuelve con ${n} ${n === 1 ? "mes de deuda" : "meses de deuda"} (de antes de irse). Queda como DEUDOR: no tiene permiso de jugar hasta ponerse al día.`
         );
       }
       await recargarPlantel();
@@ -322,7 +322,7 @@ export default function Dashboard() {
     }
   }
 
-  // ---------- Fichas / documentos mÃ©dicos ----------
+  // ---------- Fichas / documentos médicos ----------
   const [docsPlayer, setDocsPlayer] = useState<Player | null>(null);
   const [docsList, setDocsList] = useState<DocItem[]>([]);
   const [docsEstado, setDocsEstado] = useState<FichaEstado | null>(null);
@@ -335,7 +335,7 @@ export default function Dashboard() {
     file: null as File | null,
   });
 
-  // CategorÃ­a del equipo seleccionado (para la regla ergo 2 aÃ±os / electro 1 aÃ±o)
+  // Categoría del equipo seleccionado (para la regla ergo 2 años / electro 1 año)
   const categoriaActual = me?.teams.find((t) => t.id === teamId)?.category ?? null;
 
   // Equipos que el usuario puede operar en el cronograma:
@@ -344,7 +344,7 @@ export default function Dashboard() {
   const esAdmin = me?.role === "ADMIN";
   const equiposPoliEditables = esAdmin ? allTeams : (me?.teams ?? []);
 
-  // Â¿El usuario puede editar/borrar/activar un slot o bloque del cronograma?
+  // ¿El usuario puede editar/borrar/activar un slot o bloque del cronograma?
   function puedeOperarPoli(teamIdSlot: string | null | undefined): boolean {
     if (esAdmin) return true;
     // Delegado: solo bloques de SUS equipos (un bloque sin equipo es de admin)
@@ -354,13 +354,13 @@ export default function Dashboard() {
 
   function vigenciaHint(): string {
     if (docForm.tipo === "ERGONOMETRIA") {
-      return "Ergo: vence a los 2 aÃ±os de la emisiÃ³n (se calcula automÃ¡ticamente).";
+      return "Ergo: vence a los 2 años de la emisión (se calcula automáticamente).";
     }
     if (docForm.tipo === "ELECTROCARDIOGRAMA") {
-      return "Electro: vence al aÃ±o de la emisiÃ³n (se calcula automÃ¡ticamente).";
+      return "Electro: vence al año de la emisión (se calcula automáticamente).";
     }
     if (docForm.tipo === "FICHA_MEDICA") {
-      return "Ficha mÃ©dica: vence a los 2 aÃ±os de la emisiÃ³n (se calcula automÃ¡ticamente).";
+      return "Ficha médica: vence a los 2 años de la emisión (se calcula automáticamente).";
     }
     return "Documento: sin vencimiento por regla.";
   }
@@ -386,7 +386,7 @@ export default function Dashboard() {
 
   async function subirDoc() {
     if (!token || !docsPlayer || !docForm.file) {
-      setDocsMsg("ElegÃ­ un archivo para subir.");
+      setDocsMsg("Elegí un archivo para subir.");
       return;
     }
     if (docForm.file.size > 2 * 1024 * 1024) {
@@ -423,7 +423,7 @@ export default function Dashboard() {
       setDocsList((prev) => [res.documento, ...prev]);
       setDocsEstado(res.estado);
       setDocForm({ tipo: "FICHA_MEDICA", descripcion: "", fechaEmision: "", file: null });
-      setDocsMsg("Documento subido âœ“");
+      setDocsMsg("Documento subido ✓");
     } catch (e) {
       setDocsMsg((e as Error).message);
     } finally {
@@ -433,7 +433,7 @@ export default function Dashboard() {
 
   async function borrarDoc(doc: DocItem) {
     if (!token || !docsPlayer) return;
-    const ok = window.confirm(`Â¿Eliminar "${doc.fileName}"?`);
+    const ok = window.confirm(`¿Eliminar "${doc.fileName}"?`);
     if (!ok) return;
     try {
       await apiFetch(`/players/${docsPlayer.id}/documents/${doc.id}`, { method: "DELETE" }, token);
@@ -471,7 +471,7 @@ export default function Dashboard() {
     }
   }
 
-  // ---------- Plantilla Excel + importaciÃ³n masiva ----------
+  // ---------- Plantilla Excel + importación masiva ----------
   const [exporting, setExporting] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -575,7 +575,7 @@ export default function Dashboard() {
   };
 
   const formatPesos = (n: number | null | undefined): string => {
-    if (n == null) return "â€”";
+    if (n == null) return "—";
     return "$" + Math.round(n).toLocaleString("es-AR");
   };
 
@@ -632,7 +632,7 @@ export default function Dashboard() {
     const monto = Number(gastoForm.monto.replace(/[^0-9]/g, ""));
     const nombre = gastoForm.nombre.trim();
     if (!nombre || monto <= 0) {
-      setPresupError("CompletÃ¡ el nombre y un monto vÃ¡lido.");
+      setPresupError("Completá el nombre y un monto válido.");
       return;
     }
     setGastoSaving(true);
@@ -655,7 +655,7 @@ export default function Dashboard() {
 
   async function borrarGasto(tipo: "fijo" | "extra", id: string) {
     if (!token || !teamId) return;
-    if (!window.confirm("Â¿Eliminar este gasto?")) return;
+    if (!window.confirm("¿Eliminar este gasto?")) return;
     try {
       await apiFetch(`/teams/${teamId}/gastos/${tipo === "fijo" ? "fijos" : "extras"}/${id}`, { method: "DELETE" }, token);
       const updated = await apiFetch<PresupuestoData>(`/teams/${teamId}/presupuesto?mes=${presupMes}`, {}, token);
@@ -694,8 +694,8 @@ export default function Dashboard() {
       .finally(() => setDelegadosLoading(false));
   }, [token, me?.role]);
 
-  // Guarda el cambio de email/contraseÃ±a propio (solo si canChangeCredentials).
-  // El server lo marca como usado â†’ esta es la Ãºnica vez que puede autocambiarse.
+  // Guarda el cambio de email/contraseña propio (solo si canChangeCredentials).
+  // El server lo marca como usado → esta es la única vez que puede autocambiarse.
   async function guardarCredenciales() {
     if (!token || !me) return;
     setCredSaving(true);
@@ -791,7 +791,7 @@ export default function Dashboard() {
     if (!token) return;
     const activando = !d.active;
     const nombre = d.fullName;
-    if (!activando && !window.confirm(`Â¿Desactivar a ${nombre}? No podrÃ¡ entrar al panel hasta reactivarlo.`)) return;
+    if (!activando && !window.confirm(`¿Desactivar a ${nombre}? No podrá entrar al panel hasta reactivarlo.`)) return;
     try {
       await apiFetch(`/auth/delegados/${d.id}`, { method: "PATCH", body: JSON.stringify({ active: activando }) }, token);
       setDelegados((prev) => prev.map((x) => (x.id === d.id ? { ...x, active: activando } : x)));
@@ -802,10 +802,10 @@ export default function Dashboard() {
     }
   }
 
-  // El delegado usÃ³ su Ãºnico autocambio â†’ el admin puede habilitarle otro.
+  // El delegado usó su único autocambio → el admin puede habilitarle otro.
   async function reactivarCredenciales(d: DelegadoAdmin) {
     if (!token) return;
-    if (!window.confirm(`Â¿Volver a habilitar el cambio de credenciales de ${d.fullName}?`)) return;
+    if (!window.confirm(`¿Volver a habilitar el cambio de credenciales de ${d.fullName}?`)) return;
     try {
       await apiFetch(`/auth/delegados/${d.id}`, { method: "PATCH", body: JSON.stringify({ canChangeCredentials: true }) }, token);
       setDelegados((prev) => prev.map((x) => (x.id === d.id ? { ...x, canChangeCredentials: true } : x)));
@@ -818,7 +818,7 @@ export default function Dashboard() {
 
   async function eliminarDelegado(d: DelegadoAdmin) {
     if (!token) return;
-    if (!window.confirm(`Â¿Eliminar la cuenta de ${d.fullName} (${d.email})? Esta acciÃ³n no se puede deshacer.`)) return;
+    if (!window.confirm(`¿Eliminar la cuenta de ${d.fullName} (${d.email})? Esta acción no se puede deshacer.`)) return;
     try {
       await apiFetch(`/auth/delegados/${d.id}`, { method: "DELETE" }, token);
       setDelegados((prev) => prev.filter((x) => x.id !== d.id));
@@ -833,10 +833,10 @@ export default function Dashboard() {
     if (!token) return;
     if (delegados.length === 0) return;
     if (!window.confirm(
-      `Â¿Eliminar TODAS las cuentas de delegado (${delegados.length})?\n\n` +
-      "QuedarÃ¡ solo la cuenta de administrador. Esta acciÃ³n no se puede deshacer."
+      `¿Eliminar TODAS las cuentas de delegado (${delegados.length})?\n\n` +
+      "Quedará solo la cuenta de administrador. Esta acción no se puede deshacer."
     )) return;
-    if (!window.confirm("ConfirmaciÃ³n final: Â¿borrar todas las cuentas de delegado?")) return;
+    if (!window.confirm("Confirmación final: ¿borrar todas las cuentas de delegado?")) return;
     try {
       const res = await apiFetch<{ eliminados: number }>("/auth/delegados", { method: "DELETE" }, token);
       setDelegados([]);
@@ -954,7 +954,7 @@ export default function Dashboard() {
 
   async function borrarPoliSlot(s: PoliSlot) {
     if (!token) return;
-    if (!window.confirm(`Â¿Eliminar el bloque ${s.startTime}-${s.endTime} (${s.place})?`)) return;
+    if (!window.confirm(`¿Eliminar el bloque ${s.startTime}-${s.endTime} (${s.place})?`)) return;
     setPoliLoading(true);
     try {
       await apiFetch(`/poli/slots/${s.id}`, { method: "DELETE" }, token);
@@ -991,7 +991,7 @@ export default function Dashboard() {
     try {
       const bloque = showPoliExModal.bloque;
       const esExtra = !bloque || bloque.tipo === "EXTRA"; // "+ Extra" o editar un extra existente
-      // Si el bloque ya tiene una excepciÃ³n (plantilla modificada o extra existente),
+      // Si el bloque ya tiene una excepción (plantilla modificada o extra existente),
       // la actualizamos/eliminamos en vez de crear una nueva (evita duplicados).
       const exId = bloque?.excepcion?.id ?? (bloque?.tipo === "EXTRA" && bloque.id.startsWith("extra-")
         ? bloque.id.replace("extra-", "")
@@ -1011,13 +1011,13 @@ export default function Dashboard() {
             note: poliExForm.note || null,
           };
           await apiFetch(`/poli/exceptions/${exId}`, { method: "PATCH", body: JSON.stringify(patch), signal: controller.signal } as RequestInit, token);
-          setPoliMsg(poliExForm.canceled ? "Entrenamiento cancelado para ese dÃ­a." : "Cambio aplicado para ese dÃ­a.");
+          setPoliMsg(poliExForm.canceled ? "Entrenamiento cancelado para ese día." : "Cambio aplicado para ese día.");
         }
       } else {
         const payload = {
           date: showPoliExModal.fecha,
           slotId: esExtra ? null : bloque.id,
-          // En un extra, teamId define la categorÃ­a que entrena; al modificar un
+          // En un extra, teamId define la categoría que entrena; al modificar un
           // slot de plantilla el equipo se hereda del slot (teamId null).
           teamId: esExtra ? (poliExForm.teamId || null) : null,
           place: poliExForm.canceled ? null : (poliExForm.place || null),
@@ -1027,7 +1027,7 @@ export default function Dashboard() {
           note: poliExForm.note || null,
         };
         await apiFetch("/poli/exceptions", { method: "POST", body: JSON.stringify(payload), signal: controller.signal } as RequestInit, token);
-        setPoliMsg(poliExForm.canceled ? "Entrenamiento cancelado para ese dÃ­a." : "Cambio aplicado para ese dÃ­a.");
+        setPoliMsg(poliExForm.canceled ? "Entrenamiento cancelado para ese día." : "Cambio aplicado para ese día.");
       }
       clearTimeout(safetyId);
       setTimeout(() => setPoliMsg(""), 3000);
@@ -1079,12 +1079,12 @@ export default function Dashboard() {
 
   async function toggleCuota(p: Player, month: string, paid: boolean) {
     if (!token) return;
-    // ProtecciÃ³n anti-accidente: quitar un pago ya registrado pide confirmaciÃ³n
+    // Protección anti-accidente: quitar un pago ya registrado pide confirmación
     if (!paid) {
       const yaPago = p.payments.some((x) => x.month === month && x.paid);
       if (yaPago) {
         const ok = window.confirm(
-          `Â¿Quitar el pago de la cuota ${monthShort(month)} de ${p.firstName} ${p.lastName}?`
+          `¿Quitar el pago de la cuota ${monthShort(month)} de ${p.firstName} ${p.lastName}?`
         );
         if (!ok) return;
       }
@@ -1095,7 +1095,7 @@ export default function Dashboard() {
         { method: "POST", body: JSON.stringify({ paid, amount: 0 }) },
         token
       );
-      // refresh local con lo que devolviÃ³ el server (estado recalculado segÃºn dÃ­a y mes)
+      // refresh local con lo que devolvió el server (estado recalculado según día y mes)
       setPlayers((prev) =>
         prev.map((x) =>
           x.id === p.id
@@ -1117,12 +1117,12 @@ export default function Dashboard() {
   }
 
   // Poner un mes en NULO: ni pagado ni adeudado. Elimina el registro del mes
-  // (ej. mes anterior a la incorporaciÃ³n del jugador: Mateo entrÃ³ en febrero,
-  // el enero "impago" que quedÃ³ mal no le corresponde â†’ se saca).
+  // (ej. mes anterior a la incorporación del jugador: Mateo entró en febrero,
+  // el enero "impago" que quedó mal no le corresponde → se saca).
   async function quitarRegistro(p: Player, month: string) {
     if (!token) return;
     const ok = window.confirm(
-      `Â¿Quitar el registro de ${monthShort(month)} de ${p.firstName} ${p.lastName}?\n\nQueda vacÃ­o: ni pagado ni adeudado (Ãºtil cuando ese mes no le corresponde, ej. todavÃ­a no se habÃ­a incorporado).`
+      `¿Quitar el registro de ${monthShort(month)} de ${p.firstName} ${p.lastName}?\n\nQueda vacío: ni pagado ni adeudado (útil cuando ese mes no le corresponde, ej. todavía no se había incorporado).`
     );
     if (!ok) return;
     try {
@@ -1148,16 +1148,16 @@ export default function Dashboard() {
     }
   }
 
-  // MenÃº de 3 estados para una celda con registro (calendario): al tocar un
+  // Menú de 3 estados para una celda con registro (calendario): al tocar un
   // mes ya marcado (pagado o impago) se puede cambiar a pagado, impago o a
-  // NULL (quitar el registro â€” para meses que no le corresponden).
+  // NULL (quitar el registro — para meses que no le corresponden).
   async function ponerEstado(p: Player, month: string) {
     if (!token) return;
     const actual = p.payments.find((x) => x.month === month);
     const opcion = window.prompt(
       `Estado de ${monthShort(month)} para ${p.firstName} ${p.lastName}:\n\n` +
-        `1 = Pagado\n2 = Impago (cuenta como deuda)\n3 = Nulo (ni pagado ni adeudado â€” sin registro)\n\n` +
-        `RespondÃ© 1, 2 o 3. CancelÃ¡ para no tocar nada.`,
+        `1 = Pagado\n2 = Impago (cuenta como deuda)\n3 = Nulo (ni pagado ni adeudado — sin registro)\n\n` +
+        `Respondé 1, 2 o 3. Cancelá para no tocar nada.`,
       actual ? (actual.paid ? "1" : "2") : "1"
     );
     if (opcion === null) return;
@@ -1166,7 +1166,7 @@ export default function Dashboard() {
     else if (v === "2") await toggleCuota(p, month, false);
     else if (v === "3") await quitarRegistro(p, month);
   }
-  // pago del 1 al 10; del dÃ­a 11 sin pago del mes en curso = deudor, no juega)
+  // pago del 1 al 10; del día 11 sin pago del mes en curso = deudor, no juega)
   function estadoLocal(p: Player, now = new Date()): NonNullable<Player["estadoCuota"]> {
     const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const pagadoMesActual = p.payments.some((x) => x.month === cur && x.paid);
@@ -1195,7 +1195,7 @@ export default function Dashboard() {
   };
 
   // ============================================================
-  // EXPORTACIÃ“N A EXCEL
+  // EXPORTACIÓN A EXCEL
   // ============================================================
   const exportarExcel = () => {
     const jugadores = jugadoresBusqueda || [];
@@ -1213,14 +1213,14 @@ export default function Dashboard() {
             ? "Deudor"
             : ec.pendiente
               ? "Pendiente"
-              : "Al dÃ­a";
+              : "Al día";
         return {
           "#": index + 1,
           "Apellido": p.lastName,
           "Nombre": p.firstName,
           "DNI": p.document,
           "Rol": p.role === "JUGADOR" ? "Jugador" : p.role,
-          "PosiciÃ³n": p.position || "-",
+          "Posición": p.position || "-",
           "Camiseta": p.jersey || "-",
           "Estado": estado,
           "Fichas": p.fichas?.aptoFichas ? "OK" : "Sin fichas",
@@ -1246,7 +1246,7 @@ export default function Dashboard() {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const months = monthRange();
   const tecnicos = players.filter((p) => p.role !== "JUGADOR");
-  // Jugadores que pagan acÃ¡ (nativos o sin vÃ­nculo formativo)
+  // Jugadores que pagan acá (nativos o sin vínculo formativo)
   const plantel = players.filter((p) => p.role === "JUGADOR" && p.pagaAca !== false);
   const jugadoresFiltrados = plantel.filter((p) => {
   if (filtroEstado === "todos") return true;
@@ -1257,7 +1257,7 @@ export default function Dashboard() {
   if (filtroEstado === "inactivo") return p.status === "INACTIVO";
   return true;
 });
-// Aplicar bÃºsqueda por nombre o DNI sobre los jugadores ya filtrados por estado
+// Aplicar búsqueda por nombre o DNI sobre los jugadores ya filtrados por estado
 const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
   if (!busqueda.trim()) return true;
   const q = busqueda.toLowerCase().trim();
@@ -1265,13 +1265,13 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
          p.lastName.toLowerCase().includes(q) ||
          p.document.includes(q);
 });
-  // Jugadores de formativa que aparecen en este equipo pero pagan en su categorÃ­a
+  // Jugadores de formativa que aparecen en este equipo pero pagan en su categoría
   const plantelSinCuota = players.filter((p) => p.role === "JUGADOR" && p.pagaAca === false);
 
   return (
     <Layout>
     <div className="max-w-6xl mx-auto px-6 py-10">
-      {/* Encabezado del panel: tarjeta con saludo + botÃ³n salir */}
+      {/* Encabezado del panel: tarjeta con saludo + botón salir */}
       <div className="rounded-lg border border-outline bg-surface-1 p-5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex w-12 h-12 rounded-lg bg-primary/15 border border-primary/30 items-center justify-center shrink-0">
@@ -1280,7 +1280,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
           <div>
             <h1 className="font-display text-xl md:text-2xl font-bold">Panel de delegado</h1>
             <p className="text-white/60 text-sm mt-0.5">
-              Hola, <span className="text-white/85 font-semibold">{me?.fullName}</span> â€” {me?.role === "ADMIN" ? "Administrador" : "Delegado"}
+              Hola, <span className="text-white/85 font-semibold">{me?.fullName}</span> — {me?.role === "ADMIN" ? "Administrador" : "Delegado"}
             </p>
           </div>
         </div>
@@ -1305,7 +1305,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
       {/* selector de equipo + acciones */}
       {me && me.teams.length > 0 && (
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <label className="text-sm text-white/70">Estás viendo: </label>
+          <label className="text-sm text-white/70">Est�s viendo: </label>
           <select
             value={teamId}
             onChange={(e) => setTeamId(e.target.value)}
@@ -1322,7 +1322,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
             <button
               onClick={openNuevo}
               className="px-4 py-2 rounded-lg text-sm bg-primary text-white font-semibold transition-all duration-200 hover:bg-primary-light active:scale-95"
-              title="Agregar jugador o cuerpo técnico"
+              title="Agregar jugador o cuerpo t�cnico"
             >
               + Agregar
             </button>
@@ -1350,14 +1350,14 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
                 className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-surface-1 text-white/80 transition-all duration-200 hover:bg-surface-2 active:scale-95 disabled:opacity-50"
                 title="Exportar lista de jugadores a Excel"
               >
-                {exportando ? "Generando..." : "📊 Exportar"}
+                {exportando ? "Generando..." : "?? Exportar"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* navegación de vistas */}
+      {/* navegaci�n de vistas */}
       {me && (
         <div className="mt-4 flex rounded-lg border border-outline overflow-x-auto whitespace-nowrap scrollbar-none">
           <button
@@ -1397,18 +1397,18 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
 
       {error && <p className="mt-4 text-red-400">{error}</p>}
 
-      {/* Aviso: jugadores con documentaciÃ³n que bloquea */}
+      {/* Aviso: jugadores con documentación que bloquea */}
       {view === "lista" && plantel.some((p) => p.fichas && !p.fichas.aptoFichas) && (
   <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
     <div>
       <p className="text-sm font-semibold text-amber-300">
-        âš  Algunos jugadores tienen documentaciÃ³n vencida o sin cargar â€” no pueden jugar hasta regularizar
+        ⚠ Algunos jugadores tienen documentación vencida o sin cargar — no pueden jugar hasta regularizar
       </p>
       <p className="text-xs text-amber-200/70 mt-1">
         {plantel
           .filter((p) => p.fichas && !p.fichas.aptoFichas)
           .map((p) => `${p.firstName} ${p.lastName} (${p.fichas!.resumen})`)
-          .join(" Â· ")}
+          .join(" · ")}
       </p>
     </div>
     <button
@@ -1521,10 +1521,10 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
         />
       )}
 
-      {/* ===================== CUERPO TÃ‰CNICO (separado, sin pagos) ===================== */}
+      {/* ===================== CUERPO TÉCNICO (separado, sin pagos) ===================== */}
       {tecnicos.length > 0 && (
         <div className="mt-8">
-          <h2 className="font-display text-lg font-bold text-white/80 mb-3">Cuerpo tÃ©cnico</h2>
+          <h2 className="font-display text-lg font-bold text-white/80 mb-3">Cuerpo técnico</h2>
 <div className="overflow-x-auto rounded-lg border border-outline">
             <table className="w-full text-sm">
               <thead>
@@ -1582,10 +1582,10 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
       )}
 
       <p className="mt-6 text-xs text-white/40">
-        <Link to="/" className="underline">Ver sitio pÃºblico</Link>
+        <Link to="/" className="underline">Ver sitio público</Link>
       </p>
 
-      {/* ===================== MODAL ALTA / EDICIÃ“N DE JUGADOR ===================== */}
+      {/* ===================== MODAL ALTA / EDICIÓN DE JUGADOR ===================== */}
       <PlayerModal
         showForm={showForm}
         setShowForm={setShowForm}
@@ -1652,7 +1652,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
         save={savePoliSlot}
       />
 
-      {/* ===================== MODAL EXCEPCIÃ“N PUNTUAL (POLI) ===================== */}
+      {/* ===================== MODAL EXCEPCIÓN PUNTUAL (POLI) ===================== */}
       <PoliExModal
         modal={showPoliExModal}
         setModal={setShowPoliExModal}
