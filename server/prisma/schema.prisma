@@ -169,6 +169,32 @@ model Payment {
   @@unique([playerId, month])
 }
 
+// ---------------- Lista de asegurados (seguro) ----------------
+
+// Cada alta/baja de un jugador ACTIVO queda registrada como aviso para que el
+// admin (y el delegado que hizo el cambio) sepa que la lista del seguro quedó
+// desactualizada. Se limpia al exportar la lista completa (resueltoAt).
+// playerId puede ser null (si el jugador se borró): igual se exporta la BAJA
+// con el snapshot de datos guardado acá.
+model AvisoSeguro {
+  id          String    @id @default(cuid())
+  playerId    String?
+  tipo        String    // "ALTA" | "BAJA"
+  // Snapshot de datos del jugador al momento del evento
+  document    String
+  lastName    String
+  firstName   String
+  birthDate   DateTime?
+  teamId      String?   // equipo donde se registró el cambio (contexto)
+  creadoPorId String?   // delegado que hizo el cambio (auditoría)
+  createdAt   DateTime  @default(now())
+  resueltoAt  DateTime? // null = pendiente de resolver (exportar lista completa)
+
+  @@index([tipo])
+  @@index([creadoPorId])
+  @@index([resueltoAt])
+}
+
 // ---------------- Partidos ----------------
 
 model Match {

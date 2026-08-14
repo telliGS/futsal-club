@@ -167,11 +167,13 @@ export async function parseWorkbook(buffer: Buffer): Promise<{ filas: ParsedFila
   return { filas };
 }
 
-/** Importa el roster: upsert jugador por DNI + vinculo al equipo. Devuelve resumen. */
-export async function importFila(teamId: string, f: { apellido: string; nombre: string; dni: string; rol: string; posicion: string | null; jersey: number | null; fecha: Date | null; estado: string | null }): Promise<void> {
+/** Importa el roster: upsert jugador por DNI + vinculo al equipo. Devuelve el id y estado final del jugador. */
+export async function importFila(teamId: string, f: { apellido: string; nombre: string; dni: string; rol: string; posicion: string | null; jersey: number | null; fecha: Date | null; estado: string | null }): Promise<{ id: string; status: string }> {
   const estado = ["ACTIVO", "DEUDA", "INACTIVO"].includes(f.estado ?? "") ? f.estado! : undefined;
 
   const existing = await prisma.player.findUnique({ where: { document: f.dni } });
+  let playerId: string;
+  let statusFinal: string;
   if (existing) {
     await prisma.player.update({
       where: { id: existing.id },
@@ -182,8 +184,10 @@ export async function importFila(teamId: string, f: { apellido: string; nombre: 
         ...(estado ? { status: estado } : {}),
       },
     });
+    playerId = existing.id;
+    statusFinal = estado ?? existing.status;
   } else {
-    await prisma.player.create({
+    const creado = await prisma.player.create({
       data: {
         document: f.dni,
         lastName: f.apellido || f.dni,
@@ -192,22 +196,25 @@ export async function importFila(teamId: string, f: { apellido: string; nombre: 
         status: estado ?? "ACTIVO",
       },
     });
+    playerId = creado.id;
+    statusFinal = estado ?? "ACTIVO";
   }
 
-  const player = await prisma.player.findUnique({ where: { document: f.dni } });
   await prisma.playerTeam.upsert({
-    where: { playerId_teamId: { playerId: player!.id, teamId } },
+    where: { playerId_teamId: { playerId, teamId } },
     update: {
       role: f.rol,
       position: f.rol !== "JUGADOR" ? f.posicion : f.posicion ?? null,
       jersey: f.jersey,
     },
     create: {
-      playerId: player!.id,
+      playerId,
       teamId,
       role: f.rol,
       position: f.posicion,
       jersey: f.jersey,
     },
   });
+
+  return { id: playerId, status: statusFinal };
 }

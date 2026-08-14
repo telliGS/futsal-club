@@ -5,6 +5,7 @@ import { requireAuth, canAccessTeam } from "../middleware/auth.js";
 import { calcularEstadoCuota } from "../lib/cuota.js";
 import { calcularDocumentos, MAX_DOC_BYTES, TipoDocumento, TIPOS_DOCUMENTO, aptoParaJugar, vencimientoPorRegla } from "../lib/ficha.js";
 import { pagaCuotaEnEquipo, categoriasPagoJugador } from "../lib/nativo.js";
+import { registrarAvisoSeguro } from "../lib/seguro.js";
 
 const router = Router();
 
@@ -118,6 +119,7 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
 
   // upsert jugador por DNI (si ya existe en otro equipo, solo se vincula)
   let player = await prisma.player.findUnique({ where: { document } });
+  const esNuevo = !player;
   if (!player) {
     player = await prisma.player.create({
       data: {
@@ -164,6 +166,17 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
     update: { role: role ?? "JUGADOR", position, jersey, cuentaPresupuesto: cuentaPresupuesto ?? undefined },
     create: { playerId: player.id, teamId, role: role ?? "JUGADOR", position, jersey, cuentaPresupuesto: cuentaPresupuesto ?? true },
   });
+
+  // Alta en la lista de asegurados: solo si el jugador es nuevo (vincular a uno
+  // ya existente no cambia el set de asegurados por DNI).
+  if (esNuevo) {
+    await registrarAvisoSeguro({
+      playerId: player.id,
+      tipo: "ALTA",
+      creadoPorId: req.user!.id,
+      teamId,
+    });
+  }
 
   res.status(201).json(player);
 });
@@ -299,6 +312,10 @@ router.patch("/players/:id/status", requireAuth, async (req, res) => {
       desde = new Date();
     }
     await prisma.player.update({ where: { id }, data: { status: "INACTIVO", inactiveSince: desde } });
+    // Baja de la lista de asegurados (si estaba activo/deuda → pasa a inactivo)
+    if (player.status !== "INACTIVO") {
+      await registrarAvisoSeguro({ playerId: id, tipo: "BAJA", creadoPorId: req.user!.id });
+    }
     const congelado = desde.toISOString().slice(0, 7);
     const estadoCuota = calcularEstadoCuota(player.payments, new Date(), { congelarDesde: congelado });
     res.json({ ok: true, status: "INACTIVO", inactiveSince: desde, estadoCuota });
@@ -311,6 +328,10 @@ router.patch("/players/:id/status", requireAuth, async (req, res) => {
   const statusFinal = estadoCuota.deudor ? "DEUDA" : "ACTIVO";
   if (statusFinal === "DEUDA") {
     await prisma.player.update({ where: { id }, data: { status: "DEUDA" } });
+  }
+  // Alta de la lista de asegurados: vuelve ACTIVO/DEUDA (ambos cuentan)
+  if (player.status === "INACTIVO") {
+    await registrarAvisoSeguro({ playerId: id, tipo: "ALTA", creadoPorId: req.user!.id });
   }
   res.json({ ok: true, status: statusFinal, inactiveSince: null, estadoCuota });
 });
@@ -349,6 +370,7 @@ router.patch("/players/:id", requireAuth, async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: "Datos inválidos" });
 
   const { birthDate, role, position, jersey, cuentaPresupuesto, ...rest } = parsed.data;
+  const nuevoStatus = rest.status as string | undefined;
   const updated = await prisma.player.update({
     where: { id: player.id },
     data: {
@@ -356,6 +378,13 @@ router.patch("/players/:id", requireAuth, async (req, res) => {
       birthDate: birthDate ? new Date(birthDate) : birthDate === null ? null : undefined,
     },
   });
+
+  // Cambio de estado global por edición → alta/baja de la lista de asegurados
+  if (nuevoStatus === "INACTIVO" && player.status !== "INACTIVO") {
+    await registrarAvisoSeguro({ playerId: player.id, tipo: "BAJA", creadoPorId: req.user!.id });
+  } else if (nuevoStatus && nuevoStatus !== "INACTIVO" && player.status === "INACTIVO") {
+    await registrarAvisoSeguro({ playerId: player.id, tipo: "ALTA", creadoPorId: req.user!.id });
+  }
 
   // rol/pos/número/cuentaPresupuesto se guardan en el vínculo del equipo indicado (o el primero con acceso)
   if (role || position || jersey !== undefined || cuentaPresupuesto !== undefined) {
@@ -382,6 +411,22 @@ router.delete("/players/:id", requireAuth, async (req, res) => {
     }
   }
   if (links.length === 1) {
+    // Baja de la lista de asegurados: se borra el jugador entero → se guarda el
+    // snapshot para poder exportar la BAJA aunque ya no exista.
+    if (player.status !== "INACTIVO") {
+      await registrarAvisoSeguro({
+        playerId: player.id,
+        tipo: "BAJA",
+        creadoPorId: req.user!.id,
+        teamId: links[0].teamId,
+        snapshot: {
+          document: player.document,
+          lastName: player.lastName,
+          firstName: player.firstName,
+          birthDate: player.birthDate,
+        },
+      });
+    }
     await prisma.player.delete({ where: { id: player.id } });
   } else {
     // está en varios equipos: solo desvincula del primero (cambio en el front usual)

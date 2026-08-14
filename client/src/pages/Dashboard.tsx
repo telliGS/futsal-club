@@ -18,6 +18,7 @@ import DelegadoModal from "../components/panel/DelegadoModal";
 import QuotaModal from "../components/panel/QuotaModal";
 import GastoModal from "../components/panel/GastoModal";
 import InactivoModal from "../components/panel/InactivoModal";
+import SeguroModal from "../components/panel/SeguroModal";
 import { monthRange, monthShort, Icon } from "../lib/panel-helpers";
 import {
   Team,
@@ -33,6 +34,7 @@ import {
   PoliSemana,
   PresupuestoData,
   TotalPresupuesto,
+  SeguroAvisos,
 } from "../lib/panel-types";
 
 export default function Dashboard() {
@@ -66,6 +68,25 @@ export default function Dashboard() {
 
   // ----- Exportación -----
   const [exportando, setExportando] = useState(false);
+
+  // ----- Seguro (lista de asegurados + avisos) -----
+  const [showSeguro, setShowSeguro] = useState(false);
+  const [seguroAvisos, setSeguroAvisos] = useState<SeguroAvisos | null>(null);
+
+  async function cargarAvisosSeguro() {
+    if (!token) return;
+    try {
+      const r = await apiFetch<SeguroAvisos>("/seguro/avisos", {}, token);
+      setSeguroAvisos(r);
+    } catch {
+      setSeguroAvisos(null);
+    }
+  }
+
+  useEffect(() => {
+    cargarAvisosSeguro();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   // ---------- Cambio de credenciales propio (1 sola vez) ----------
   const [showCredModal, setShowCredModal] = useState(false);
@@ -1320,6 +1341,14 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <button
+              onClick={() => setShowSeguro(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-surface-1 border border-outline text-white/80 transition-all duration-200 hover:bg-surface-2 active:scale-95"
+              title="Exportar la lista de asegurados para el seguro"
+            >
+              <Icon name="doc" className="w-3.5 h-3.5" />
+              Seguro
+            </button>
+            <button
               onClick={openNuevo}
               className="px-4 py-2 rounded-lg text-sm bg-primary text-white font-semibold transition-all duration-200 hover:bg-primary-light active:scale-95"
               title="Agregar jugador o cuerpo t�cnico"
@@ -1422,6 +1451,29 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
       className="px-4 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-colors text-sm font-medium whitespace-nowrap"
     >
       Ver jugadores
+    </button>
+  </div>
+)}
+
+      {/* Aviso: lista de asegurados desactualizada (altas/bajas pendientes) */}
+      {seguroAvisos && seguroAvisos.total > 0 && (
+  <div className="mt-4 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <p className="text-sm font-semibold text-blue-300">
+        📋 Cambios pendientes en la lista de asegurados
+      </p>
+      <p className="text-xs text-blue-200/70 mt-1">
+        {seguroAvisos.altas > 0 && `${seguroAvisos.altas} alta${seguroAvisos.altas === 1 ? "" : "s"}`}
+        {seguroAvisos.altas > 0 && seguroAvisos.bajas > 0 && " y "}
+        {seguroAvisos.bajas > 0 && `${seguroAvisos.bajas} baja${seguroAvisos.bajas === 1 ? "" : "s"}`}
+        {" "}— exportá la lista completa para actualizar el seguro.
+      </p>
+    </div>
+    <button
+      onClick={() => setShowSeguro(true)}
+      className="px-4 py-1.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/40 hover:bg-blue-500/30 transition-colors text-sm font-medium whitespace-nowrap"
+    >
+      Exportar lista
     </button>
   </div>
 )}
@@ -1707,6 +1759,18 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
         importing={importing}
         importarExcel={importarExcel}
         descargarPlantilla={descargarPlantilla}
+      />
+
+      {/* ===================== MODAL SEGURO (lista de asegurados) ===================== */}
+      <SeguroModal
+        show={showSeguro}
+        setShow={setShowSeguro}
+        esAdmin={esAdmin}
+        teams={esAdmin ? allTeams : (me?.teams ?? [])}
+        teamId={teamId}
+        token={token}
+        onExportado={cargarAvisosSeguro}
+        onMsg={mostrarToast}
       />
     </div>
 

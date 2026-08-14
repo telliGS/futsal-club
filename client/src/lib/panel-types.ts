@@ -203,3 +203,44 @@ export interface TotalPresupuesto {
     balance: number;
   };
 }
+
+// ---------- Seguro (lista de asegurados + avisos de altas/bajas) ----------
+export interface AvisoSeguro {
+  id: string;
+  playerId?: string | null;
+  tipo: "ALTA" | "BAJA";
+  document: string;
+  lastName: string;
+  firstName: string;
+  birthDate?: string | null;
+  teamId?: string | null;
+  creadoPorId?: string | null;
+  createdAt: string;
+  resueltoAt?: string | null;
+}
+
+export interface SeguroAvisos {
+  total: number;
+  altas: number;
+  bajas: number;
+  avisos: AvisoSeguro[];
+}
+
+export interface SeguroFilaCompleta {
+  document: string;
+  lastName: string;
+  firstName: string;
+  birthDate?: string | null;
+  estado: string;
+  equipos: string[];
+}
+
+export interface SeguroFilaCambio {
+  tipo: "ALTA" | "BAJA";
+  fecha: string;
+  document: string;
+  lastName: string;
+  firstName: string;
+  birthDate?: string | null;
+  equipo: string;
+}

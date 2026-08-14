@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../config.js";
 import { requireAuth, canAccessTeam } from "../middleware/auth.js";
 import { buildTemplateWorkbook, parseWorkbook, importFila, TEMPLATE_MAX_BYTES } from "../lib/import.js";
+import { registrarAvisoSeguro } from "../lib/seguro.js";
 
 const router = Router();
 
@@ -68,10 +69,21 @@ router.post("/:teamId/import", requireAuth, async (req, res) => {
     }
     try {
       const antes = await prisma.player.findUnique({ where: { document: f.dni } });
-      await importFila(team.id, f);
+      const resultado = await importFila(team.id, f);
       vinculados++;
       if (antes) actualizados++;
-      else creados++;
+      else {
+        creados++;
+        // Alta de la lista de asegurados: jugador nuevo que quedó activo
+        if (resultado.status !== "INACTIVO") {
+          await registrarAvisoSeguro({
+            playerId: resultado.id,
+            tipo: "ALTA",
+            creadoPorId: req.user!.id,
+            teamId: team.id,
+          });
+        }
+      }
     } catch (e) {
       errores.push({ fila: f.n, motivo: (e as Error).message.slice(0, 120) });
     }
