@@ -73,13 +73,22 @@ export default function PresupuestoView({
       {!presupLoading && presup && (
         <>
           {/* Tarjetas de números */}
-          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
             <div className="card p-4">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Ingreso · cuotas</p>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Ingreso · estimado</p>
               <p className="mt-1.5 font-display text-2xl font-bold text-green-400 tabular-nums">{formatPesos(presup.resultado.ingreso)}</p>
               <p className="mt-1 text-xs text-white/60 leading-relaxed">
                 {presup.jugadores} jugadores{presup.cuota != null ? ` × ${formatPesos(presup.cuota)}` : " (sin cuota cargada)"}
                 {presup.jugadoresExcluidos > 0 && ` · ${presup.jugadoresExcluidos} excluido${presup.jugadoresExcluidos === 1 ? "" : "s"}`}
+              </p>
+            </div>
+            <div className="card p-4">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Ingreso · real cobrado</p>
+              <p className="mt-1.5 font-display text-2xl font-bold text-green-400 tabular-nums">{formatPesos(presup.recaudado)}</p>
+              <p className="mt-1 text-xs text-white/60 leading-relaxed">
+                {presup.faltaCobrar > 0
+                  ? `falta cobrar ${formatPesos(presup.faltaCobrar)}`
+                  : "todo el mes cobrado"}
               </p>
             </div>
             <div className="card p-4">
@@ -101,6 +110,13 @@ export default function PresupuestoView({
                 </span>
                 <span className="text-white/60"> del mes</span>
               </p>
+            </div>
+            <div className="card p-4">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Balance real</p>
+              <p className={`mt-1.5 font-display text-2xl font-bold tabular-nums ${presup.recaudado - presup.resultado.gastos >= 0 ? "text-green-400" : "text-red-400"}`}>
+                {formatPesos(presup.recaudado - presup.resultado.gastos)}
+              </p>
+              <p className="mt-1 text-xs text-white/60">con lo que realmente entró</p>
             </div>
             <div className="card p-4">
               <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Cuota recomendada</p>
@@ -221,8 +237,17 @@ export default function PresupuestoView({
                       <p className="mt-1 text-2xl font-bold">{totalData.totales.jugadores}</p>
                     </div>
                     <div className="card p-4">
-                      <p className="text-xs text-white/50">Ingreso total del club</p>
+                      <p className="text-xs text-white/50">Ingreso total (estimado)</p>
                       <p className="mt-1 text-2xl font-bold text-green-400">{formatPesos(totalData.totales.ingreso)}</p>
+                    </div>
+                    <div className="card p-4">
+                      <p className="text-xs text-white/50">Ingreso real cobrado</p>
+                      <p className="mt-1 text-2xl font-bold text-green-400">{formatPesos(totalData.totales.recaudado)}</p>
+                      <p className="mt-1 text-[11px] text-white/50">
+                        {totalData.totales.faltaCobrar > 0
+                          ? `falta cobrar ${formatPesos(totalData.totales.faltaCobrar)}`
+                          : "todo el mes cobrado"}
+                      </p>
                     </div>
                     <div className="card p-4">
                       <p className="text-xs text-white/50">Gastos totales</p>
@@ -231,6 +256,28 @@ export default function PresupuestoView({
                     <div className="card p-4">
                       <p className="text-xs text-white/50">Deuda total</p>
                       <p className="mt-1 text-2xl font-bold text-amber-300">{formatPesos(totalData.totales.deuda)}</p>
+                    </div>
+                    <div className="card p-4">
+                      <p className="text-xs text-white/50">Balance estimado</p>
+                      <p className={`mt-1 text-2xl font-bold ${totalData.totales.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
+                        {formatPesos(totalData.totales.balance)}
+                      </p>
+                    </div>
+                    <div className="card p-4">
+                      <p className="text-xs text-white/50">Balance real</p>
+                      <p className={`mt-1 text-2xl font-bold ${totalData.totales.recaudado - totalData.totales.gastos >= 0 ? "text-green-400" : "text-red-400"}`}>
+                        {formatPesos(totalData.totales.recaudado - totalData.totales.gastos)}
+                      </p>
+                      <p className="mt-1 text-[11px] text-white/50">con lo que realmente entró</p>
+                    </div>
+                    <div className="card p-4">
+                      <p className="text-xs text-white/50">Cobrado del mes</p>
+                      <p className="mt-1 text-2xl font-bold text-primary-light">
+                        {totalData.totales.ingreso > 0
+                          ? Math.round((totalData.totales.recaudado / totalData.totales.ingreso) * 100) + "%"
+                          : "—"}
+                      </p>
+                      <p className="mt-1 text-[11px] text-white/50">de lo estimado</p>
                     </div>
                   </div>
 
@@ -282,7 +329,8 @@ export default function PresupuestoView({
                           <th className="p-3">Equipo</th>
                           <th className="p-3">Jugadores</th>
                           <th className="p-3">Cuota</th>
-                          <th className="p-3">Ingreso</th>
+                          <th className="p-3">Estimado</th>
+                          <th className="p-3">Real</th>
                           <th className="p-3">Gastos</th>
                           <th className="p-3">Balance</th>
                           <th className="p-3">Deuda</th>
@@ -305,6 +353,12 @@ export default function PresupuestoView({
                               <td className="p-3 text-white/70">{e.jugadores}</td>
                               <td className="p-3 text-white/70">{e.cuota ? formatPesos(e.cuota) : "—"}</td>
                               <td className="p-3 text-white/70">{formatPesos(e.ingreso)}</td>
+                              <td className="p-3 text-white/70">
+                                {formatPesos(e.recaudado)}
+                                {e.faltaCobrar > 0 && (
+                                  <span className="block text-[10px] text-amber-300/80">falta {formatPesos(e.faltaCobrar)}</span>
+                                )}
+                              </td>
                               <td className="p-3 text-white/70">{formatPesos(e.gastos)}</td>
                               <td className={`p-3 font-semibold ${e.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
                                 {formatPesos(e.balance)}
@@ -318,8 +372,42 @@ export default function PresupuestoView({
                     </table>
                   </div>
                   <p className="mt-2 text-xs text-white/40">
-                    Orden alfabético por categoría. La cuota recomendada por equipo = gastos ÷ jugadores + 10% margen, redondeada a $500.
+                    Orden alfabético por categoría. "Estimado" = jugadores × cuota; "Real" = lo que realmente pagaron.
+                    La cuota recomendada por equipo = gastos ÷ jugadores + 10% margen, redondeada a $500.
                   </p>
+
+                  {/* Serie por mes del año: estimado vs real (acumulado) */}
+                  {totalData.porMes.length > 0 && (
+                    <div className="mt-4 overflow-x-auto rounded-lg border border-outline">
+                      <table className="w-full text-sm">
+                        <thead className="bg-surface-1/60 text-left text-white/60">
+                          <tr>
+                            <th className="p-3">Mes</th>
+                            <th className="p-3">Estimado</th>
+                            <th className="p-3">Real cobrado</th>
+                            <th className="p-3">% cobrado</th>
+                            <th className="p-3">Acumulado real del año</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {totalData.porMes.map((m) => {
+                            const pct = m.estimado > 0 ? Math.round((m.recaudado / m.estimado) * 100) : 0;
+                            return (
+                              <tr key={m.mes} className="border-t border-outline/60">
+                                <td className="p-3 font-semibold">{monthShort(m.mes)} {m.mes.slice(0, 4)}</td>
+                                <td className="p-3 text-white/70">{formatPesos(m.estimado)}</td>
+                                <td className="p-3 text-green-400">{formatPesos(m.recaudado)}</td>
+                                <td className="p-3 text-white/70">{m.estimado > 0 ? pct + "%" : "—"}</td>
+                                <td className={`p-3 font-semibold ${m.acumulado > 0 ? "text-green-400" : "text-white/40"}`}>
+                                  {formatPesos(m.acumulado)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </>
               )}
             </div>

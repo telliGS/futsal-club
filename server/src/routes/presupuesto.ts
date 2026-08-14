@@ -37,7 +37,15 @@ router.get("/:teamId/presupuesto", requireAuth, async (req, res) => {
       gastosExtra: { where: { mes } },
       players: {
         where: { role: "JUGADOR" },
-        include: { player: { select: { status: true, teams: { include: { team: { select: { name: true, type: true, category: true } } } } } } },
+        include: {
+          player: {
+            select: {
+              status: true,
+              payments: { select: { month: true, paid: true, amount: true } },
+              teams: { include: { team: { select: { name: true, type: true, category: true } } } },
+            },
+          },
+        },
       },
     },
   }))!;
@@ -67,6 +75,17 @@ router.get("/:teamId/presupuesto", requireAuth, async (req, res) => {
     gastosExtra,
   });
 
+  // Ingreso real: lo que realmente pagaron los jugadores que cuentan, del mes
+  // elegido (pago parcial = monto real, no la cuota completa).
+  const recaudado = nativos
+    .filter((l) => l.cuentaPresupuesto)
+    .reduce(
+      (a, l) => a + l.player.payments.filter((p) => p.month === mes && p.paid).reduce((s, p) => s + p.amount, 0),
+      0
+    );
+  // Falta cobrar: la diferencia entre lo estimado (jugadores × cuota) y lo real.
+  const faltaCobrar = Math.max(0, resultado.ingreso - recaudado);
+
   res.json({
     teamId: team.id,
     categoria: team.name,
@@ -76,6 +95,8 @@ router.get("/:teamId/presupuesto", requireAuth, async (req, res) => {
     jugadoresExcluidos: vinculados.length - nativos.length + (nativos.length - jugadores),
     gastosFijos: team.gastosFijos.sort((a, b) => a.nombre.localeCompare(b.nombre)),
     gastosExtra: team.gastosExtra,
+    recaudado,
+    faltaCobrar,
     resultado,
   });
 });
@@ -167,7 +188,7 @@ router.get("/presupuesto/total", requireAuth, async (req, res) => {
             select: {
               status: true,
               deadline: true,
-              payments: { select: { month: true, paid: true } },
+              payments: { select: { month: true, paid: true, amount: true } },
               teams: { include: { team: { select: { name: true, type: true, category: true } } } },
             },
           },
@@ -203,6 +224,22 @@ router.get("/presupuesto/total", requireAuth, async (req, res) => {
             cuota,
         0
       );
+      // Ingreso real: lo que realmente pagaron los jugadores del equipo en el
+      // mes elegido (monto real, pago parcial incluido). Estimado = pagantes × cuota.
+      const recaudado = pagantes.reduce(
+        (a, l) => a + l.player.payments.filter((p) => p.month === mes && p.paid).reduce((s, p) => s + p.amount, 0),
+        0
+      );
+      const faltaCobrar = Math.max(0, ingreso - recaudado);
+      // Recaudado por mes del año (para el acumulado): suma de los pagos reales
+      // de cada mes, de los jugadores que cuentan en este equipo.
+      const recaudadoPorMes: Record<string, number> = {};
+      for (const l of pagantes) {
+        for (const p of l.player.payments) {
+          if (!p.paid || !p.month) continue;
+          recaudadoPorMes[p.month] = (recaudadoPorMes[p.month] ?? 0) + p.amount;
+        }
+      }
       return {
         teamId: t.id,
         categoria: t.name,
@@ -210,6 +247,9 @@ router.get("/presupuesto/total", requireAuth, async (req, res) => {
         jugadores: pagantes.length,
         cuota,
         ingreso,
+        recaudado,
+        faltaCobrar,
+        recaudadoPorMes,
         gastosFijos,
         gastosExtra,
         gastos,
@@ -234,16 +274,41 @@ router.get("/presupuesto/total", requireAuth, async (req, res) => {
       return a.categoria.localeCompare(b.categoria, "es");
     });
 
-  const totales = porEquipo.reduce(
+  const totales: { jugadores: number; ingreso: number; recaudado: number; gastos: number; deuda: number; balance: number; faltaCobrar: number } = porEquipo.reduce(
     (acc, e) => ({
       jugadores: acc.jugadores + e.jugadores,
       ingreso: acc.ingreso + e.ingreso,
+      recaudado: acc.recaudado + e.recaudado,
       gastos: acc.gastos + e.gastos,
       deuda: acc.deuda + e.deuda,
       balance: acc.balance + e.balance,
+      faltaCobrar: acc.faltaCobrar,
     }),
-    { jugadores: 0, ingreso: 0, gastos: 0, deuda: 0, balance: 0 }
+    { jugadores: 0, ingreso: 0, recaudado: 0, gastos: 0, deuda: 0, balance: 0, faltaCobrar: 0 }
   );
+  totales.faltaCobrar = Math.max(0, totales.ingreso - totales.recaudado);
+
+  // Serie por mes del año (acumulado): ingreso estimado vs real, mes a mes,
+  // hasta el mes elegido. El estimado de cada mes usa la cuota actual.
+  const [anio] = mes.split("-");
+  const mesElegido = parseInt(mes.split("-")[1], 10);
+  const meses: string[] = [];
+  for (let i = 1; i <= mesElegido; i++) {
+    meses.push(`${anio}-${String(i).padStart(2, "0")}`);
+  }
+  const porMes: Array<{ mes: string; estimado: number; recaudado: number; acumulado: number }> = meses.map((m) => {
+    const recaudado = porEquipo.reduce((a, e) => a + (e.recaudadoPorMes[m] ?? 0), 0);
+    return { mes: m, estimado: totales.ingreso, recaudado, acumulado: 0 };
+  });
+  let acumulado = 0;
+  for (const m of porMes) {
+    acumulado += m.recaudado;
+    m.acumulado = acumulado;
+  }
+  // Quito el detalle interno por equipo
+  for (const e of porEquipo) {
+    delete (e as any).recaudadoPorMes;
+  }
 
   // --- Gimnasio: gasto variable por jugador que va (vaAlGym, activo o con
   // deuda). El costo de cada uno es su gymPrecio propio o el global de
@@ -275,7 +340,7 @@ router.get("/presupuesto/total", requireAuth, async (req, res) => {
     faltaCobrar: Math.max(0, gymGasto - gymRecaudado),
   };
 
-  res.json({ mes, porEquipo, totales, gym });
+  res.json({ mes, porEquipo, totales, porMes, gym });
 });
 
 export default router;

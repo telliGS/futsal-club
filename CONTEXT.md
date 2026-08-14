@@ -97,6 +97,7 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
    - ✅ **Pago de cuota con modal único** (14/08/2026, commit `f9054e5`): monto real + detalle + día límite por jugador.
    - ✅ **Múltiples admins con acceso total** (14/08/2026): `/me` devuelve todos los equipos a los ADMIN; 3 cuentas admin de élite creadas.
    - ✅ **Módulo de gimnasio** (14/08/2026): precio global + flag por jugador + pagos mensuales discriminados + export Excel + avisos altas/bajas; entra al presupuesto del club como gasto variable por jugador.
+   - ✅ **Ingreso real vs estimado en presupuesto** (14/08/2026): por equipo y en el total del club se discrimina lo estimado (jugadores × cuota) de lo realmente cobrado (recaudado, monto real con pagos parciales) + falta cobrar; en el total hay serie por mes del año con acumulado real y % cobrado.
    - Mejoras de usabilidad pendientes (para próxima sesión): confirmaciones para acciones destructivas, persistir vista/equipo, resumen de cobros del mes, aviso de cobros pendientes.
 
 4. **Roadmap de Marucha** (pendiente):
@@ -111,6 +112,7 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 - **Refactor del Dashboard completado** (14/08/2026): el archivo quedó como orquestador de 1732 líneas; todo lo de UI vive en `components/panel/` y la lógica compartida en `lib/panel-types.ts` + `lib/panel-helpers.tsx`.
 - **Pago de cuota con monto + detalle** (14/08/2026): `PagoModal` único; el deadline por jugador (`Player.deadline`, default 10) gobierna la regla de cuota tanto en server como en el panel y la consulta pública.
 - **Módulo de gimnasio** (14/08/2026): `GymConfig` (1 fila, precio global editable por admin), `Player.vaAlGym` + `Player.gymPrecio` (costo propio, si es null usa el global), `GymPayment` por jugador/mes (monto real + nota, pago parcial tipo Telli $9.000), `AvisoGym` (altas/bajas, se resuelven al exportar la completa). Endpoints `/api/gym/*` (config, lista por club/equipo × completa/altas/bajas con mes, avisos, pagos POST/DELETE). En el total del club el gym entra como **gasto variable por jugador** (suma de gymPrecio/global de los que van) + recaudado real + faltaCobrar.
+- **Ingreso real vs estimado** (14/08/2026): `GET /teams/:teamId/presupuesto` devuelve `recaudado` (monto real pagado del mes, con pagos parciales) + `faltaCobrar` (estimado − real); `GET /teams/presupuesto/total` agrega `totales.recaudado/faltaCobrar`, `porEquipo[].recaudado/faltaCobrar` y `porMes[]` (serie del año hasta el mes elegido con estimado, real, % cobrado y acumulado). Regla: el ingreso real se cuenta por el mes de la cuota (`month`), no por la fecha en que se pagó.
 - **Múltiples admins** (14/08/2026): role ADMIN = acceso total automático; la propia cuenta admin no se puede modificar/borrar desde el panel.
 - **Placeholder de fotos**: se usa 🏆 hasta que el club proporcione imágenes reales.
 - **Botón "Compartir"**: usa `navigator.share` en móviles y `clipboard` en desktop.
@@ -131,6 +133,7 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 ---
 
 ## Commits recientes (frontend)
+- `feat`: ingreso real vs estimado en presupuesto (recaudado/faltaCobrar por equipo y total + serie por mes del año)
 - `feat`: módulo de gimnasio (GymConfig, vaAlGym, GymPayment, avisos, export Excel, gym en presupuesto del club)
 - `f9054e5`: feat: pago de cuota con monto + detalle y día límite por jugador (PagoModal, Player.deadline, Payment.note)
 - `1c7a8cf`: feat: cuentas admin de élite y presidente (script create-admins-elite.ts)

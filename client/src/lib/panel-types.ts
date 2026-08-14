@@ -173,6 +173,10 @@ export interface PresupuestoData {
   jugadoresExcluidos: number;
   gastosFijos: GastoItem[];
   gastosExtra: GastoItem[];
+  // Ingreso real del mes: lo que realmente pagaron los que cuentan (monto
+  // real, pago parcial incluido) vs el estimado (jugadores × cuota).
+  recaudado: number;
+  faltaCobrar: number;
   resultado: {
     ingreso: number;
     gastos: number;
@@ -191,6 +195,8 @@ export interface TotalEquipo {
   jugadores: number;
   cuota: number;
   ingreso: number;
+  recaudado: number;
+  faltaCobrar: number;
   gastosFijos: number;
   gastosExtra: number;
   gastos: number;
@@ -204,10 +210,19 @@ export interface TotalPresupuesto {
   totales: {
     jugadores: number;
     ingreso: number;
+    recaudado: number;
     gastos: number;
     deuda: number;
     balance: number;
+    faltaCobrar: number;
   };
+  // Serie por mes del año (acumulado): estimado vs real hasta el mes elegido
+  porMes: Array<{
+    mes: string;
+    estimado: number;
+    recaudado: number;
+    acumulado: number;
+  }>;
   // Gimnasio: gasto variable por jugador que va + lo recaudado de sus cuotas.
   // Opcional porque el server puede no estar desplegado aún (el front se
   // auto-despliega antes): si no viene, la sección del gym no se muestra.
