@@ -15,7 +15,11 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 ## URLs en producción
 - Front: `https://jh-futsal.vercel.app`
 - API: `https://server-tellig.vercel.app`
-- Admin: `admin@josehernandez.futbol` / `admin1234`
+- Admin general: `admin@josehernandez.futbol` / `admin1234`
+- Admin de élite (acceso a todos los equipos):
+  - DT élite: `mauro.erben@josehernandez.futbol` / `EliteAdmin2026!`
+  - Delegado élite: `rodrigo.vergara@josehernandez.futbol` (mantiene su contraseña, convertido a ADMIN)
+  - Presidente: `mauro.schroeder@josehernandez.futbol` / `Presidente2026!`
 
 ---
 
@@ -36,8 +40,15 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
   - Botón "Consultar mi cuota" más grande.
 - **Placeholder para fotos**: se usa 🏆 en las secciones donde aún no hay imágenes reales.
 
-### Backend (sin cambios relevantes en este bloque)
-- Todo lo documentado en versiones anteriores se mantiene: delegados, cronograma, presupuesto, fichas médicas, TIMBO, RLS, etc.
+### Backend: múltiples admins con acceso total (14/08/2026)
+- **`server/src/routes/auth.ts`**: `/me` devuelve **todos los equipos** a cualquier ADMIN; crear delegado/admin acepta `role` (DELEGADO|ADMIN, default DELEGADO) con `teamIds` opcional; un admin creado recibe todos los equipos; protegido: no se modifica ni borra la propia cuenta admin.
+- **Cuentas admin de élite creadas** (script `server/src/scripts/create-admins-elite.ts`): Mauro Erben (DT), Rodrigo Vergara Aranda (delegado, convertido a ADMIN manteniendo su contraseña) y Mauro Schroeder (presidente). Las 3 con acceso a los 10 equipos.
+- **Pago de cuota con monto + detalle + día límite por jugador**:
+  - `Player.deadline` (Int, 1-31, default 10): último día para pagar la cuota del mes sin quedar deudor. Editable en el PlayerModal.
+  - `Payment.note` (String?): detalle opcional del pago (ej. "pagó la mitad, resta el resto").
+  - `calcularEstadoCuota` acepta `deadline` por jugador (fallback 10); se usa en players, presupuesto y en la consulta pública `/mi-cuota` (que ahora expone `deadline` y calcula `diasParaPagar` con el día real del jugador).
+  - `POST /players/:id/payments/:month` acepta `amount` (monto real, permite pago parcial) y `note`.
+- Todo lo demás documentado en versiones anteriores se mantiene: delegados, cronograma, presupuesto, fichas médicas, TIMBO, RLS, etc.
 
 ### Dashboard: refactor completo en componentes (14/08/2026)
 - **`client/src/pages/Dashboard.tsx` pasó de ~3900 a 1732 líneas**: ahora es orquestador (estado, handlers y modales importados).
@@ -45,7 +56,7 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
   - `client/src/lib/panel-types.ts`: tipos del panel (Team, Player, FichaEstado, DocItem, Toast, MeData, DelegadoAdmin, PoliSlot/Bloque/Dia/Semana, PresupuestoData, TotalPresupuesto, etc.).
   - `client/src/lib/panel-helpers.tsx`: helpers (MONTHS, monthRange, monthShort, labelTipo, esCategoriaMayor, tiposBloqueantes, BadgeFicha, ICONS, Icon).
 - **5 vistas** en `client/src/components/panel/`: `CalendarioView`, `DelegadosView`, `PoliView`, `PresupuestoView`, `PlayerListView`.
-- **10 modales** en `client/src/components/panel/`: `PlayerModal`, `CredencialesModal`, `PoliSlotModal`, `PoliExModal`, `ImportModal`, `FichasModal` (documentos), `DelegadoModal`, `QuotaModal`, `GastoModal`, `InactivoModal`.
+- **11 modales** en `client/src/components/panel/`: `PlayerModal`, `PagoModal` (pago con monto+detalle), `CredencialesModal`, `PoliSlotModal`, `PoliExModal`, `ImportModal`, `FichasModal` (documentos), `DelegadoModal`, `QuotaModal`, `GastoModal`, `InactivoModal`.
 - **Toasts** (commit `e2b6377`): `mostrarToast` con tipos success/error/warning/info, contenedor fijo bottom-right, animación `animate-fade-up` definida en `tailwind.config.js`.
 - **Exportación a Excel** (commit `624fb4e`): botón "📊 Exportar" tras "Importar Excel", usa `xlsx` ^0.18.5 (instalado con `--save`).
 
@@ -54,8 +65,15 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 - **Móvil**: los tabs scrollean horizontalmente sin desbordarse (`shrink-0 md:flex-1` + `overflow-x-auto`), scrollbar oculto con la nueva utilidad `scrollbar-none` en `tailwind.config.js`.
 - Etiquetas de tabs más cortas ("Cuotas" en vez de "Calendario de cuotas") y botones de Excel compactados.
 
+### Pago de cuota con modal único (14/08/2026, commit `f9054e5`)
+- **`PagoModal.tsx`**: reemplaza el toggle de `amount: 0` y el `window.prompt` de 3 estados. Desde la lista y el calendario, tocar una celda abre el modal con: monto real (default = cuota de la categoría, permite pago parcial), detalle opcional, y acciones "Actualizar pago", "Quitar (impago)" o "Poner nulo".
+- `CalendarioView` y `PlayerListView` pasan de `toggleCuota`/`ponerEstado` a `abrirPago(p, month)`.
+- `PlayerModal`: campo "Día límite de pago" (1-31).
+- `estadoLocal` del panel usa el `deadline` del jugador (coincide con el server).
+- `Status.tsx` (consulta pública) usa el `deadline` real en textos y `diasParaPagar`.
+
 ### Toasts y Excel en producción
-- Bundle actual en `jh-futsal.vercel.app`: `index-BzWcPtOc.js` (tras el commit `e0bbbe5`).
+- Bundle actual en `jh-futsal.vercel.app`: `index-aAZYdmbS.js` (tras el commit `f9054e5`).
 
 ---
 
@@ -74,8 +92,10 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
    - Más visibilidad de partidos (✅ badge "¡Este finde!").
 
 3. **Dashboard para delegados**:
-   - ✅ **Refactor completo en componentes** (14/08/2026): Dashboard orquestador de 1732 líneas, 5 vistas + 10 modales extraídos.
+   - ✅ **Refactor completo en componentes** (14/08/2026): Dashboard orquestador de 1732 líneas, 5 vistas + 11 modales extraídos.
    - ✅ **Usabilidad** (14/08/2026): header en 2 filas, tabs con scroll horizontal en móvil (commit `e0bbbe5`).
+   - ✅ **Pago de cuota con modal único** (14/08/2026, commit `f9054e5`): monto real + detalle + día límite por jugador.
+   - ✅ **Múltiples admins con acceso total** (14/08/2026): `/me` devuelve todos los equipos a los ADMIN; 3 cuentas admin de élite creadas.
    - Mejoras de usabilidad pendientes (para próxima sesión): confirmaciones para acciones destructivas, persistir vista/equipo, resumen de cobros del mes, aviso de cobros pendientes.
 
 4. **Roadmap de Marucha** (pendiente):
@@ -88,6 +108,8 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 
 ## Decisiones técnicas recientes
 - **Refactor del Dashboard completado** (14/08/2026): el archivo quedó como orquestador de 1732 líneas; todo lo de UI vive en `components/panel/` y la lógica compartida en `lib/panel-types.ts` + `lib/panel-helpers.tsx`.
+- **Pago de cuota con monto + detalle** (14/08/2026): `PagoModal` único; el deadline por jugador (`Player.deadline`, default 10) gobierna la regla de cuota tanto en server como en el panel y la consulta pública.
+- **Múltiples admins** (14/08/2026): role ADMIN = acceso total automático; la propia cuenta admin no se puede modificar/borrar desde el panel.
 - **Placeholder de fotos**: se usa 🏆 hasta que el club proporcione imágenes reales.
 - **Botón "Compartir"**: usa `navigator.share` en móviles y `clipboard` en desktop.
 - **Hero**: se mantiene la cuenta regresiva (usa `restante`) para mantener la funcionalidad existente.
@@ -107,6 +129,8 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 ---
 
 ## Commits recientes (frontend)
+- `f9054e5`: feat: pago de cuota con monto + detalle y día límite por jugador (PagoModal, Player.deadline, Payment.note)
+- `1c7a8cf`: feat: cuentas admin de élite y presidente (script create-admins-elite.ts)
 - `e0bbbe5`: feat: ordenar botones del panel y mejorar navegación en móvil
 - `bd2aa1f`: refactor: extraer modales restantes (Fichas, Delegado, Quota, Gasto, Inactivo) del Dashboard
 - `546c324`: refactor: extraer modales PoliSlot, PoliEx e Import del Dashboard
@@ -128,4 +152,4 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 
 ---
 
-**Última actualización**: 14/08/2026
+**Última actualización**: 14/08/2026 (fases 2 y 3: múltiples admins + pago con monto/detalle/deadline)
