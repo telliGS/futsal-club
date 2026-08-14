@@ -208,8 +208,10 @@ export interface TotalPresupuesto {
     deuda: number;
     balance: number;
   };
-  // Gimnasio: gasto variable por jugador que va + lo recaudado de sus cuotas
-  gym: {
+  // Gimnasio: gasto variable por jugador que va + lo recaudado de sus cuotas.
+  // Opcional porque el server puede no estar desplegado aún (el front se
+  // auto-despliega antes): si no viene, la sección del gym no se muestra.
+  gym?: {
     precio: number;
     jugadores: number;
     gasto: number;
