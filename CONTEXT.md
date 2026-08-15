@@ -7,6 +7,8 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 - **Frontend**: React 18 + Vite 6 + TypeScript + Tailwind, paleta del club (primary `#008f39`, dark `#121414`), fuentes Epilogue/Montserrat/JetBrains Mono. Carpeta `client/`.
 - **Backend**: Express + Prisma + PostgreSQL (Supabase), serverless en Vercel. Carpeta `server/`.
 - **Despliegue**: Vercel (GitHub auto-deploy para client; CLI manual para server).
+  - Server desplegado a producción con `vercel --prod` (15/08/2026, build `1a997e4`): incluye presupuesto con ingreso real + gym. Verificado: `/api/health` 200 en `server-tellig.vercel.app`, `/presupuesto/total` devuelve `recaudado/faltaCobrar/porMes`.
+  - ⚠️ Cada cambio en `server/` requiere `cd server; vercel --prod` manual; el front se auto-despliega. Si el panel muestra "—" o crashea en campos nuevos, suele ser el server sin desplegar.
 - **Repo**: `https://github.com/telliGS/futsal-club.git` (branch `master`).
   - Identidad git OBLIGATORIA: `telliGS` / `tellig270@gmail.com`
 
@@ -133,7 +135,8 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 ---
 
 ## Commits recientes (frontend)
-- `feat`: ingreso real vs estimado en presupuesto (recaudado/faltaCobrar por equipo y total + serie por mes del año)
+- `058dfb9`: fix: total del club y balance real no crashean cuando el server aún no devuelve el ingreso real
+- `acdf834`: feat: ingreso real vs estimado en presupuesto (recaudado/faltaCobrar por equipo y total + serie por mes del año)
 - `feat`: módulo de gimnasio (GymConfig, vaAlGym, GymPayment, avisos, export Excel, gym en presupuesto del club)
 - `f9054e5`: feat: pago de cuota con monto + detalle y día límite por jugador (PagoModal, Player.deadline, Payment.note)
 - `1c7a8cf`: feat: cuentas admin de élite y presidente (script create-admins-elite.ts)
@@ -158,4 +161,4 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 
 ---
 
-**Última actualización**: 14/08/2026 (fases 2 y 3: múltiples admins + pago con monto/detalle/deadline)
+**Última actualización**: 15/08/2026 (presupuesto con ingreso real vs estimado desplegado + fix de crash en total del club)
