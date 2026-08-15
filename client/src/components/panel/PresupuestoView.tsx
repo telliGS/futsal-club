@@ -86,9 +86,11 @@ export default function PresupuestoView({
               <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Ingreso · real cobrado</p>
               <p className="mt-1.5 font-display text-2xl font-bold text-green-400 tabular-nums">{formatPesos(presup.recaudado)}</p>
               <p className="mt-1 text-xs text-white/60 leading-relaxed">
-                {presup.faltaCobrar > 0
-                  ? `falta cobrar ${formatPesos(presup.faltaCobrar)}`
-                  : "todo el mes cobrado"}
+                {presup.recaudado == null
+                  ? "el server aún no devuelve el ingreso real"
+                  : (presup.faltaCobrar ?? 0) > 0
+                    ? `falta cobrar ${formatPesos(presup.faltaCobrar)}`
+                    : "todo el mes cobrado"}
               </p>
             </div>
             <div className="card p-4">
@@ -113,10 +115,16 @@ export default function PresupuestoView({
             </div>
             <div className="card p-4">
               <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Balance real</p>
-              <p className={`mt-1.5 font-display text-2xl font-bold tabular-nums ${presup.recaudado - presup.resultado.gastos >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {formatPesos(presup.recaudado - presup.resultado.gastos)}
-              </p>
-              <p className="mt-1 text-xs text-white/60">con lo que realmente entró</p>
+              {presup.recaudado != null ? (
+                <>
+                  <p className={`mt-1.5 font-display text-2xl font-bold tabular-nums ${presup.recaudado - presup.resultado.gastos >= 0 ? "text-green-400" : "text-red-400"}`}>
+                    {formatPesos(presup.recaudado - presup.resultado.gastos)}
+                  </p>
+                  <p className="mt-1 text-xs text-white/60">con lo que realmente entró</p>
+                </>
+              ) : (
+                <p className="mt-1.5 font-display text-2xl font-bold tabular-nums text-white/30">—</p>
+              )}
             </div>
             <div className="card p-4">
               <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Cuota recomendada</p>
@@ -230,7 +238,7 @@ export default function PresupuestoView({
               {totalLoading && <p className="text-white/50">Cargando total del club...</p>}
               {!totalLoading && totalData && (
                 <>
-                  {/* Tarjetas de totales */}
+                  {/* Tarjetas de totales (siempre disponibles) */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="card p-4">
                       <p className="text-xs text-white/50">Jugadores que pagan</p>
@@ -241,15 +249,6 @@ export default function PresupuestoView({
                       <p className="mt-1 text-2xl font-bold text-green-400">{formatPesos(totalData.totales.ingreso)}</p>
                     </div>
                     <div className="card p-4">
-                      <p className="text-xs text-white/50">Ingreso real cobrado</p>
-                      <p className="mt-1 text-2xl font-bold text-green-400">{formatPesos(totalData.totales.recaudado)}</p>
-                      <p className="mt-1 text-[11px] text-white/50">
-                        {totalData.totales.faltaCobrar > 0
-                          ? `falta cobrar ${formatPesos(totalData.totales.faltaCobrar)}`
-                          : "todo el mes cobrado"}
-                      </p>
-                    </div>
-                    <div className="card p-4">
                       <p className="text-xs text-white/50">Gastos totales</p>
                       <p className="mt-1 text-2xl font-bold text-red-400">{formatPesos(totalData.totales.gastos)}</p>
                     </div>
@@ -257,29 +256,44 @@ export default function PresupuestoView({
                       <p className="text-xs text-white/50">Deuda total</p>
                       <p className="mt-1 text-2xl font-bold text-amber-300">{formatPesos(totalData.totales.deuda)}</p>
                     </div>
-                    <div className="card p-4">
-                      <p className="text-xs text-white/50">Balance estimado</p>
-                      <p className={`mt-1 text-2xl font-bold ${totalData.totales.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
-                        {formatPesos(totalData.totales.balance)}
-                      </p>
-                    </div>
-                    <div className="card p-4">
-                      <p className="text-xs text-white/50">Balance real</p>
-                      <p className={`mt-1 text-2xl font-bold ${totalData.totales.recaudado - totalData.totales.gastos >= 0 ? "text-green-400" : "text-red-400"}`}>
-                        {formatPesos(totalData.totales.recaudado - totalData.totales.gastos)}
-                      </p>
-                      <p className="mt-1 text-[11px] text-white/50">con lo que realmente entró</p>
-                    </div>
-                    <div className="card p-4">
-                      <p className="text-xs text-white/50">Cobrado del mes</p>
-                      <p className="mt-1 text-2xl font-bold text-primary-light">
-                        {totalData.totales.ingreso > 0
-                          ? Math.round((totalData.totales.recaudado / totalData.totales.ingreso) * 100) + "%"
-                          : "—"}
-                      </p>
-                      <p className="mt-1 text-[11px] text-white/50">de lo estimado</p>
-                    </div>
                   </div>
+
+                  {/* Solo si el server ya devuelve el ingreso real (desplegado) */}
+                  {totalData.totales.recaudado != null && (
+                    <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="card p-4">
+                        <p className="text-xs text-white/50">Ingreso real cobrado</p>
+                        <p className="mt-1 text-2xl font-bold text-green-400">{formatPesos(totalData.totales.recaudado)}</p>
+                        <p className="mt-1 text-[11px] text-white/50">
+                          {totalData.totales.faltaCobrar != null && totalData.totales.faltaCobrar > 0
+                            ? `falta cobrar ${formatPesos(totalData.totales.faltaCobrar)}`
+                            : "todo el mes cobrado"}
+                        </p>
+                      </div>
+                      <div className="card p-4">
+                        <p className="text-xs text-white/50">Balance estimado</p>
+                        <p className={`mt-1 text-2xl font-bold ${totalData.totales.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
+                          {formatPesos(totalData.totales.balance)}
+                        </p>
+                      </div>
+                      <div className="card p-4">
+                        <p className="text-xs text-white/50">Balance real</p>
+                        <p className={`mt-1 text-2xl font-bold ${totalData.totales.recaudado - totalData.totales.gastos >= 0 ? "text-green-400" : "text-red-400"}`}>
+                          {formatPesos(totalData.totales.recaudado - totalData.totales.gastos)}
+                        </p>
+                        <p className="mt-1 text-[11px] text-white/50">con lo que realmente entró</p>
+                      </div>
+                      <div className="card p-4">
+                        <p className="text-xs text-white/50">Cobrado del mes</p>
+                        <p className="mt-1 text-2xl font-bold text-primary-light">
+                          {totalData.totales.ingreso > 0
+                            ? Math.round((totalData.totales.recaudado / totalData.totales.ingreso) * 100) + "%"
+                            : "—"}
+                        </p>
+                        <p className="mt-1 text-[11px] text-white/50">de lo estimado</p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className={`mt-3 card p-4 ${totalData.totales.balance >= 0 ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}`}>
                     <p className="text-xs text-white/50">Balance total del club</p>
@@ -355,7 +369,7 @@ export default function PresupuestoView({
                               <td className="p-3 text-white/70">{formatPesos(e.ingreso)}</td>
                               <td className="p-3 text-white/70">
                                 {formatPesos(e.recaudado)}
-                                {e.faltaCobrar > 0 && (
+                                {(e.faltaCobrar ?? 0) > 0 && (
                                   <span className="block text-[10px] text-amber-300/80">falta {formatPesos(e.faltaCobrar)}</span>
                                 )}
                               </td>
@@ -377,7 +391,7 @@ export default function PresupuestoView({
                   </p>
 
                   {/* Serie por mes del año: estimado vs real (acumulado) */}
-                  {totalData.porMes.length > 0 && (
+                  {totalData.porMes && totalData.porMes.length > 0 && (
                     <div className="mt-4 overflow-x-auto rounded-lg border border-outline">
                       <table className="w-full text-sm">
                         <thead className="bg-surface-1/60 text-left text-white/60">
