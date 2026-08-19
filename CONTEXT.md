@@ -116,6 +116,7 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 - **Módulo de gimnasio** (14/08/2026): `GymConfig` (1 fila, precio global editable por admin), `Player.vaAlGym` + `Player.gymPrecio` (costo propio, si es null usa el global), `GymPayment` por jugador/mes (monto real + nota, pago parcial tipo Telli $9.000), `AvisoGym` (altas/bajas, se resuelven al exportar la completa). Endpoints `/api/gym/*` (config, lista por club/equipo × completa/altas/bajas con mes, avisos, pagos POST/DELETE). En el total del club el gym entra como **gasto variable por jugador** (suma de gymPrecio/global de los que van) + recaudado real + faltaCobrar.
 - **Ingreso real vs estimado** (14/08/2026): `GET /teams/:teamId/presupuesto` devuelve `recaudado` (monto real pagado del mes, con pagos parciales) + `faltaCobrar` (estimado − real); `GET /teams/presupuesto/total` agrega `totales.recaudado/faltaCobrar`, `porEquipo[].recaudado/faltaCobrar` y `porMes[]` (serie del año hasta el mes elegido con estimado, real, % cobrado y acumulado). Regla: el ingreso real se cuenta por el mes de la cuota (`month`), no por la fecha en que se pagó.
 - **Múltiples admins** (14/08/2026): role ADMIN = acceso total automático; la propia cuenta admin no se puede modificar/borrar desde el panel.
+- **RLS consolidado y blindado** (19/08/2026): `server/src/scripts/arreglo-rls-lint.ts` (idempotente, `npm run db:arreglo-rls`) consolida las policies admin+delegado en UNA por (tabla, action, rol) con `OR` y envuelve `auth.uid()` en `(select auth.uid())` → mata lints Supabase 0003 (auth_rls_initplan) y 0006 (multiple_permissive_policies). Resultado: 23 policies en 17 tablas, 0 duplicadas. `npm run db:blindaje` revocó todos los grants a anon/authenticated (0 restantes, default deny). La app entra por rol `postgres` (bypasa RLS) → el panel no cambió; verificado login + `/teams/:id/presupuesto` OK.
 - **Placeholder de fotos**: se usa 🏆 hasta que el club proporcione imágenes reales.
 - **Botón "Compartir"**: usa `navigator.share` en móviles y `clipboard` en desktop.
 - **Hero**: se mantiene la cuenta regresiva (usa `restante`) para mantener la funcionalidad existente.
@@ -135,6 +136,7 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 ---
 
 ## Commits recientes (frontend)
+- `2172053`: feat: consolidar policies RLS (mata lints 0003/0006) + script idempotente arreglo-rls-lint
 - `058dfb9`: fix: total del club y balance real no crashean cuando el server aún no devuelve el ingreso real
 - `acdf834`: feat: ingreso real vs estimado en presupuesto (recaudado/faltaCobrar por equipo y total + serie por mes del año)
 - `feat`: módulo de gimnasio (GymConfig, vaAlGym, GymPayment, avisos, export Excel, gym en presupuesto del club)
@@ -161,4 +163,4 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 
 ---
 
-**Última actualización**: 15/08/2026 (presupuesto con ingreso real vs estimado desplegado + fix de crash en total del club)
+**Última actualización**: 19/08/2026 (RLS consolidado y blindado — lints 0003/0006 resueltos)
