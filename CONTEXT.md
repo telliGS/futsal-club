@@ -132,6 +132,7 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 - Para exportar Excel se usa `xlsx` ^0.18.5 (no desinstalar).
 - La utilidad `scrollbar-none` está definida como plugin en `tailwind.config.js` (oculta scrollbar de los tabs en móvil).
 - **Mobile-first**: muchos delegados entran desde el celular. Diseñar y verificar siempre en pantalla chica primero (máx. ~375px), usando `flex-wrap`, `overflow-x-auto`, `shrink-0 md:flex-1` y botones táctiles (`py-2`+). No dejar filas horizontales que desborden.
+- **Índices de FKs (anti-regresión)**: al restaurar/ajustar índices de FKs, correr el linter inmediatamente, validar específicamente los 3 FKs de `UserTeamAccess` (punto de regresión conocido: el 0001 `unindexed_foreign_keys` exige índice covering en cada FK; el 0005 `unused_index` marca esos mismos índices como inútiles en tablas chicas — son contradictorios). Luego dejar "dismiss" en el dashboard de Supabase para los 0005 que se sabe que no servirán con ese tamaño de tablas (Match, PoliSlot, PoliException, UserTeamAccess ≈ 6-50 filas). No borrar índices que cubren FKs solo porque el 0005 los marque.
 
 ---
 
