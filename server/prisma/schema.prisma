@@ -41,7 +41,6 @@ model UserTeamAccess {
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@id([userId, teamId])
-  @@index([teamId])
 }
 
 // ---------------- Equipos / Categorías ----------------
@@ -299,7 +298,7 @@ model PoliSlot {
   team       Team?            @relation(fields: [teamId], references: [id], onDelete: SetNull)
   exceptions PoliException[]
 
-  @@index([dayOfWeek])
+  @@index([teamId])
 }
 
 // Excepción PUNTUAL por fecha concreta: sobrescribe un slot de la plantilla
@@ -322,4 +321,6 @@ model PoliException {
   team Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
 
   @@index([date])
+  @@index([slotId])
+  @@index([teamId])
 }
