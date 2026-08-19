@@ -41,6 +41,7 @@ model UserTeamAccess {
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@id([userId, teamId])
+  @@index([teamId])
 }
 
 // ---------------- Equipos / Categorías ----------------
