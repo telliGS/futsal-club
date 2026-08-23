@@ -15,7 +15,7 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 ---
 
 ## URLs en producción
-- Front: `https://jh-futsal.vercel.app`
+- Front: `https://jh-futsal.vercel.app` (deploy `20b264a` 19/08/2026 + favicon `escudo-jh.png`)
 - API: `https://server-tellig.vercel.app`
 - Admin general: `admin@josehernandez.futbol` / `admin1234`
 - Admin de élite (acceso a todos los equipos):
@@ -25,7 +25,7 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 
 ---
 
-## Estado actual (14/08/2026 — después del refactor del Dashboard)
+## Estado actual (22/08/2026 — deploy front con favicon + mobile-first en ramas)
 
 ### Frontend: Cambios visuales y de contenido (commits recientes)
 - **Sección "Historia" en el Home**: bloque con texto emotivo, foto placeholder (🏆), botón "Conocé más" y enlace a Instagram.
@@ -41,6 +41,16 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
   - Fondo con patrón de líneas sutiles (cancha).
   - Botón "Consultar mi cuota" más grande.
 - **Placeholder para fotos**: se usa 🏆 en las secciones donde aún no hay imágenes reales.
+- **Favicon agregado** (22/08/2026): `escudo-jh.png` como `rel="icon"` y `rel="apple-touch-icon"`.
+
+### Mobile-first (en desarrollo, ramas separadas)
+- **Rama `01-foundation`**: fluid type (`clamp()`), touch targets (44/48dp), safe areas, viewport lock, table-to-cards CSS, carousel CSS.
+- **Rama `02-layout-nav`**: nav drawer lateral derecho (mobile), skip link, footer grid 1-col base, safe areas.
+- **Rama `03-home`**: Home responsive (stats 1-col base, hero fluid type, modal responsive, decorativos a CSS `bg-pitch`).
+- **Rama `04-historia`**: Historia responsive (timeline padding, gallery aspect-square, lazy images).
+- **Rama `05-status-login`**: Status + Login responsive (paddings, touch targets, fluid type, decorativos `hidden sm:block`).
+- **Rama `06-cronograma`**: pendiente.
+- **Rama `07-dashboard-utils` a `17-qa-final`**: Dashboard mobile-first planificado (table→cards, carrusel presupuesto, modales responsive).
 
 ### Backend: múltiples admins con acceso total (14/08/2026)
 - **`server/src/routes/auth.ts`**: `/me` devuelve **todos los equipos** a cualquier ADMIN; crear delegado/admin acepta `role` (DELEGADO|ADMIN, default DELEGADO) con `teamIds` opcional; un admin creado recibe todos los equipos; protegido: no se modifica ni borra la propia cuenta admin.
@@ -137,6 +147,12 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 ---
 
 ## Commits recientes (frontend)
+- `19f2b8d`: feat(mobile): foundation - fluid type, touch targets, safe areas, viewport lock, table-to-cards, carousel
+- `dab8fa9`: feat(mobile): layout - drawer nav, skip link, footer grid 1-col base, safe areas
+- `477ad58`: feat(mobile): Home - fluid type, grid responsive, touch targets, modal responsive, decorativos a CSS
+- `3e04bb2`: feat(mobile): Historia - fluid type, grid responsive, timeline padding, gallery aspect-square, lazy images
+- `7476d02`: feat(mobile): Status + Login - responsive paddings, touch targets, fluid type, decorativos a bg-pitch
+- `20b264a`: docs: nota anti-regresión sobre índices de FKs (0001 vs 0005)
 - `2172053`: feat: consolidar policies RLS (mata lints 0003/0006) + script idempotente arreglo-rls-lint
 - `058dfb9`: fix: total del club y balance real no crashean cuando el server aún no devuelve el ingreso real
 - `acdf834`: feat: ingreso real vs estimado en presupuesto (recaudado/faltaCobrar por equipo y total + serie por mes del año)
@@ -164,4 +180,4 @@ Sistema del club de futsal "José Hernández" (Paraná, Entre Ríos): sitio púb
 
 ---
 
-**Última actualización**: 19/08/2026 (RLS consolidado y blindado — lints 0003/0006 resueltos)
+**Última actualización**: 22/08/2026 (deploy front con favicon + mobile-first en ramas — commit `20b264a` 19/08 RLS consolidado)

@@ -2,40 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== VIEWPORT LOCK (mata zoom-out automático) ===== */
-html, body {
-  max-width: 100vw;
-  overflow-x: hidden;
-  -webkit-text-size-adjust: 100%; /* evita zoom iOS en inputs */
-}
-
-/* ===== REDUCED MOTION ===== */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* ===== FOCUS VISIBLE GLOBAL ===== */
-:focus-visible {
-  outline: none;
-  ring: 2px;
-  ring-color: rgb(0 163 66 / 0.6);
-  ring-offset: 2px;
-  ring-offset-color: #121414;
-}
-
-/* ===== SKIP LINK ===== */
-.skip-link {
-  @apply sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 z-50
-         bg-primary text-white px-4 py-2 rounded-lg font-semibold touch-target;
-}
-
-/* ===== BASE GLOBAL ===== */
-
 html {
   scroll-behavior: smooth;
 }
@@ -49,7 +15,7 @@ body {
 .btn {
   @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold
          transition-all duration-200 ease-out-soft
-         active:scale-[0.97] select-none touch-target;
+         active:scale-[0.97] select-none;
 }
 .btn:focus-visible {
   @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-surface;
@@ -102,7 +68,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   @apply outline-none ring-2 ring-primary/50;
 }
 
-/* Selection */
 ::selection {
   @apply bg-primary text-white;
 }
@@ -110,7 +75,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 /* ---------- Utilidades del panel (Dashboard) ---------- */
 .panel-th {
   @apply text-left px-3 py-2.5 text-[10px] uppercase tracking-wider text-white/50
-         bg-surface-1 border-b border-outline font-mono min-h-[44px];
+         bg-surface-1 border-b border-outline font-mono;
 }
 .panel-tr {
   @apply border-b border-white/5 transition-colors duration-150 hover:bg-surface-2/60;
@@ -126,12 +91,7 @@ tr:hover .row-actions {
   @apply opacity-100;
 }
 
-/* Touch targets para celdas de tabla */
-.table-cell-touch {
-  @apply min-h-[44px] px-3 py-2.5;
-}
-
-/* ---------- TEXTURAS ---------- */
+/* ---------- TEXTURAS (nuevas) ---------- */
 /* Ruido granulado para fondos (mate) */
 .bg-noise {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
@@ -139,42 +99,44 @@ tr:hover .row-actions {
   background-size: 256px 256px;
 }
 
-/* Líneas de cancha (sutil) para fondos especiales - reemplaza círculos decorativos */
+/* Líneas de cancha (sutil) para fondos especiales */
 .bg-pitch {
-  background-image:
-    radial-gradient(120% 90% at 50% 110%, rgba(0,147,66,0.35) 0%, rgba(0,99,43,0.15) 40%, transparent 70%),
+  background-image: 
     linear-gradient(45deg, rgba(255,255,255,0.02) 1px, transparent 1px),
     linear-gradient(-45deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-  background-size: 100% 100%, 40px 40px, 40px 40px;
+  background-size: 40px 40px;
 }
-
 /* Botón primario con efecto de cinta (crece de abajo) */
 .btn-primary {
-  @apply relative overflow-hidden bg-primary text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 touch-target-lg;
+  @apply relative overflow-hidden bg-primary text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300;
 }
+
 .btn-primary::after {
   content: "";
   @apply absolute bottom-0 left-0 h-0.5 w-0 bg-white transition-all duration-300 ease-out-soft;
 }
+
 .btn-primary:hover::after {
   @apply w-full;
 }
+
 .btn-primary:hover {
   @apply bg-primary-light;
 }
 
 /* Botón secundario con efecto similar pero en verde claro */
 .btn-secondary {
-  @apply relative overflow-hidden bg-surface-2 text-white border border-outline px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:border-primary/40 hover:bg-surface-1 touch-target-lg;
+  @apply relative overflow-hidden bg-surface-2 text-white border border-outline px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:border-primary/40 hover:bg-surface-1;
 }
+
 .btn-secondary::after {
   content: "";
   @apply absolute bottom-0 left-0 h-0.5 w-0 bg-primary-light transition-all duration-300 ease-out-soft;
 }
+
 .btn-secondary:hover::after {
   @apply w-full;
 }
-
 /* Card estática (sin hover de borde) */
 .card-static {
   @apply rounded-lg border border-outline bg-surface-1 bg-noise p-6 transition-all duration-200 hover:-translate-y-1;
