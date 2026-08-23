@@ -45,7 +45,7 @@ function formatFechaLegible(iso: string) {
   return `${formatDia(iso).charAt(0).toUpperCase()}${formatDia(iso).slice(1)} ${dia}`;
 }
 
-function diaKeyLocal(iso: string) {
+function diaKeyLocal(iso: string): string {
   const d = new Date(iso);
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -68,7 +68,7 @@ function estadoPartido(m: Match): "proximo" | "en_curso" | "terminado" {
 
 function BadgeEnCurso() {
   return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-action-green/10 border border-action-green/30 text-[11px] font-mono uppercase tracking-wider text-action-green">
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-action-green/10 border border-action-green/30 text-[11px] font-mono uppercase tracking-wider text-action-green touch-target">
       <span className="relative flex w-1.5 h-1.5">
         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-action-green opacity-60" />
         <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-action-green" />
@@ -171,63 +171,35 @@ export default function Home() {
   return (
     <Layout>
       {/* ============================ HERO ============================ */}
-      <header className="relative bg-surface overflow-hidden border-b border-outline">
-        <div
-          aria-hidden="true"
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(120% 90% at 50% 110%, rgba(0,147,66,0.35) 0%, rgba(0,99,43,0.15) 40%, transparent 70%)",
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `
-              linear-gradient(45deg, #ffffff 1px, transparent 1px),
-              linear-gradient(-45deg, #ffffff 1px, transparent 1px)
-            `,
-            backgroundSize: "40px 40px",
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute right-[-12rem] top-1/2 -translate-y-1/2 w-[40rem] h-[40rem] rounded-full border border-white/[0.05]"
-        />
-        <div
-          aria-hidden="true"
-          className="absolute right-[-10rem] top-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/[0.05]"
-        />
-
-        <div className="relative max-w-5xl mx-auto px-6 py-20 md:py-32">
-          <div className="flex flex-col md:flex-row md:items-center gap-8 md:gap-12">
-            <div className="flex items-center gap-5 animate-fade-up">
-              <div className="logo-hover shrink-0">
+      <header className="relative bg-surface overflow-hidden border-b border-outline bg-pitch">
+        <div className="relative max-w-5xl mx-auto px-6 py-16 md:py-24">
+          <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
+            <div className="flex items-center gap-4 animate-fade-up text-center md:text-left">
+              <div className="logo-hover shrink-0 mx-auto md:mx-0">
                 <img
                   src="/escudo-jh.png"
                   alt="Escudo Club José Hernández"
-                  className="w-28 h-28 md:w-36 md:h-36 drop-shadow-[0_0_40px_rgba(0,255,102,0.20)]"
+                  className="w-24 h-24 md:w-28 md:h-28 drop-shadow-[0_0_40px_rgba(0,255,102,0.20)]"
                 />
               </div>
               <div>
-                <p className="text-primary-light font-mono text-xs uppercase tracking-[0.2em]">
+                <p className="text-primary-light font-mono text-xs md:text-sm uppercase tracking-[0.2em]">
                   Club José Hernández
                 </p>
-                <h1 className="font-display text-5xl md:text-7xl font-bold mt-2 leading-[1.1]">
+                <h1 className="font-display font-bold mt-2 leading-[1.1] text-fluid-5xl">
                   Futsal de{" "}
                   <span className="text-primary-light">Paraná</span>
                 </h1>
-                <p className="mt-2 text-white/60 text-sm md:text-base max-w-md font-mono tracking-wider">
+                <p className="mt-2 text-white/60 text-fluid-sm max-w-md font-mono tracking-wider mx-auto md:mx-0">
                   10 equipos · más de 100 jugadores · una pasión
                 </p>
-                <p className="mt-1 text-white/80 text-sm md:text-base max-w-md">
+                <p className="mt-1 text-white/80 text-fluid-sm max-w-md mx-auto md:mx-0">
                   Competencia Oficial APFS
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-3 animate-fade-up md:flex-col md:items-end" style={{ animationDelay: "0.1s" }}>
+            <div className="flex flex-wrap gap-3 animate-fade-up justify-center md:justify-end md:flex-col md:items-end" style={{ animationDelay: "0.1s" }}>
               <Link to="/mi-cuota" className="btn-primary">
                 Consultar mi cuota
               </Link>
@@ -239,7 +211,7 @@ export default function Home() {
 
           {!loading && stats && (
             <div
-              className="mt-16 grid grid-cols-3 gap-6 max-w-lg animate-fade-up"
+              className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-up"
               style={{ animationDelay: "0.15s" }}
             >
               {[
@@ -247,9 +219,9 @@ export default function Home() {
                 { n: stats.equipos, l: "Equipos" },
                 { n: stats.partidosProximos, l: "Partidos por jugar" },
               ].map((s) => (
-                <div key={s.l} className="rounded-lg bg-surface-1 border border-outline px-5 py-4 text-center bg-noise">
-                  <p className="font-display font-bold text-3xl md:text-4xl tabular-nums text-white">{s.n}</p>
-                  <p className="text-[11px] uppercase tracking-wider text-white/60 mt-1 font-mono">{s.l}</p>
+                <div key={s.l} className="rounded-lg bg-surface-1 border border-outline px-4 py-4 sm:px-6 sm:py-5 text-center bg-noise">
+                  <p className="font-display font-bold text-fluid-3xl tabular-nums text-white">{s.n}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/60 mt-1 font-mono">{s.l}</p>
                 </div>
               ))}
             </div>
@@ -261,43 +233,43 @@ export default function Home() {
               const estado = estadoPartido(destacado);
               const enCurso = estado === "en_curso";
               return (
-                <div className="mt-10 max-w-md animate-fade-up" style={{ animationDelay: "0.2s" }}>
+                <div className="mt-8 max-w-[calc(100vw-1rem)] sm:max-w-md animate-fade-up" style={{ animationDelay: "0.2s" }}>
                   <div className="border-t-2 border-primary/50 pt-4">
-                    <div className="flex items-center justify-between">
-                      <span className="px-3 py-1 bg-primary/20 text-primary-light text-[11px] font-mono uppercase tracking-wider border border-primary/30 rounded-sm">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <span className="px-3 py-1 bg-primary/20 text-primary-light text-[10px] font-mono uppercase tracking-wider border border-primary/30 rounded-sm shrink-0">
                         {destacado.team.name}
                       </span>
                       {enCurso ? (
                         <BadgeEnCurso />
                       ) : (
-                        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/40">
+                        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/40 shrink-0">
                           Próximo partido
                         </span>
                       )}
                     </div>
 
                     <div className="mt-4 flex items-center justify-between gap-4">
-                      <p className="font-display font-black text-3xl md:text-4xl leading-tight tracking-tight">
+                      <p className="font-display font-black text-fluid-2xl leading-tight tracking-tight min-w-0 truncate">
                         {destacado.isHome ? "J.H." : destacado.rival}
                       </p>
-                      <span className="font-mono text-white/20 text-sm tracking-widest">VS</span>
-                      <p className="font-display font-black text-3xl md:text-4xl leading-tight tracking-tight text-right">
+                      <span className="font-mono text-white/20 text-sm tracking-widest shrink-0">VS</span>
+                      <p className="font-display font-black text-fluid-2xl leading-tight tracking-tight text-right min-w-0 truncate">
                         {destacado.isHome ? destacado.rival : "J.H."}
                       </p>
                     </div>
 
-                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/60">
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-fluid-sm text-white/60">
                       <span className="text-white/80">{formatFechaLegible(destacado.dateTime)}</span>
                       <span className="text-white/30">·</span>
                       <span className="font-mono tabular-nums text-white/80">{formatHora(destacado.dateTime)}</span>
                       <span className="text-white/30">·</span>
-                      <span className="uppercase tracking-wider text-xs text-white/70">{destacado.venue}</span>
+                      <span className="uppercase tracking-wider text-[10px] text-white/70">{destacado.venue}</span>
                     </div>
 
                     {!enCurso && restante && (
-                      <div className="mt-4 flex items-center gap-4 border-t border-white/10 pt-3">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">⌛</span>
-                        <span className="font-mono text-sm font-bold text-primary-light tabular-nums tracking-wide">
+                      <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-3">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-white/40 shrink-0">⌛</span>
+                        <span className="font-mono text-sm font-bold text-primary-light tabular-nums tracking-wide shrink-0">
                           {restante.dias > 0
                             ? `${restante.dias}d ${restante.horas}h`
                             : restante.horas > 0
@@ -314,10 +286,10 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-16">
+      <main className="max-w-5xl mx-auto px-6 py-12 md:py-16">
         {/* ========================= PRÓXIMOS PARTIDOS ========================= */}
         <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-up">
-          <h2 className="font-display text-2xl font-bold flex items-center gap-3">
+          <h2 className="font-display text-fluid-2xl font-bold flex items-center gap-3">
             <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
             Próximos partidos
             {!loading && matches.length > 1 && (
@@ -345,7 +317,7 @@ export default function Home() {
                 <p className="text-xs font-mono uppercase tracking-widest text-primary-light mb-2">
                   {formatFechaLegible(parts[0].dateTime)}
                 </p>
-                <div className="grid md:grid-cols-2 gap-4 gap-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 gap-y-3">
                   {parts.map((m, i) => (
                     <article
                       key={m.id}
@@ -353,21 +325,21 @@ export default function Home() {
                       style={{ animationDelay: `${0.05 * i}s` }}
                     >
                       {i === 0 && (
-                        <span className="absolute -top-2 -right-2 z-10 px-2.5 py-0.5 rounded-full bg-primary text-white text-[10px] font-mono uppercase tracking-wider shadow-lg">
+                        <span className="absolute top-2 right-2 z-10 px-2.5 py-0.5 rounded-full bg-primary text-white text-[10px] font-mono uppercase tracking-wider shadow-lg">
                           ¡Este finde!
                         </span>
                       )}
                       <div className="flex items-start gap-4 py-3 border-b border-white/5 hover:border-white/10 transition-colors">
-                        <div className="shrink-0 w-14 rounded-lg bg-primary/10 border border-primary/20 text-center py-2 transition-colors duration-200 group-hover:bg-primary/20">
+                        <div className="shrink-0 w-12 rounded-lg bg-primary/10 border border-primary/20 text-center py-2 transition-colors duration-200 group-hover:bg-primary/20">
                           <p className="text-[10px] uppercase tracking-wide text-primary-light font-mono">
                             {formatDia(m.dateTime).slice(0, 3)}
                           </p>
-                          <p className="font-display font-bold text-lg leading-none mt-1">
+                          <p className="font-display font-bold text-base leading-none mt-1">
                             {new Date(m.dateTime).getDate()}
                           </p>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-display font-bold text-lg leading-snug">
+                          <p className="font-display font-bold text-base leading-snug truncate">
                             {m.isHome ? "J.H." : m.rival}{" "}
                             <span className="text-white/30 font-light">vs</span>{" "}
                             {m.isHome ? m.rival : "J.H."}
@@ -380,7 +352,7 @@ export default function Home() {
                           </div>
                         </div>
                         <div className="shrink-0 text-right">
-                          <p className={`font-display font-bold text-2xl tabular-nums transition-colors duration-200 group-hover:text-primary-light ${estadoPartido(m) === "en_curso" ? "text-action-green" : ""}`}>
+                          <p className={`font-display font-bold text-xl tabular-nums transition-colors duration-200 group-hover:text-primary-light ${estadoPartido(m) === "en_curso" ? "text-action-green" : ""}`}>
                             {formatHora(m.dateTime)}
                           </p>
                           {estadoPartido(m) === "en_curso" && (
@@ -399,56 +371,56 @@ export default function Home() {
         )}
 
         {/* ========================= CATEGORÍAS DEL CLUB ========================= */}
-<section className="mt-16">
-  <div className="flex flex-wrap items-end justify-between gap-3 animate-fade-up">
-    <div>
-      <h2 className="font-display text-2xl font-bold flex items-center gap-3">
-        <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
-        Categorías del club
-      </h2>
-      <p className="mt-1 text-white/70 text-sm">
-        Formativas y equipos de primera compitiendo en la APFS de Paraná.
-      </p>
-    </div>
-    <span className="text-xs font-mono bg-primary/15 text-primary-light px-3 py-1.5 rounded-full shrink-0 border border-primary/20">
-      {teams.length} equipos
-    </span>
-  </div>
+        <section className="mt-16">
+          <div className="flex flex-wrap items-end justify-between gap-3 animate-fade-up">
+            <div>
+              <h2 className="font-display text-fluid-2xl font-bold flex items-center gap-3">
+                <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
+                Categorías del club
+              </h2>
+              <p className="mt-1 text-white/70 text-sm">
+                Formativas y equipos de primera compitiendo en la APFS de Paraná.
+              </p>
+            </div>
+            <span className="text-xs font-mono bg-primary/15 text-primary-light px-3 py-1.5 rounded-full shrink-0 border border-primary/20">
+              {teams.length} equipos
+            </span>
+          </div>
 
-  {teams.length > 0 && (
-    <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-      {ordenEquipos.map((t, i) => (
-        <button
-          key={t.id}
-          type="button"
-          onClick={() => openTeam(t)}
-          title={`Ver partidos de ${t.name}`}
-          className="card p-4 text-center animate-fade-up transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 group cursor-pointer"
-          style={{ animationDelay: `${0.04 * i}s` }}
-        >
-          <p className="font-display font-bold text-xl leading-tight">{t.name}</p>
-          <span
-            className={`mt-2 inline-block px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wide font-mono border text-center ${colorEquipo(t.type)}`}
-          >
-            {t.type === "FORMATIVA" ? "Formativa" : "Primera"}
-          </span>
-          <span className="mt-2 block text-[10px] uppercase tracking-wider text-white/40 font-mono opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-            Ver partidos →
-          </span>
-        </button>
-      ))}
-    </div>
-  )}
-  {!loading && teams.length === 0 && (
-    <p className="mt-4 text-white/60 text-sm">Las categorías se cargan al configurar el club.</p>
-  )}
-</section>
+          {teams.length > 0 && (
+            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {ordenEquipos.map((t, i) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => openTeam(t)}
+                  title={`Ver partidos de ${t.name}`}
+                  className="card p-4 text-center animate-fade-up transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 group cursor-pointer touch-target"
+                  style={{ animationDelay: `${0.04 * i}s` }}
+                >
+                  <p className="font-display font-bold text-xl leading-tight">{t.name}</p>
+                  <span
+                    className={`mt-2 inline-block px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wide font-mono border text-center ${colorEquipo(t.type)}`}
+                  >
+                    {t.type === "FORMATIVA" ? "Formativa" : "Primera"}
+                  </span>
+                  <span className="mt-2 block text-[10px] uppercase tracking-wider text-white/40 font-mono opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    Ver partidos →
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          {!loading && teams.length === 0 && (
+            <p className="mt-4 text-white/60 text-sm">Las categorías se cargan al configurar el club.</p>
+          )}
+        </section>
 
         {/* ========================= HISTORIA ========================= */}
         <section className="mt-16 border-t border-outline pt-12">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div>
-              <h2 className="font-display text-3xl font-bold flex items-center gap-3">
+              <h2 className="font-display text-fluid-3xl font-bold flex items-center gap-3">
                 <span className="inline-block w-1.5 h-8 bg-primary rounded-full" />
                 Nuestra historia
               </h2>
@@ -466,7 +438,7 @@ export default function Home() {
                   Hoy somos <span className="text-white font-semibold">10 equipos</span>, más de <span className="text-white font-semibold">100 jugadores</span>, y seguimos siendo un club de barrio: <span className="text-white font-semibold">familia, esfuerzo y pasión</span> por la camiseta verde. <span className="text-primary-light font-semibold">Somos JH Futsal.</span>
                 </p>
               </div>
-              <div className="mt-6 flex flex-wrap gap-4">
+              <div className="mt-6 flex flex-wrap gap-3">
                 <Link to="/historia" className="btn-primary inline-flex items-center gap-2">
                   Conocé más
                   <span aria-hidden>→</span>
@@ -486,49 +458,51 @@ export default function Home() {
                 src="/images/historia-1.jpg"
                 alt="Equipo del Club José Hernández"
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
               />
             </div>
           </div>
         </section>
 
- {/* ========================= EL CLUB ========================= */}
-<section className="mt-16">
-  <h2 className="font-display text-2xl font-bold flex items-center gap-3 animate-fade-up">
-    <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
-    El club
-  </h2>
-  <div className="mt-6 grid md:grid-cols-3 gap-4">
-    <div className="card-static animate-fade-up border-l-4 border-l-primary">
-      <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
-        🌱
-      </span>
-      <h3 className="font-display font-bold mt-4">Semillero de campeones</h3>
-      <p className="text-sm text-white/70 mt-2 leading-relaxed">
-        {formativas.length} categorías de base (C11 a C20) formando jugadores
-        para la primera división del club.
-      </p>
-    </div>
-    <div className="card-static animate-fade-up" style={{ animationDelay: "0.05s" }}>
-      <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
-        ⚽
-      </span>
-      <h3 className="font-display font-bold mt-4">Cuatro equipos de primera</h3>
-      <p className="text-sm text-white/70 mt-2 leading-relaxed">
-        Primera Femenina, JH C, JH NEGRO y JH ELITE en la Competencia Oficial APFS.
-      </p>
-    </div>
-    <div className="card-static animate-fade-up" style={{ animationDelay: "0.1s" }}>
-      <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
-        🏟️
-      </span>
-      <h3 className="font-display font-bold mt-4">Futsal de Paraná</h3>
-      <p className="text-sm text-white/70 mt-2 leading-relaxed">
-        Jugamos los fines en las canchas de la ciudad (Berduc, Unión Árabe,
-        Toma Vieja) con la APFS.
-      </p>
-    </div>
-  </div>
-</section>
+        {/* ========================= EL CLUB ========================= */}
+        <section className="mt-16">
+          <h2 className="font-display text-fluid-2xl font-bold flex items-center gap-3 animate-fade-up">
+            <span className="inline-block w-1.5 h-7 bg-primary rounded-full" />
+            El club
+          </h2>
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="card-static animate-fade-up border-l-4 border-l-primary">
+              <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
+                🌱
+              </span>
+              <h3 className="font-display font-bold mt-4">Semillero de campeones</h3>
+              <p className="text-sm text-white/70 mt-2 leading-relaxed">
+                {formativas.length} categorías de base (C11 a C20) formando jugadores
+                para la primera división del club.
+              </p>
+            </div>
+            <div className="card-static animate-fade-up" style={{ animationDelay: "0.05s" }}>
+              <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
+                ⚽
+              </span>
+              <h3 className="font-display font-bold mt-4">Cuatro equipos de primera</h3>
+              <p className="text-sm text-white/70 mt-2 leading-relaxed">
+                Primera Femenina, JH C, JH NEGRO y JH ELITE en la Competencia Oficial APFS.
+              </p>
+            </div>
+            <div className="card-static animate-fade-up" style={{ animationDelay: "0.1s" }}>
+              <span className="w-11 h-11 rounded-xl bg-surface-2 border border-outline flex items-center justify-center text-xl">
+                🏟️
+              </span>
+              <h3 className="font-display font-bold mt-4">Futsal de Paraná</h3>
+              <p className="text-sm text-white/70 mt-2 leading-relaxed">
+                Jugamos los fines en las canchas de la ciudad (Berduc, Unión Árabe,
+                Toma Vieja) con la APFS.
+              </p>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* ===================== MODAL: FIXTURE DEL EQUIPO ===================== */}
@@ -540,7 +514,7 @@ export default function Home() {
           aria-label={`Partidos de ${selTeam.name}`}
         >
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelTeam(null)} />
-          <div className="relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-lg border border-outline bg-surface-2 shadow-lg">
+          <div className="relative w-full max-w-[calc(100vw-1rem)] sm:max-w-lg max-h-[85vh] flex flex-col rounded-lg border border-outline bg-surface-2 shadow-lg overflow-hidden">
             <div className="flex items-center gap-3 p-5 border-b border-outline">
               <img src="/escudo-jh.png" alt="" className="w-10 h-10 shrink-0" />
               <div className="flex-1 min-w-0">
@@ -553,7 +527,7 @@ export default function Home() {
                 type="button"
                 onClick={() => setSelTeam(null)}
                 aria-label="Cerrar"
-                className="btn px-3 py-1.5 bg-surface-1 border border-outline hover:bg-surface-2"
+                className="touch-target p-2 bg-surface-1 border border-outline hover:bg-surface-2 rounded-lg"
               >
                 ✕
               </button>
@@ -600,11 +574,11 @@ export default function Home() {
                                     : "border-primary/40 bg-primary/10 shadow-[0_0_16px_rgba(0,147,66,0.18)]"
                               }`}
                             >
-                              <p className="font-display font-bold text-xl tabular-nums w-16 shrink-0 text-center">
+                              <p className="font-display font-bold text-xl tabular-nums w-14 shrink-0 text-center">
                                 {formatHora(m.dateTime)}
                               </p>
                               <div className="flex-1 min-w-0">
-                                <p className="font-display font-bold text-sm leading-snug">
+                                <p className="font-display font-bold text-sm leading-snug truncate">
                                   {conResultado ? (
                                     <>
                                       J.H.{" "}
