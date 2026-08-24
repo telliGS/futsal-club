@@ -29,9 +29,10 @@ interface Stats {
 function formatHora(iso: string) {
   const d = new Date(iso);
   // TIMBO bug: cuando el horario no está asignado, la hora queda en 00:00 ART
-  // (= 03:00 UTC). Ningún partido de futsal se juega entre 01:00-05:00 UTC.
+  // (= 03:00 UTC). Ningún partido de futsal se juega a medianoche.
   const utcH = d.getUTCHours();
-  if (utcH >= 1 && utcH <= 5) return "A confirmar";
+  const utcM = d.getUTCMinutes();
+  if (utcH === 3 && utcM === 0) return "A confirmar";
   return d.toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
@@ -41,8 +42,8 @@ function formatHora(iso: string) {
 
 /** ¿El partido tiene horario confirmado? (no es el placeholder 00:00 de TIMBO) */
 function isHorarioConfirmado(iso: string): boolean {
-  const utcH = new Date(iso).getUTCHours();
-  return utcH < 1 || utcH > 5;
+  const d = new Date(iso);
+  return !(d.getUTCHours() === 3 && d.getUTCMinutes() === 0);
 }
 
 function formatDia(iso: string) {
