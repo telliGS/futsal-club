@@ -1,56 +1,82 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useFactory } from "../factories";
+import { Link, NavLink, useLocation } from "react-router-dom";
 
 // Header/nav + footer comunes a todas las páginas públicas.
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { Header, Footer, Container, MobileMenuButton, MobileDrawer, DesktopNav } = useFactory();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  const navLinks = [
-    { to: "/", end: true, children: "Inicio" },
-    { to: "/mi-cuota", children: "Mi cuota" },
-    { to: "/cronograma", children: "Cronograma" },
-    { to: "/ingresar", children: "Delegados" },
-  ];
+  const { pathname } = useLocation();
+  const esPanel = pathname.startsWith("/delegado");
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Skip link para accesibilidad */}
-      <a href="#main" className="skip-link">
-        Saltar al contenido principal
-      </a>
-
       {/* ============================ NAV ============================ */}
-      <Header>
-        {/* Logo + nombre SOLO desktop */}
-        <Link to="/" className="flex items-center gap-3 group hidden sm:flex" aria-label="Inicio — Club José Hernández">
-          <img
-            src="/escudo-jh.png"
-            alt="Escudo Club José Hernández"
-            className="w-8 h-8 md:w-10 md:h-10 transition-transform duration-300 ease-out-soft group-hover:scale-110 group-hover:-rotate-3"
-          />
-          <div className="leading-tight">
-            <p className="font-display font-bold text-sm md:text-base">Club José Hernández</p>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
-              Futsal · Paraná
-            </p>
-          </div>
-        </Link>
+      <header className="sticky top-0 z-40 border-b border-outline bg-surface/95 backdrop-blur-md">
+        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-3 group" aria-label="Inicio — Club José Hernández">
+            <img
+              src="/escudo-jh.png"
+              alt="Escudo Club José Hernández"
+              className="w-10 h-10 transition-transform duration-300 ease-out-soft group-hover:scale-110 group-hover:-rotate-3"
+            />
+            <div className="leading-tight">
+              <p className="font-display font-bold text-sm md:text-base">Club José Hernández</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
+                Futsal · Paraná
+              </p>
+            </div>
+          </Link>
 
-        <DesktopNav links={navLinks} />
-        <MobileMenuButton onClick={() => setDrawerOpen(true)} />
-      </Header>
-
-      {/* Mobile Drawer */}
-      <MobileDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} links={navLinks} />
+          <nav className="flex items-center gap-1 md:gap-2 text-sm" aria-label="Navegación principal">
+            {!esPanel && (
+              <>
+                <NavLink
+                  to="/"
+                  end
+                  className={({ isActive }) =>
+                    `link-underline px-3 py-2 rounded-lg ${isActive ? "active text-white" : "text-white/60 hover:text-white"}`
+                  }
+                >
+                  Inicio
+                </NavLink>
+                <NavLink
+                  to="/mi-cuota"
+                  className={({ isActive }) =>
+                    `link-underline px-3 py-2 rounded-lg ${isActive ? "active text-white" : "text-white/60 hover:text-white"}`
+                  }
+                >
+                  Mi cuota
+                </NavLink>
+                <NavLink
+                  to="/cronograma"
+                  className={({ isActive }) =>
+                    `link-underline px-3 py-2 rounded-lg ${isActive ? "active text-white" : "text-white/60 hover:text-white"}`
+                  }
+                >
+                  Cronograma
+                </NavLink>
+                <NavLink
+                  to="/ingresar"
+                  className={({ isActive }) =>
+                    `link-underline px-3 py-2 rounded-lg ${isActive ? "active text-white" : "text-white/60 hover:text-white"}`
+                  }
+                >
+                  Delegados
+                </NavLink>
+              </>
+            )}
+            {esPanel && (
+              <Link to="/" className="link-underline px-3 py-2 rounded-lg text-white/60 hover:text-white">
+                ← Volver al sitio
+              </Link>
+            )}
+          </nav>
+        </div>
+      </header>
 
       {/* =========================== CONTENIDO =========================== */}
-      <Container>{children}</Container>
+      <main className="flex-1">{children}</main>
 
       {/* ============================ FOOTER ============================ */}
-      <Footer>
-        <div className="max-w-5xl mx-auto px-6 py-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      <footer className="border-t border-outline mt-16 bg-surface-1">
+        <div className="max-w-5xl mx-auto px-6 py-10 grid gap-8 sm:grid-cols-2 md:grid-cols-4">
           {/* Columna 1: Club */}
           <div>
             <div className="flex items-center gap-2.5">
@@ -122,7 +148,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="border-t border-outline py-5 text-center text-xs text-white/50">
           <p>Club José Hernández · Futsal · Paraná, Entre Ríos · <span className="text-primary-light font-semibold">Desde 2010</span> · © {new Date().getFullYear()}</p>
         </div>
-      </Footer>
+      </footer>
     </div>
   );
 }
