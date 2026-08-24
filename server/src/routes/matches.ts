@@ -38,10 +38,14 @@ router.get("/", async (req, res) => {
 // del listado ni del hero: el front lo marca como "En curso". Recién a las ~2 h de
 // iniciado (partido de futsal terminado) se cae solo de la ventana.
 const PARTIDO_EN_CURSO_WINDOW_MS = 2 * 3_600_000;
+const ARG_TZ_OFFSET_MS = -3 * 60 * 60 * 1000; // UTC-3 (Argentina)
 
 router.get("/upcoming", async (req, res) => {
   const { weekend } = req.query;
-  const desdeEnCurso = new Date(Date.now() - PARTIDO_EN_CURSO_WINDOW_MS);
+  // Usamos la misma lógica de timezone que weekendWindowArg en timbo.ts
+  // para que los dates de los matches (en hora ARG) queden dentro de la ventana
+  const localNow = new Date(Date.now() + ARG_TZ_OFFSET_MS);
+  const desdeEnCurso = new Date(localNow.getTime() - PARTIDO_EN_CURSO_WINDOW_MS);
   if (weekend === "1" || weekend === "true") {
     const { end } = weekendWindowArg(new Date());
     const matches = await prisma.match.findMany({
