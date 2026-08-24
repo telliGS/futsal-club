@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../config.js";
 import { requireAuth, requireAdmin, canAccessTeam } from "../middleware/auth.js";
-import { weekendWindowArg } from "../lib/timbo.js";
+import { weekendWindowArg, ARG_TZ_OFFSET_MS } from "../lib/timbo.js";
 
 const router = Router();
 
@@ -22,30 +22,21 @@ router.get("/", async (req, res) => {
   res.json(matches);
 });
 
-// GET /api/matches/upcoming?weekend=1 — partidos del próximo finde (viernes→lunes, hora ARG)
-// Con weekend=true devuelve TODOS los del viernes→lunes (el home los agrupa por categoría).
-// Con weekend=2 devuelve el finde EN CURSO + el SIGUIENTE (el home muestra ambos
-// para que la sección nunca quede vacía cuando se juegan los partidos del finde).
-// Sin parámetro, próximos desde ahora (comportamiento anterior).
-// GET /api/matches/upcoming?weekend=1 — partidos del próximo finde (viernes→lunes, hora ARG)
-// Con weekend=true devuelve TODOS los del viernes→lunes (el home los agrupa por categoría).
-// Con weekend=2 devuelve el finde EN CURSO + el SIGUIENTE (el home muestra ambos
-// para que la sección nunca quede vacía cuando se juegan los partidos del finde).
-// Sin parámetro, próximos desde ahora (comportamiento anterior).
+// GET /api/matches/upcoming
+// - Sin params: próximos desde ahora (ventana hasta el siguiente lunes)
+// - weekend=1: el finde en curso (viernes→lunes)
+// - weekend=2: finde en curso + siguiente (para que el home nunca quede vacío)
 //
-// IMPORTANTE (11/08): la ventana arranca 2 HORAS antes de ahora (no en "ahora")
-// para que un partido QUE YA EMPEZÓ pero todavía puede estar en curso NO desaparezca
-// del listado ni del hero: el front lo marca como "En curso". Recién a las ~2 h de
-// iniciado (partido de futsal terminado) se cae solo de la ventana.
+// La ventana arranca 2 HOURS antes de ahora (para mostrar partidos "en curso")
+// y llega hasta el lunes siguiente al próximo finde (7 días después del fin actual).
 const PARTIDO_EN_CURSO_WINDOW_MS = 2 * 3_600_000;
-const ARG_TZ_OFFSET_MS = -3 * 60 * 60 * 1000; // UTC-3 (Argentina)
 
 router.get("/upcoming", async (req, res) => {
   const { weekend } = req.query;
-  // Usamos la misma lógica de timezone que weekendWindowArg en timbo.ts
-  // para que los dates de los matches (en hora ARG) queden dentro de la ventana
+  // Inicio: hace 2h en hora ARG (para capturar partidos en curso)
   const localNow = new Date(Date.now() + ARG_TZ_OFFSET_MS);
   const desdeEnCurso = new Date(localNow.getTime() - PARTIDO_EN_CURSO_WINDOW_MS);
+
   if (weekend === "1" || weekend === "true") {
     const { end } = weekendWindowArg(new Date());
     const matches = await prisma.match.findMany({
@@ -56,9 +47,8 @@ router.get("/upcoming", async (req, res) => {
     return res.json(matches);
   }
   if (weekend === "2") {
-    // finde actual + el siguiente: el siguiente comienza 7 días después
-    // del actual (viernes→lunes; el martes no hay partidos de todos modos)
-    const { start, end } = weekendWindowArg(new Date());
+    // finde actual + el siguiente (+7 días al fin del actual)
+    const { end } = weekendWindowArg(new Date());
     const finalFindeSiguiente = new Date(end.getTime() + 7 * 86_400_000);
     const matches = await prisma.match.findMany({
       where: { dateTime: { gte: desdeEnCurso, lte: finalFindeSiguiente } },
@@ -67,11 +57,14 @@ router.get("/upcoming", async (req, res) => {
     });
     return res.json(matches);
   }
+  // Sin parámetro: todos los próximos hasta el lunes siguiente
+  const { end: nextMonday } = weekendWindowArg(new Date());
+  const finalEnd = new Date(nextMonday.getTime() + 7 * 86_400_000);
   const matches = await prisma.match.findMany({
-    where: { dateTime: { gte: desdeEnCurso } },
+    where: { dateTime: { gte: desdeEnCurso, lte: finalEnd } },
     include: { team: true },
     orderBy: { dateTime: "asc" },
-    take: 10,
+    take: 30,
   });
   res.json(matches);
 });

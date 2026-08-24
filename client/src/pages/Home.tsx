@@ -27,11 +27,22 @@ interface Stats {
 }
 
 function formatHora(iso: string) {
-  return new Date(iso).toLocaleTimeString("es-AR", {
+  const d = new Date(iso);
+  // TIMBO bug: cuando el horario no está asignado, la hora queda en 00:00 ART
+  // (= 03:00 UTC). Ningún partido de futsal se juega entre 01:00-05:00 UTC.
+  const utcH = d.getUTCHours();
+  if (utcH >= 1 && utcH <= 5) return "A confirmar";
+  return d.toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   });
+}
+
+/** ¿El partido tiene horario confirmado? (no es el placeholder 00:00 de TIMBO) */
+function isHorarioConfirmado(iso: string): boolean {
+  const utcH = new Date(iso).getUTCHours();
+  return utcH < 1 || utcH > 5;
 }
 
 function formatDia(iso: string) {
@@ -90,10 +101,12 @@ export default function Home() {
   const [teamError, setTeamError] = useState("");
 
   const [restante, setRestante] = useState<{ dias: number; horas: number; mins: number } | null>(null);
+  // Primer partido con horario confirmado para el countdown
+  const matchDestacado = matches.find((m) => isHorarioConfirmado(m.dateTime)) ?? matches[0];
   useEffect(() => {
-    if (!matches.length) return;
+    if (!matchDestacado) return;
     const tick = () => {
-      const diff = new Date(matches[0].dateTime).getTime() - Date.now();
+      const diff = new Date(matchDestacado.dateTime).getTime() - Date.now();
       if (diff <= 0) {
         setRestante(null);
         return;
@@ -107,7 +120,7 @@ export default function Home() {
     tick();
     const id = setInterval(tick, 60_000);
     return () => clearInterval(id);
-  }, [matches]);
+  }, [matchDestacado]);
 
   useEffect(() => {
     Promise.all([
@@ -166,7 +179,8 @@ export default function Home() {
   const primeras = teams.filter((t) => t.type !== "FORMATIVA");
   const ordenEquipos = [...formativas, ...primeras];
 
-  const destacado = matches[0];
+  // Primer partido con horario confirmado (el de 00:00 de TIMBO no sirve como destacado)
+  const destacado = matches.find((m) => isHorarioConfirmado(m.dateTime)) ?? matches[0];
 
   return (
     <Layout>

@@ -65,6 +65,10 @@ export interface TimboMatch {
   id: number;
   round: number;
   date_iso?: string | null;
+  /** Hora real del partido (fecha ficticia 1970-01-01, solo importa la hora). */
+  time_iso?: string | null;
+  /** Fecha legible de TIMBO (ej. "dom. 30/08/26 - 20:30"). */
+  date?: string | null;
   field?: { name?: string } | null;
   positions: TimboPosition[];
   goals?: number[] | null;
