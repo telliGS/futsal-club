@@ -1,17 +1,17 @@
 import express from "express";
 import cors from "cors";
 import { prisma } from "./config.js";
-import authRoutes from "./routes/auth.js";
-import teamRoutes from "./routes/teams.js";
-import importRoutes from "./routes/import.js";
-import presupuestoRoutes from "./routes/presupuesto.js";
-import playerRoutes from "./routes/players.js";
-import matchRoutes from "./routes/matches.js";
-import syncRoutes from "./routes/sync.js";
-import publicRoutes from "./routes/public.js";
-import poliRoutes from "./routes/poli.js";
-import seguroRoutes from "./routes/seguro.js";
-import gymRoutes from "./routes/gym.js";
+import authRoutes from "./routes/auth.routes.js";
+import teamRoutes from "./routes/teams.routes.js";
+import importRoutes from "./routes/import.routes.js";
+import presupuestoRoutes from "./routes/presupuesto.routes.js";
+import playerRoutes from "./routes/players.routes.js";
+import matchRoutes from "./routes/matches.routes.js";
+import syncRoutes from "./routes/sync.routes.js";
+import publicRoutes from "./routes/public.routes.js";
+import poliRoutes from "./routes/poli.routes.js";
+import seguroRoutes from "./routes/seguro.routes.js";
+import gymRoutes from "./routes/gym.routes.js";
 
 export const app = express();
 app.use(cors());
