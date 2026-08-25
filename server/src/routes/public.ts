@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../config.js";
 import { calcularDocumentos, aptoParaJugar, labelTipo } from "../lib/ficha.js";
 import { buildSemana, currentWeekArg } from "../lib/poli.js";
+import { weekendWindowArg } from "../lib/timbo.js";
 
 const router = Router();
 
@@ -125,17 +126,20 @@ router.get("/teams", async (_req, res) => {
 
 // GET /api/public/stats — números del club para el home (datos agregados, sin datos personales)
 router.get("/stats", async (_req, res) => {
+  const { end: finFindeActual } = weekendWindowArg(new Date());
   const [equipos, vínculos, partidos] = await Promise.all([
     prisma.team.count(),
     prisma.playerTeam.findMany({
       where: { role: "JUGADOR", player: { status: { not: "INACTIVO" } } },
       select: { playerId: true },
     }),
-    // Partidos aún por jugarse (>= ahora) los mismos que muestra la
-    // sección "Próximos partidos" del home. Se cuentan también los que
-    // están EN CURSO (empezados hace < 2 h) para que la tarjeta no baje
-    // mientras se juegan (misma ventana que /matches/upcoming).
-    prisma.match.count({ where: { dateTime: { gte: new Date(Date.now() - 2 * 3_600_000) } } }),
+    // Partidos por jugar del finde en curso (los que no tienen resultado aún)
+    prisma.match.count({
+      where: {
+        dateTime: { gte: new Date(Date.now() - 2 * 3_600_000), lte: finFindeActual },
+        clubGoals: null,
+      },
+    }),
   ]);
   const jugadores = new Set(vínculos.map((v) => v.playerId)).size;
   res.json({ equipos, jugadores, partidosProximos: partidos });

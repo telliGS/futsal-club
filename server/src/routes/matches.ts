@@ -31,31 +31,36 @@ router.get("/", async (req, res) => {
 // y llega hasta el lunes siguiente al próximo finde (7 días después del fin actual).
 const PARTIDO_EN_CURSO_WINDOW_MS = 2 * 3_600_000;
 
-router.get("/upcoming", async (req, res) => {
-  const { weekend } = req.query;
+router.get("/upcoming", async (_req, res) => {
   // Inicio: hace 2h en hora ARG (para capturar partidos en curso)
   const localNow = new Date(Date.now() + ARG_TZ_OFFSET_MS);
   const desdeEnCurso = new Date(localNow.getTime() - PARTIDO_EN_CURSO_WINDOW_MS);
-  const { end: finFindeActual } = weekendWindowArg(new Date());
+  const { start: inicioFindeActual, end: finFindeActual } = weekendWindowArg(new Date());
 
-  // Primero:partidos del finde en curso
-  let matches = await prisma.match.findMany({
-    where: { dateTime: { gte: desdeEnCurso, lte: finFindeActual } },
+  // Partidos del finde en curso (incluye los que ya se jugaron, para el frontend)
+  const matchesActuales = await prisma.match.findMany({
+    where: { dateTime: { gte: inicioFindeActual, lte: finFindeActual } },
     include: { team: true },
     orderBy: [{ dateTime: "asc" }],
   });
 
-  // Si el finde ya pasó (no hay partidos), mostrar el siguiente
-  if (matches.length === 0) {
-    const finFindeSiguiente = new Date(finFindeActual.getTime() + 7 * 86_400_000);
-    matches = await prisma.match.findMany({
-      where: { dateTime: { gte: new Date(finFindeActual.getTime() + 1), lte: finFindeSiguiente } },
-      include: { team: true },
-      orderBy: [{ dateTime: "asc" }],
-    });
+  // ¿Quedan partidos por jugar? (con resultado null = todavía no se jugó)
+  const quedanPorJugar = matchesActuales.some((m) => m.clubGoals === null);
+
+  if (quedanPorJugar) {
+    // Mostrar solo los que faltan (desde hace 2h en adelante)
+    return res.json(matchesActuales.filter((m) => new Date(m.dateTime) >= desdeEnCurso));
   }
 
-  res.json(matches);
+  // Todos terminados → mostrar el siguiente finde
+  const inicioFindeSig = new Date(finFindeActual.getTime() + 1);
+  const finFindeSig = new Date(finFindeActual.getTime() + 7 * 86_400_000);
+  const matchesSiguientes = await prisma.match.findMany({
+    where: { dateTime: { gte: inicioFindeSig, lte: finFindeSig } },
+    include: { team: true },
+    orderBy: [{ dateTime: "asc" }],
+  });
+  res.json(matchesSiguientes);
 });
 
 const createMatchSchema = z.object({
