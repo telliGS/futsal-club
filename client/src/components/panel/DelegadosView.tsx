@@ -1,4 +1,5 @@
 import { DelegadoAdmin } from "../../lib/panel-types";
+import { cn } from "../../lib/cn";
 
 interface DelegadosViewProps {
   delegados: DelegadoAdmin[];
@@ -81,7 +82,7 @@ export default function DelegadosView({
             </thead>
             <tbody>
               {delegados.map((d) => (
-                <tr key={d.id} className={`border-t border-outline/60 ${d.active ? "" : "opacity-50"}`}>
+                <tr key={d.id} className={cn('border-t border-outline/60', d.active ? "" : "opacity-50")}>
                   <td className="py-3">
                     <div className="flex items-center gap-2">
                       <span>{d.fullName}</span>
@@ -112,13 +113,13 @@ export default function DelegadosView({
                   </td>
                   <td className="py-3">
                     <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      className={cn('inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold',
                         d.active
-                          ? "bg-green-500/10 text-green-400 border border-green-500/30"
-                          : "bg-white/5 text-white/50 border border-outline"
-                      }`}
+                          ? 'bg-green-500/10 text-green-400 border border-green-500/30'
+                          : 'bg-white/5 text-white/50 border border-outline'
+                      )}
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${d.active ? "bg-green-400" : "bg-white/40"}`} />
+                      <span className={cn('w-1.5 h-1.5 rounded-full', d.active ? "bg-green-400" : "bg-white/40")} />
                       {d.active ? "Activo" : "Inactivo"}
                     </span>
                   </td>
@@ -147,11 +148,11 @@ export default function DelegadosView({
                       </button>
                       <button
                         onClick={() => toggleDelegadoActive(d)}
-                        className={`px-2.5 py-1 rounded-lg text-xs border transition-colors ${
+                        className={cn('px-2.5 py-1 rounded-lg text-xs border transition-colors',
                           d.active
-                            ? "bg-transparent text-red-400/70 border-red-400/30 hover:bg-red-400/10 hover:text-red-400"
-                            : "bg-green-500/10 text-green-400 border-green-500/30 hover:bg-green-500/20"
-                        }`}
+                            ? 'bg-transparent text-red-400/70 border-red-400/30 hover:bg-red-400/10 hover:text-red-400'
+                            : 'bg-green-500/10 text-green-400 border-green-500/30 hover:bg-green-500/20'
+                        )}
                       >
                         {d.active ? "Desactivar" : "Reactivar"}
                       </button>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import * as XLSX from "xlsx";
 import { apiFetch } from "../../lib/api";
 import { Team, SeguroFilaCompleta, SeguroFilaCambio } from "../../lib/panel-types";
+import { cn } from "../../lib/cn";
 
 interface SeguroModalProps {
   show: boolean;
@@ -99,9 +100,9 @@ export default function SeguroModal({
   }
 
   const opcionBtn = (activo: boolean) =>
-    `flex-1 px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95 ${
-      activo ? "bg-primary text-white" : "bg-surface-1 border border-outline text-white/70 hover:text-white"
-    }`;
+    cn('flex-1 px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95',
+      activo ? 'bg-primary text-white' : 'bg-surface-1 border border-outline text-white/70 hover:text-white'
+    );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -124,7 +125,7 @@ export default function SeguroModal({
               type="button"
               onClick={() => setScope("club")}
               disabled={!esAdmin}
-              className={`${opcionBtn(scope === "club")} disabled:opacity-40 disabled:cursor-not-allowed`}
+              className={cn(opcionBtn(scope === "club"), 'disabled:opacity-40 disabled:cursor-not-allowed')}
               title={esAdmin ? "Todo el club, sin repetidos por DNI" : "Solo el administrador exporta el club completo"}
             >
               Todo el club

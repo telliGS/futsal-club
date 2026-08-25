@@ -1,4 +1,5 @@
 import { Team } from "../../lib/panel-types";
+import { cn } from "../../lib/cn";
 
 export interface DelegadoFormState {
   fullName: string;
@@ -89,18 +90,18 @@ export default function DelegadoModal({
               <button
                 type="button"
                 onClick={() => setForm({ ...form, role: "DELEGADO" })}
-                className={`flex-1 px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95 ${
+                className={cn('flex-1 px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95',
                   form.role === "DELEGADO" ? "bg-primary text-white" : "bg-surface-1 border border-outline text-white/70 hover:text-white"
-                }`}
+                )}
               >
                 Delegado
               </button>
               <button
                 type="button"
                 onClick={() => setForm({ ...form, role: "ADMIN" })}
-                className={`flex-1 px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95 ${
+                className={cn('flex-1 px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95',
                   form.role === "ADMIN" ? "bg-primary text-white" : "bg-surface-1 border border-outline text-white/70 hover:text-white"
-                }`}
+                )}
               >
                 Admin (acceso total)
               </button>
@@ -126,9 +127,9 @@ export default function DelegadoModal({
                   return (
                     <label
                       key={team.id}
-                      className={`flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer text-sm transition-colors ${
-                        checked ? "bg-primary/15 text-white border border-primary/30" : "hover:bg-surface-2 text-white/80 border border-transparent"
-                      }`}
+                      className={cn('flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer text-sm transition-colors',
+                        checked ? 'bg-primary/15 text-white border border-primary/30' : 'hover:bg-surface-2 text-white/80 border border-transparent'
+                      )}
                     >
                       <input
                         type="checkbox"

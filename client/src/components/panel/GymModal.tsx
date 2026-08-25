@@ -2,6 +2,7 @@ import { useState } from "react";
 import * as XLSX from "xlsx";
 import { apiFetch } from "../../lib/api";
 import { Team, GymFilaCompleta, GymFilaCambio } from "../../lib/panel-types";
+import { cn } from "../../lib/cn";
 
 interface GymModalProps {
   show: boolean;
@@ -187,7 +188,7 @@ export default function GymModal({
               type="button"
               onClick={() => setScope("club")}
               disabled={!esAdmin}
-              className={`${opcionBtn(scope === "club")} disabled:opacity-40 disabled:cursor-not-allowed`}
+              className={cn(opcionBtn(scope === "club"), 'disabled:opacity-40 disabled:cursor-not-allowed')}
               title={esAdmin ? "Todo el club, sin repetidos por DNI" : "Solo el administrador exporta el club completo"}
             >
               Todo el club

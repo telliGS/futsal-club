@@ -23,6 +23,7 @@ import PagoModal from "../components/panel/PagoModal";
 import GymModal from "../components/panel/GymModal";
 import PagoGymModal from "../components/panel/PagoGymModal";
 import { monthRange, monthShort, Icon } from "../lib/panel-helpers";
+import { cn } from "../lib/cn";
 import {
   Team,
   FichaEstado,
@@ -1586,33 +1587,33 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
         <div className="mt-4 flex rounded-lg border border-outline overflow-x-auto whitespace-nowrap scrollbar-none">
           <button
             onClick={() => setView("lista")}
-            className={`px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1 ${view === "lista" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+            className={cn('px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1', view === "lista" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2")}
           >
             Lista
           </button>
           <button
             onClick={() => setView("calendario")}
-            className={`px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1 ${view === "calendario" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+            className={cn('px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1', view === "calendario" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2")}
           >
             Cuotas
           </button>
           <button
             onClick={() => setView("presupuesto")}
-            className={`px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1 ${view === "presupuesto" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+            className={cn('px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1', view === "presupuesto" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2")}
           >
             Presupuesto
           </button>
           {me?.role === "ADMIN" && (
             <button
               onClick={() => setView("delegados")}
-              className={`px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1 ${view === "delegados" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+              className={cn('px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1', view === "delegados" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2")}
             >
               Delegados
             </button>
           )}
           <button
             onClick={() => setView("poli")}
-            className={`px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1 ${view === "poli" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2"}`}
+            className={cn('px-4 py-2 text-sm transition-all duration-200 active:scale-95 shrink-0 md:flex-1', view === "poli" ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-surface-2")}
           >
             Cronograma
           </button>
@@ -2040,7 +2041,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
           return (
             <div
               key={toast.id}
-              className={`rounded-lg border px-4 py-3 text-sm animate-fade-up ${colors[toast.type]}`}
+              className={cn('rounded-lg border px-4 py-3 text-sm animate-fade-up', colors[toast.type])}
               style={{ animationDuration: "0.3s" }}
             >
               {toast.message}

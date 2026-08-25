@@ -1,3 +1,5 @@
+import { cn } from "../../lib/cn";
+
 interface CredMsg {
   ok: boolean;
   text: string;
@@ -80,7 +82,7 @@ export default function CredencialesModal({
           </div>
 
           {credMsg && (
-            <p className={`text-sm ${credMsg.ok ? "text-emerald-400" : "text-red-400"}`}>{credMsg.text}</p>
+            <p className={cn('text-sm', credMsg.ok ? "text-emerald-400" : "text-red-400")}>{credMsg.text}</p>
           )}
 
           <div className="flex gap-3 pt-1">

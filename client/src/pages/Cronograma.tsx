@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 import Layout from "../components/Layout";
+import { cn } from "../lib/cn";
 
 interface ScheduleBloque {
   id: string;
@@ -133,7 +134,7 @@ export default function Cronograma() {
 
               <div className="mt-6 flex flex-wrap gap-2 text-xs">
                 {LUGARES.map((l) => (
-                  <span key={l.name} className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 ${l.color}`}>
+                  <span key={l.name} className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-1', l.color)}>
                     {l.emoji} {l.name}
                   </span>
                 ))}
@@ -237,7 +238,7 @@ export default function Cronograma() {
     bloquesFiltrados.map((b) => {
       const info = getLugarInfo(b.place);
       return (
-        <div key={b.id} className={`rounded-md border px-2.5 py-2 ${info.color}`}>
+        <div key={b.id} className={cn('rounded-md border px-2.5 py-2', info.color)}>
           <div className="flex items-center justify-between gap-1">
             <p className="font-mono text-xs font-semibold tabular-nums flex items-center gap-1">
               {info.emoji} {b.startTime}–{b.endTime}

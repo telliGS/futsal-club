@@ -1,4 +1,5 @@
 import { PoliBloque, PoliDia, PoliSlot } from "../../lib/panel-types";
+import { cn } from "../../lib/cn";
 
 interface PoliViewProps {
   poliMsg: string;
@@ -93,7 +94,7 @@ export default function PoliView({
             return (
               <div
                 key={d.fecha}
-                className={`rounded-lg border overflow-hidden ${hoy ? "border-primary/60 shadow-[0_0_18px_rgba(0,147,66,0.12)]" : "border-outline bg-surface"}`}
+                className={cn('rounded-lg border overflow-hidden', hoy ? 'border-primary/60 shadow-[0_0_18px_rgba(0,147,66,0.12)]' : 'border-outline bg-surface')}
               >
                 <div className="px-3 py-2 border-b border-outline bg-surface-1 flex items-center justify-between">
                   <p className="font-display font-bold text-sm capitalize">
@@ -132,7 +133,7 @@ export default function PoliView({
                   {d.bloques.map((b) => (
                     <div
                       key={b.id}
-                      className={`rounded-md border px-2.5 py-2 ${placeColor(b.place)}`}
+                      className={cn('rounded-md border px-2.5 py-2', placeColor(b.place))}
                     >
                       <div className="flex items-center justify-between gap-1">
                         <p className="font-mono text-xs font-semibold tabular-nums">
@@ -203,13 +204,13 @@ export default function PoliView({
                 {poliSlots.map((s) => {
                   const operable = puedeOperarPoli(s.team?.id);
                   return (
-                    <tr key={s.id} className={`border-t border-outline/60 ${s.active ? "" : "opacity-50"}`}>
+                    <tr key={s.id} className={cn('border-t border-outline/60', s.active ? "" : "opacity-50")}>
                       <td className="py-3 capitalize">
                         {["", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"][s.dayOfWeek]}
                       </td>
                       <td className="py-3 font-mono tabular-nums">{s.startTime}–{s.endTime}</td>
                       <td className="py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs border ${placeColor(s.place)}`}>
+                        <span className={cn('px-2 py-0.5 rounded-full text-xs border', placeColor(s.place))}>
                           {s.place}
                         </span>
                       </td>
@@ -219,11 +220,11 @@ export default function PoliView({
                         <button
                           onClick={() => togglePoliSlot(s)}
                           disabled={!operable}
-                          className={`px-2.5 py-0.5 rounded-full text-xs border transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                          className={cn('px-2.5 py-0.5 rounded-full text-xs border transition-colors disabled:cursor-not-allowed disabled:opacity-40',
                             s.active
-                              ? "bg-green-500/10 text-green-400 border-green-500/30 hover:bg-green-500/20"
-                              : "bg-white/5 text-white/50 border-outline hover:bg-surface-2"
-                          }`}
+                              ? 'bg-green-500/10 text-green-400 border-green-500/30 hover:bg-green-500/20'
+                              : 'bg-white/5 text-white/50 border-outline hover:bg-surface-2'
+                          )}
                         >
                           {s.active ? "Activo" : "Suspendido"}
                         </button>

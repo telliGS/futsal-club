@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import Layout from "../components/Layout";
+import { cn } from "../lib/cn";
 
 interface Match {
   id: string;
@@ -395,7 +396,7 @@ export default function Home() {
                           </div>
                         </div>
                         <div className="shrink-0 text-right">
-                          <p className={`font-display font-bold text-2xl tabular-nums transition-colors duration-200 group-hover:text-primary-light ${estadoPartido(m) === "en_curso" ? "text-action-green" : ""}`}>
+                          <p className={cn('font-display font-bold text-2xl tabular-nums transition-colors duration-200 group-hover:text-primary-light', estadoPartido(m) === "en_curso" ? "text-action-green" : "")}>
                             {formatHora(m.dateTime)}
                           </p>
                           {estadoPartido(m) === "en_curso" && (
@@ -443,7 +444,7 @@ export default function Home() {
         >
           <p className="font-display font-bold text-xl leading-tight">{t.name}</p>
           <span
-            className={`mt-2 inline-block px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wide font-mono border text-center ${colorEquipo(t.type)}`}
+            className={cn('mt-2 inline-block px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wide font-mono border text-center', colorEquipo(t.type))}
           >
             {t.type === "FORMATIVA" ? "Formativa" : "Primera"}
           </span>
@@ -603,17 +604,17 @@ export default function Home() {
                           return (
                             <div
                               key={m.id}
-                              className={`rounded-xl border p-3 flex items-center gap-3 transition-colors duration-200 ${
+                              className={cn('rounded-xl border p-3 flex items-center gap-3 transition-colors duration-200',
                                 conResultado
                                   ? ganado
-                                    ? "border-green-500/40 bg-green-500/10"
+                                    ? 'border-green-500/40 bg-green-500/10'
                                     : perdido
-                                      ? "border-red-500/40 bg-red-500/10"
-                                      : "border-yellow-500/40 bg-yellow-500/10"
+                                      ? 'border-red-500/40 bg-red-500/10'
+                                      : 'border-yellow-500/40 bg-yellow-500/10'
                                   : yaJugado
-                                    ? "border-white/10 bg-white/[0.03] opacity-60"
-                                    : "border-primary/40 bg-primary/10 shadow-[0_0_16px_rgba(0,147,66,0.18)]"
-                              }`}
+                                    ? 'border-white/10 bg-white/[0.03] opacity-60'
+                                    : 'border-primary/40 bg-primary/10 shadow-[0_0_16px_rgba(0,147,66,0.18)]'
+                              )}
                             >
                               <p className="font-display font-bold text-xl tabular-nums w-16 shrink-0 text-center">
                                 {formatHora(m.dateTime)}
@@ -640,13 +641,13 @@ export default function Home() {
                               </div>
                               {conResultado ? (
                                 <span
-                                  className={`shrink-0 inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded-full border ${
+                                  className={cn('shrink-0 inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded-full border',
                                     ganado
-                                      ? "text-green-300 border-green-500/40 bg-green-500/15"
+                                      ? 'text-green-300 border-green-500/40 bg-green-500/15'
                                       : perdido
-                                        ? "text-red-300 border-red-500/40 bg-red-500/15"
-                                        : "text-yellow-200 border-yellow-500/40 bg-yellow-500/15"
-                                  }`}
+                                        ? 'text-red-300 border-red-500/40 bg-red-500/15'
+                                        : 'text-yellow-200 border-yellow-500/40 bg-yellow-500/15'
+                                  )}
                                 >
                                   {ganado ? "✓ Ganado" : perdido ? "✗ Perdido" : "= Empate"}
                                 </span>

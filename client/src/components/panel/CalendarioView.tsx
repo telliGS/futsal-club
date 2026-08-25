@@ -1,5 +1,6 @@
 import { monthShort, Icon } from "../../lib/panel-helpers";
 import { Player } from "../../lib/panel-types";
+import { cn } from "../../lib/cn";
 
 interface CalendarioViewProps {
   plantel: Player[];
@@ -42,7 +43,7 @@ export default function CalendarioView({ plantel, months, currentMonth, abrirPag
               {months.map((m) => (
                 <th
                   key={m}
-                  className={`panel-th text-center min-w-[60px] ${m === currentMonth ? "text-primary-light" : ""}`}
+                  className={cn('panel-th text-center min-w-[60px]', m === currentMonth ? "text-primary-light" : "")}
                 >
                   {m === currentMonth && (
                     <span className="block text-[9px] text-primary-light mb-0.5 tracking-widest">
@@ -63,7 +64,7 @@ export default function CalendarioView({ plantel, months, currentMonth, abrirPag
             ].map((p) => {
               const ec = p.estadoCuota ?? estadoLocal(p);
               return (
-                <tr key={p.id} className={`panel-tr ${p.status === "INACTIVO" ? "opacity-60" : ec.deudor ? "bg-red-500/[0.04]" : ""}`}>
+                <tr key={p.id} className={cn('panel-tr', p.status === "INACTIVO" ? "opacity-60" : ec.deudor ? "bg-red-500/[0.04]" : "")}>
                   <td className="px-3 py-2 sticky left-0 z-10 bg-surface-1">
                     <div className="flex items-center gap-2.5">
                       <span className="avatar w-7 h-7 text-xs">{p.firstName.charAt(0)}{p.lastName.charAt(0)}</span>
@@ -89,7 +90,7 @@ export default function CalendarioView({ plantel, months, currentMonth, abrirPag
                     const paid = pay?.paid ?? false;
                     const marcado = pay !== undefined;
                     return (
-                      <td key={m} className={`p-1 text-center ${esFuturo ? "opacity-25" : ""}`}>
+                      <td key={m} className={cn('p-1 text-center', esFuturo ? "opacity-25" : "")}>
                         <button
                           disabled={esFuturo}
                           onClick={() => abrirPago(p, m)}
@@ -100,15 +101,15 @@ export default function CalendarioView({ plantel, months, currentMonth, abrirPag
                                 ? `Ver / cambiar pago de ${monthShort(m)}`
                                 : `Marcar pago de ${monthShort(m)}`
                           }
-                          className={`w-full h-8 inline-flex items-center justify-center rounded-md text-xs font-bold transition-all duration-150 active:scale-95 ${
+                          className={cn('w-full h-8 inline-flex items-center justify-center rounded-md text-xs font-bold transition-all duration-150 active:scale-95',
                             esFuturo
-                              ? "bg-surface-1/50 text-white/20 cursor-default"
+                              ? 'bg-surface-1/50 text-white/20 cursor-default'
                               : paid
-                                ? "bg-green-500/25 text-green-300 border border-green-500/30 hover:bg-green-500/40"
+                                ? 'bg-green-500/25 text-green-300 border border-green-500/30 hover:bg-green-500/40'
                                 : marcado
-                                  ? "bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30"
-                                  : "bg-surface-1 text-white/35 border border-transparent hover:bg-surface-2 hover:text-white/60"
-                          }`}
+                                  ? 'bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30'
+                                  : 'bg-surface-1 text-white/35 border border-transparent hover:bg-surface-2 hover:text-white/60'
+                          )}
                         >
                           {esFuturo ? "·" : paid ? <Icon name="check" className="w-3.5 h-3.5" /> : marcado ? <Icon name="nulo" className="w-3.5 h-3.5" /> : "·"}
                         </button>
@@ -117,11 +118,11 @@ export default function CalendarioView({ plantel, months, currentMonth, abrirPag
                   })}
                   <td className="px-3 py-2 text-center">
                     <span
-                      className={`inline-block px-2 py-0.5 rounded-md text-xs font-mono ${
+                      className={cn('inline-block px-2 py-0.5 rounded-md text-xs font-mono',
                         ec.mesesDebe > 0
-                          ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                          : "bg-green-500/15 text-green-400 border border-green-500/25"
-                      }`}
+                          ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                          : 'bg-green-500/15 text-green-400 border border-green-500/25'
+                      )}
                     >
                       {ec.mesesDebe > 0 ? `${ec.mesesDebe} ${ec.mesesDebe === 1 ? "mes" : "meses"}` : "OK"}
                     </span>

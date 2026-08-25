@@ -1,5 +1,6 @@
 import { monthShort } from "../../lib/panel-helpers";
 import { PresupuestoData, TotalPresupuesto } from "../../lib/panel-types";
+import { cn } from "../../lib/cn";
 
 interface PresupuestoViewProps {
   presup: PresupuestoData | null;
@@ -57,9 +58,9 @@ export default function PresupuestoView({
           />
           <button
             onClick={() => setVerTotal(!verTotal)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 active:scale-95 ${
-              verTotal ? "bg-primary text-white" : "bg-surface-1 text-white/60 hover:text-white hover:bg-surface-2"
-            }`}
+            className={cn('px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 active:scale-95',
+              verTotal ? 'bg-primary text-white' : 'bg-surface-1 text-white/60 hover:text-white hover:bg-surface-2'
+            )}
           >
             {verTotal ? "Ocultar total" : "Total del club"}
           </button>
@@ -101,9 +102,9 @@ export default function PresupuestoView({
                 {formatPesos(presup.gastosExtra.reduce((a, g) => a + g.monto, 0))} extras
               </p>
             </div>
-            <div className={`card p-4 ${presup.resultado.balance >= 0 ? "border-green-500/30 bg-green-500/[0.04]" : "border-red-500/30 bg-red-500/[0.04]"}`}>
+            <div className={cn('card p-4', presup.resultado.balance >= 0 ? 'border-green-500/30 bg-green-500/[0.04]' : 'border-red-500/30 bg-red-500/[0.04]')}>
               <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Balance</p>
-              <p className={`mt-1.5 font-display text-2xl font-bold tabular-nums ${presup.resultado.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
+              <p className={cn('mt-1.5 font-display text-2xl font-bold tabular-nums', presup.resultado.balance >= 0 ? 'text-green-400' : 'text-red-400')}>
                 {formatPesos(presup.resultado.balance)}
               </p>
               <p className="mt-1 text-xs">
@@ -117,7 +118,7 @@ export default function PresupuestoView({
               <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Balance real</p>
               {presup.recaudado != null ? (
                 <>
-                  <p className={`mt-1.5 font-display text-2xl font-bold tabular-nums ${presup.recaudado - presup.resultado.gastos >= 0 ? "text-green-400" : "text-red-400"}`}>
+                  <p className={cn('mt-1.5 font-display text-2xl font-bold tabular-nums', presup.recaudado - presup.resultado.gastos >= 0 ? 'text-green-400' : 'text-red-400')}>
                     {formatPesos(presup.recaudado - presup.resultado.gastos)}
                   </p>
                   <p className="mt-1 text-xs text-white/60">con lo que realmente entró</p>
@@ -272,13 +273,13 @@ export default function PresupuestoView({
                       </div>
                       <div className="card p-4">
                         <p className="text-xs text-white/50">Balance estimado</p>
-                        <p className={`mt-1 text-2xl font-bold ${totalData.totales.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
+                        <p className={cn('mt-1 text-2xl font-bold', totalData.totales.balance >= 0 ? 'text-green-400' : 'text-red-400')}>
                           {formatPesos(totalData.totales.balance)}
                         </p>
                       </div>
                       <div className="card p-4">
                         <p className="text-xs text-white/50">Balance real</p>
-                        <p className={`mt-1 text-2xl font-bold ${totalData.totales.recaudado - totalData.totales.gastos >= 0 ? "text-green-400" : "text-red-400"}`}>
+                        <p className={cn('mt-1 text-2xl font-bold', totalData.totales.recaudado - totalData.totales.gastos >= 0 ? 'text-green-400' : 'text-red-400')}>
                           {formatPesos(totalData.totales.recaudado - totalData.totales.gastos)}
                         </p>
                         <p className="mt-1 text-[11px] text-white/50">con lo que realmente entró</p>
@@ -295,9 +296,9 @@ export default function PresupuestoView({
                     </div>
                   )}
 
-                  <div className={`mt-3 card p-4 ${totalData.totales.balance >= 0 ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}`}>
+                  <div className={cn('mt-3 card p-4', totalData.totales.balance >= 0 ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5')}>
                     <p className="text-xs text-white/50">Balance total del club</p>
-                    <p className={`mt-1 text-2xl font-bold ${totalData.totales.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
+                    <p className={cn('mt-1 text-2xl font-bold', totalData.totales.balance >= 0 ? 'text-green-400' : 'text-red-400')}>
                       {formatPesos(totalData.totales.balance)}
                     </p>
                     <p className="mt-1 text-xs text-white/60">
@@ -323,9 +324,9 @@ export default function PresupuestoView({
                         <p className="mt-1.5 text-2xl font-bold text-green-400 tabular-nums">{formatPesos(totalData.gym.recaudado)}</p>
                         <p className="mt-1 text-xs text-white/60">lo que pagaron los que van</p>
                       </div>
-                      <div className={`card p-4 ${totalData.gym.faltaCobrar > 0 ? "border-amber-500/30 bg-amber-500/5" : "border-green-500/30 bg-green-500/5"}`}>
+                      <div className={cn('card p-4', totalData.gym.faltaCobrar > 0 ? 'border-amber-500/30 bg-amber-500/5' : 'border-green-500/30 bg-green-500/5')}>
                         <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">Gym · falta cobrar</p>
-                        <p className={`mt-1.5 text-2xl font-bold tabular-nums ${totalData.gym.faltaCobrar > 0 ? "text-amber-300" : "text-green-400"}`}>
+                        <p className={cn('mt-1.5 text-2xl font-bold tabular-nums', totalData.gym.faltaCobrar > 0 ? 'text-amber-300' : 'text-green-400')}>
                           {formatPesos(totalData.gym.faltaCobrar)}
                         </p>
                         <p className="mt-1 text-xs text-white/60">
@@ -357,10 +358,10 @@ export default function PresupuestoView({
                             ? Math.ceil((e.gastos / e.jugadores) * 1.1 / 500) * 500
                             : 0;
                           return (
-                            <tr key={e.teamId} className={`border-t border-outline/60 ${e.balance < 0 ? "bg-red-500/5" : ""}`}>
+                            <tr key={e.teamId} className={cn('border-t border-outline/60', e.balance < 0 ? 'bg-red-500/5' : '')}>
                               <td className="p-3 font-semibold">
                                 {e.categoria}
-                                <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] ${e.tipo === "FORMATIVA" ? "bg-primary/20 text-primary-light" : "bg-surface-2 text-white/60"}`}>
+                                <span className={cn('ml-2 px-1.5 py-0.5 rounded text-[10px]', e.tipo === "FORMATIVA" ? 'bg-primary/20 text-primary-light' : 'bg-surface-2 text-white/60')}>
                                   {e.tipo === "FORMATIVA" ? "formativa" : "primera"}
                                 </span>
                               </td>
@@ -374,10 +375,10 @@ export default function PresupuestoView({
                                 )}
                               </td>
                               <td className="p-3 text-white/70">{formatPesos(e.gastos)}</td>
-                              <td className={`p-3 font-semibold ${e.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
+                              <td className={cn('p-3 font-semibold', e.balance >= 0 ? 'text-green-400' : 'text-red-400')}>
                                 {formatPesos(e.balance)}
                               </td>
-                              <td className={`p-3 ${e.deuda > 0 ? "text-amber-300" : "text-white/40"}`}>{formatPesos(e.deuda)}</td>
+                              <td className={cn('p-3', e.deuda > 0 ? 'text-amber-300' : 'text-white/40')}>{formatPesos(e.deuda)}</td>
                               <td className="p-3 text-white/60">{recomendada > 0 ? formatPesos(recomendada) : "—"}</td>
                             </tr>
                           );
@@ -412,7 +413,7 @@ export default function PresupuestoView({
                                 <td className="p-3 text-white/70">{formatPesos(m.estimado)}</td>
                                 <td className="p-3 text-green-400">{formatPesos(m.recaudado)}</td>
                                 <td className="p-3 text-white/70">{m.estimado > 0 ? pct + "%" : "—"}</td>
-                                <td className={`p-3 font-semibold ${m.acumulado > 0 ? "text-green-400" : "text-white/40"}`}>
+                                <td className={cn('p-3 font-semibold', m.acumulado > 0 ? 'text-green-400' : 'text-white/40')}>
                                   {formatPesos(m.acumulado)}
                                 </td>
                               </tr>

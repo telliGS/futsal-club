@@ -1,5 +1,6 @@
 import { labelTipo } from "../../lib/panel-helpers";
 import { DocItem, FichaEstado, Player } from "../../lib/panel-types";
+import { cn } from "../../lib/cn";
 
 export interface DocFormState {
   tipo: string;
@@ -60,7 +61,7 @@ export default function FichasModal({
 
         {/* Estado general */}
         {estado && (
-          <div className={`mt-4 px-3 py-2 rounded-lg text-sm border ${estado.aptoFichas ? "border-green-500/30 bg-green-500/10 text-green-300" : "border-red-500/30 bg-red-500/10 text-red-300"}`}>
+          <div className={cn('mt-4 px-3 py-2 rounded-lg text-sm border', estado.aptoFichas ? 'border-green-500/30 bg-green-500/10 text-green-300' : 'border-red-500/30 bg-red-500/10 text-red-300')}>
             {estado.aptoFichas
               ? "Apto por documentación ✓"
               : "Documentación incompleta — no puede jugar ✕"}

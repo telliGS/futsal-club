@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { apiFetch } from "../lib/api";
 import Layout from "../components/Layout";
+import { cn } from "../lib/cn";
 
 interface StatusResult {
   fullName: string;
@@ -153,28 +154,28 @@ export default function Status() {
 
               {result && (
                 <div
-                  className={`mt-6 rounded-2xl p-6 border bg-surface-1 animate-fade-up ${
+                  className={cn('mt-6 rounded-2xl p-6 border bg-surface-1 animate-fade-up',
                     result.esTecnico
-                      ? "border-outline"
+                      ? 'border-outline'
                       : result.isPaid
-                        ? "border-green-500/40"
+                        ? 'border-green-500/40'
                         : result.pendiente
-                          ? "border-amber-500/40"
-                          : "border-red-500/40"
-                  }`}
+                          ? 'border-amber-500/40'
+                          : 'border-red-500/40'
+                  )}
                 >
                   {/* Badge de estado grande */}
                   <div className="flex items-center gap-3 mb-4">
                     <span
-                      className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-bold ${
+                      className={cn('shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-bold',
                         result.esTecnico
-                          ? "bg-surface-2 text-white/70"
+                          ? 'bg-surface-2 text-white/70'
                           : result.isPaid
-                            ? "bg-green-500/20 text-green-400"
+                            ? 'bg-green-500/20 text-green-400'
                             : result.pendiente
-                              ? "bg-amber-500/20 text-amber-300"
-                              : "bg-red-500/20 text-red-400"
-                      }`}
+                              ? 'bg-amber-500/20 text-amber-300'
+                              : 'bg-red-500/20 text-red-400'
+                      )}
                     >
                       {result.esTecnico ? "—" : result.isPaid ? "✓" : result.pendiente ? "⏳" : "✕"}
                     </span>
