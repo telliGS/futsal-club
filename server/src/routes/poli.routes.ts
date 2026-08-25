@@ -1,7 +1,7 @@
 import { Router, Request } from "express";
 import { z } from "zod";
 import { prisma } from "../config.js";
-import { requireAuth, requireAdminOrDelegado, canAccessTeam } from "../middleware/auth.js";
+import { requireAuth, requireAdminOrDelegado, canAccessTeam } from "../middlewares/auth.js";
 import { buildSemana } from "../lib/poli.js";
 
 const router = Router();

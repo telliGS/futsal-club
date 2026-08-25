@@ -22,7 +22,7 @@ export function redondearARedondo(x: number, base = 500): number {
 
 export const MARGEN_SEGURIDAD = 0.1; // 10% de colchón sobre la cuota mínima
 
-export interface PresupuestoInput {
+export interface IPresupuestoInput {
   /** jugadores que pagan (activos + deuda, cuentaPresupuesto=true) */
   jugadores: number;
   /** cuota mensual por jugador de la categoría (null = no cargada) */
@@ -33,7 +33,7 @@ export interface PresupuestoInput {
   gastosExtra: number;
 }
 
-export interface PresupuestoResultado {
+export interface IPresupuestoResultado {
   ingreso: number;
   gastos: number;
   balance: number;
@@ -45,7 +45,7 @@ export interface PresupuestoResultado {
   recomendacionSana: boolean;
 }
 
-export function calcularPresupuesto(input: PresupuestoInput): PresupuestoResultado {
+export function calcularPresupuesto(input: IPresupuestoInput): IPresupuestoResultado {
   const { jugadores, cuota, gastosFijos, gastosExtra } = input;
   const gastos = gastosFijos + gastosExtra;
 

@@ -16,7 +16,7 @@ import { prisma } from "../config.js";
 import {
   CLUB_ZONES, getZoneMatches, clubTeamForMatch, clubInfoFromMatch,
   resultFromMatch, weekendWindowArg, ARG_TZ_OFFSET_MS,
-  TIMBO_EDITION_ID, TimboMatch,
+  TIMBO_EDITION_ID, ITimboMatch,
 } from "../lib/timbo.js";
 import { adaptTimboMatch } from "../adapters/timbo-adapter.js";
 
@@ -88,7 +88,7 @@ export async function runTimboSync(now = new Date()): Promise<{
     let zoneSynced = 0;
 
     for (let r = startRound; r <= MAX_ROUNDS; r++) {
-      let matches: TimboMatch[] = [];
+      let matches: ITimboMatch[] = [];
       try {
         matches = await getZoneMatches(zoneCfg.categoryZone, r);
       } catch (e) {

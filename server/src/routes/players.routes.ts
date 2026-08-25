@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { prisma } from "../config.js";
-import { requireAuth, canAccessTeam } from "../middleware/auth.js";
+import { requireAuth, canAccessTeam } from "../middlewares/auth.js";
 import { calcularEstadoCuota } from "../lib/cuota.js";
 import { calcularDocumentos, MAX_DOC_BYTES, TipoDocumento, TIPOS_DOCUMENTO, aptoParaJugar, vencimientoPorRegla } from "../lib/ficha.js";
 import { pagaCuotaEnEquipo, categoriasPagoJugador } from "../lib/nativo.js";

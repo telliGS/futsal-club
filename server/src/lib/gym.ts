@@ -7,7 +7,7 @@ import { prisma } from "../config.js";
 
 export type AvisoTipo = "ALTA" | "BAJA";
 
-export interface DatosAviso {
+export interface IDatosAviso {
   playerId: string;
   tipo: AvisoTipo;
   creadoPorId: string;
@@ -29,7 +29,7 @@ export async function registrarAvisoGym({
   creadoPorId,
   teamId,
   snapshot,
-}: DatosAviso): Promise<void> {
+}: IDatosAviso): Promise<void> {
   const pendiente = await prisma.avisoGym.findFirst({
     where: { playerId, tipo, resueltoAt: null },
   });
@@ -57,12 +57,12 @@ export async function registrarAvisoGym({
   });
 }
 
-export interface GymPagoLike {
+export interface IGymPagoLike {
   month: string; // YYYY-MM
   paid: boolean;
 }
 
-export interface EstadoGym {
+export interface IEstadoGym {
   pagado: boolean; // pagó el gym del mes en curso
   pendiente: boolean; // dentro del plazo y todavía no pagó
   deudor: boolean; // venció el plazo sin pagar el gym del mes
@@ -75,10 +75,10 @@ export interface EstadoGym {
  * del gym (no bloquea jugar, pero muestra lo que falta cobrar).
  */
 export function calcularEstadoGym(
-  payments: GymPagoLike[],
+  payments: IGymPagoLike[],
   now: Date = new Date(),
   deadline = 10
-): EstadoGym {
+): IEstadoGym {
   const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const dia = now.getDate();
   const d = deadline >= 1 && deadline <= 31 ? deadline : 10;

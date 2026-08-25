@@ -11,10 +11,10 @@
 // (o se agrega otra fuente), solo se toca acá.
 // ============================================================
 
-import type { TimboMatch } from "../lib/timbo.js";
+import type { ITimboMatch } from "../lib/timbo.js";
 
 /** Partido normalizado, listo para almacenar en la DB. */
-export interface NormalizedMatch {
+export interface INormalizedMatch {
   /** ID de TIMBO */
   timboId: number;
   /** DateTime en ISO con offset -03:00, o null si no hay horario */
@@ -55,7 +55,7 @@ function parseIsoParts(iso: string): { year: string; month: string; day: string;
  * 3. `date` → parsear "dd/mm/yy - HH:MM" como último recurso
  * 4. null → no hay dato (mostrar "Horario a confirmar")
  */
-function resolveDateTime(match: TimboMatch): string | null {
+function resolveDateTime(match: ITimboMatch): string | null {
   const raw = match.date_iso;
   if (!raw) return null;
 
@@ -101,11 +101,11 @@ function resolveDateTime(match: TimboMatch): string | null {
  * ```
  */
 export function adaptTimboMatch(
-  raw: TimboMatch,
+  raw: ITimboMatch,
   category: string,
   info: { rival: string; isHome: boolean },
   result: { clubGoals: number; rivalGoals: number } | null,
-): NormalizedMatch {
+): INormalizedMatch {
   return {
     timboId: raw.id,
     dateTime: resolveDateTime(raw),

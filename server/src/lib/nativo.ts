@@ -18,7 +18,7 @@
 
 export type TeamType = "FORMATIVA" | "PRIMERA" | string;
 
-export interface EquipoJugador {
+export interface IEquipoJugador {
   name: string;
   type: TeamType;
   category?: string | null;
@@ -40,7 +40,7 @@ export function tieneVinculoFormativo(tiposDeSusEquipos: TeamType[]): boolean {
  * sus vínculos (ej. C17 + C20 → C17). Devuelve null si no tiene
  * ningún vínculo formativo.
  */
-export function categoriaNativa(equipos: EquipoJugador[]): EquipoJugador | null {
+export function categoriaNativa(equipos: IEquipoJugador[]): IEquipoJugador | null {
   const formativas = equipos.filter((e) => e.type === "FORMATIVA");
   if (formativas.length === 0) return null;
   return [...formativas].sort(
@@ -56,7 +56,7 @@ export function categoriaNativa(equipos: EquipoJugador[]): EquipoJugador | null 
  * - Sin vínculo formativo → paga en el equipo actual.
  */
 export function pagaCuotaEnEquipo(
-  equiposJugador: EquipoJugador[],
+  equiposJugador: IEquipoJugador[],
   tipoEquipoActual: TeamType,
   categoriaActual?: string | null
 ): boolean {
@@ -70,7 +70,7 @@ export function pagaCuotaEnEquipo(
  * Nombres de las categorías donde paga (una sola: la nativa menor),
  * ej. ["C17"]. Vacío si no tiene vínculo formativo.
  */
-export function categoriasPagoJugador(equiposJugador: EquipoJugador[]): string[] {
+export function categoriasPagoJugador(equiposJugador: IEquipoJugador[]): string[] {
   const nativa = categoriaNativa(equiposJugador);
   return nativa ? [nativa.name] : [];
 }

@@ -28,7 +28,7 @@ function argDate(d: Date): Date {
   return new Date(d.getTime() + ARG_TZ_OFFSET_MS);
 }
 
-export interface SemanaBloque {
+export interface ISemanaBloque {
   id: string;
   tipo: "PLANTILLA" | "EXTRA";
   startTime: string;
@@ -48,7 +48,7 @@ export interface SemanaBloque {
   } | null;
 }
 
-export interface SemanaPartido {
+export interface ISemanaPartido {
   id: string;
   time: string;
   rival: string;
@@ -57,17 +57,17 @@ export interface SemanaPartido {
   team: { id: string; name: string };
 }
 
-export interface SemanaDia {
+export interface ISemanaDia {
   fecha: string;
   dia: string;
-  bloques: SemanaBloque[];
-  partidos: SemanaPartido[];
+  bloques: ISemanaBloque[];
+  partidos: ISemanaPartido[];
 }
 
-export interface SemanaResult {
+export interface ISemanaResult {
   from: string;
   to: string;
-  semana: SemanaDia[];
+  semana: ISemanaDia[];
   teamById: Record<string, string>;
   /** Fecha de HOY en hora ARG ("YYYY-MM-DD") para resaltar el día actual
    *  sin depender de la zona horaria del navegador (toISOString() usa UTC). */
@@ -97,7 +97,7 @@ export function currentWeekArg(): { from: string; to: string; monday: Date } {
  * plantilla semanal con excepciones aplicadas, bloques extra y
  * partidos del club (agrupados por día en hora ARG).
  */
-export async function buildSemana(from: string, to: string): Promise<SemanaResult> {
+export async function buildSemana(from: string, to: string): Promise<ISemanaResult> {
   const fromDate = dateUTC(from);
   const toDate = dateUTC(to);
 
@@ -140,8 +140,8 @@ export async function buildSemana(from: string, to: string): Promise<SemanaResul
     const exDelDia = exceptions.filter((e) => dayStr(e.date) === fecha);
 
     // Bloqueos de slots por excepción (canceled o con slot)
-    const exPorSlot = new Map<string, SemanaBloque["excepcion"] & { team: { id: string; name: string } | null }>();
-    const extras: (SemanaBloque["excepcion"] & { team: { id: string; name: string } | null })[] = [];
+    const exPorSlot = new Map<string, ISemanaBloque["excepcion"] & { team: { id: string; name: string } | null }>();
+    const extras: (ISemanaBloque["excepcion"] & { team: { id: string; name: string } | null })[] = [];
     for (const e of exDelDia) {
       const exF = {
         id: e.id,
@@ -161,7 +161,7 @@ export async function buildSemana(from: string, to: string): Promise<SemanaResul
 
     const bloques = (slots
       .filter((s) => s.dayOfWeek === dow && s.active)
-      .map((s): SemanaBloque | null => {
+      .map((s): ISemanaBloque | null => {
         const ex = exPorSlot.get(s.id);
         if (ex?.canceled) return null;
         return {
@@ -176,10 +176,10 @@ export async function buildSemana(from: string, to: string): Promise<SemanaResul
           excepcion: ex ?? null,
         };
       })
-      .filter((b): b is SemanaBloque => b !== null)) as SemanaBloque[];
+      .filter((b): b is ISemanaBloque => b !== null)) as ISemanaBloque[];
 
     // Los extras cancelados se omiten (se eliminaron o se marcaron como cancelados).
-    const extrasMapeados: SemanaBloque[] = extras.filter((e) => !e.canceled).map((e) => ({
+    const extrasMapeados: ISemanaBloque[] = extras.filter((e) => !e.canceled).map((e) => ({
       id: `extra-${e.id}`,
       tipo: "EXTRA" as const,
       startTime: e.startTime ?? "00:00",
@@ -193,7 +193,7 @@ export async function buildSemana(from: string, to: string): Promise<SemanaResul
 
     // Partidos agrupados por día en hora ARG (un partido del domingo
     // 21:30 ARG tiene dateTime = lunes 00:30Z → cae el domingo).
-    const partidos: SemanaPartido[] = matches
+    const partidos: ISemanaPartido[] = matches
       .filter((m) => dayStr(argDate(m.dateTime)) === fecha)
       .map((m) => ({
         id: m.id,

@@ -23,7 +23,7 @@ export const HEADERS = [
 
 export const TEMPLATE_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
-export interface ImportResult {
+export interface IImportResult {
   creados: number;
   actualizados: number;
   vinculados: number;
@@ -112,7 +112,7 @@ function parseDate(raw: string): Date | null {
   return null;
 }
 
-export interface ParsedFila {
+export interface IParsedFila {
   n: number;
   error?: string;
   apellido: string;
@@ -126,11 +126,11 @@ export interface ParsedFila {
 }
 
 /** Parsea un buffer xlsx y devuelve filas normalizadas (skip del header y fila ejemplo). */
-export async function parseWorkbook(buffer: Buffer): Promise<{ filas: ParsedFila[] }> {
+export async function parseWorkbook(buffer: Buffer): Promise<{ filas: IParsedFila[] }> {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer as any);
   const ws = wb.worksheets[0];
-  const filas: ParsedFila[] = [];
+  const filas: IParsedFila[] = [];
 
   for (let i = 2; i <= ws.rowCount; i++) {
     const row = ws.getRow(i);

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { prisma } from "../config.js";
-import { requireAuth, canAccessTeam } from "../middleware/auth.js";
+import { requireAuth, canAccessTeam } from "../middlewares/auth.js";
 import { calcularPresupuesto } from "../lib/presupuesto.js";
 import { pagaCuotaEnEquipo } from "../lib/nativo.js";
 import { calcularEstadoCuota } from "../lib/cuota.js";

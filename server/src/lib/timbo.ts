@@ -56,12 +56,12 @@ const TIMBO_HEADERS = {
 export const TIMBO_EDITION_ID = 836000892; // clausura-2026-31
 export const TIMBO_TOURNAMENT_SLUG = "competencia-oficial-apfs";
 
-export interface TimboPosition {
+export interface ITimboPosition {
   roster?: { team?: { id?: number; name?: string } };
   name?: string;
 }
 
-export interface TimboMatch {
+export interface ITimboMatch {
   id: number;
   round: number;
   date_iso?: string | null;
@@ -70,7 +70,7 @@ export interface TimboMatch {
   /** Fecha legible de TIMBO (ej. "dom. 30/08/26 - 20:30"). */
   date?: string | null;
   field?: { name?: string } | null;
-  positions: TimboPosition[];
+  positions: ITimboPosition[];
   goals?: number[] | null;
   /** true cuando el partido está finalizado en TIMBO */
   closed?: boolean;
@@ -78,7 +78,7 @@ export interface TimboMatch {
   show_result?: number;
 }
 
-export interface TimboZone {
+export interface ITimboZone {
   id: number;
   name: string;
 }
@@ -91,9 +91,9 @@ export async function timboFetch(path: string): Promise<unknown> {
 }
 
 /** Partidos de una zona (categoría) en una ronda. Devuelve [] si no hay. */
-export async function getZoneMatches(zoneId: number, round: number): Promise<TimboMatch[]> {
+export async function getZoneMatches(zoneId: number, round: number): Promise<ITimboMatch[]> {
   const url = `/embeded/editions/${TIMBO_EDITION_ID}/fixtures/${zoneId}?round=${round}`;
-  const json = (await timboFetch(url)) as { matches?: TimboMatch[] } | null;
+  const json = (await timboFetch(url)) as { matches?: ITimboMatch[] } | null;
   if (!json || !Array.isArray(json.matches)) return [];
   return json.matches.filter((m) => m && typeof m.id === "number");
 }
@@ -109,7 +109,7 @@ export function norm(name?: string | null): string {
 }
 
 /** ¿El partido involucra al club José Hernández? */
-export function involvesClub(m: TimboMatch): boolean {
+export function involvesClub(m: ITimboMatch): boolean {
   return m.positions.some((p) => norm(p.roster?.team?.name).startsWith("JOSE HERNANDEZ"));
 }
 
@@ -118,8 +118,8 @@ export function involvesClub(m: TimboMatch): boolean {
  * TIMBO real del club ("JOSÉ HERNÁNDEZ A/C/NEGRO..."), no el nombre del Team
  * en nuestra BD (ej. "C20" vs "JOSE HERNÁNDEZ A").
  */
-export function clubInfoFromMatch(m: TimboMatch): { isHome: boolean; rival: string } {
-  const isClub = (p: TimboPosition) => norm(p.roster?.team?.name).startsWith("JOSE HERNANDEZ");
+export function clubInfoFromMatch(m: ITimboMatch): { isHome: boolean; rival: string } {
+  const isClub = (p: ITimboPosition) => norm(p.roster?.team?.name).startsWith("JOSE HERNANDEZ");
   const clubIdx = m.positions.findIndex(isClub);
   if (clubIdx === -1) return { isHome: false, rival: "Por confirmar" };
   const rivalIdx = clubIdx === 0 ? 1 : 0;
@@ -133,11 +133,11 @@ export function clubInfoFromMatch(m: TimboMatch): { isHome: boolean; rival: stri
  * partido no está cerrado o TIMBO no publica el resultado todavía
  * (goals puede venir como [2] o [] durante el desarrollo del partido).
  */
-export function resultFromMatch(m: TimboMatch): { clubGoals: number; rivalGoals: number } | null {
+export function resultFromMatch(m: ITimboMatch): { clubGoals: number; rivalGoals: number } | null {
   if (!m.closed || m.show_result !== 1) return null;
   const goals = m.goals;
   if (!goals || goals.length < 2) return null;
-  const isClub = (p: TimboPosition) => norm(p.roster?.team?.name).startsWith("JOSE HERNANDEZ");
+  const isClub = (p: ITimboPosition) => norm(p.roster?.team?.name).startsWith("JOSE HERNANDEZ");
   const clubIdx = m.positions.findIndex(isClub);
   if (clubIdx === -1) return null;
   const rivalIdx = clubIdx === 0 ? 1 : 0;
@@ -154,7 +154,7 @@ export function resultFromMatch(m: TimboMatch): { clubGoals: number; rivalGoals:
 // El nombre devuelto es el nombre del Team en nuestra BD.
 // ------------------------------------------------------------
 
-export interface ClubZoneMapping {
+export interface IClubZoneMapping {
   /** zoneId de la categoría en TIMBO (de la edición activa) */
   categoryZone: number;
   /** nombre de la categoría en TIMBO (solo logging) */
@@ -163,7 +163,7 @@ export interface ClubZoneMapping {
   teams: Array<{ timboName: string; clubTeamName: string }>;
 }
 
-export const CLUB_ZONES: ClubZoneMapping[] = [
+export const CLUB_ZONES: IClubZoneMapping[] = [
   { categoryZone: 988433371, timboCategoryName: "C11", teams: [{ timboName: "JOSE HERNANDEZ A", clubTeamName: "C11" }] },
   { categoryZone: 459559666, timboCategoryName: "C13", teams: [{ timboName: "JOSE HERNANDEZ A", clubTeamName: "C13" }] },
   { categoryZone: 1777915026, timboCategoryName: "C15", teams: [{ timboName: "JOSE HERNANDEZ A", clubTeamName: "C15" }] },
@@ -183,7 +183,7 @@ export const CLUB_ZONES: ClubZoneMapping[] = [
 ];
 
 /** Equipo del club que corresponde al partido dado (por nombre TIMBO), o null. */
-export function clubTeamForMatch(m: TimboMatch, zoneCfg: ClubZoneMapping): string | null {
+export function clubTeamForMatch(m: ITimboMatch, zoneCfg: IClubZoneMapping): string | null {
   for (const t of zoneCfg.teams) {
     // El partido es del club si algún equipo del partido matchea el nombre TIMBO.
     // Se toma el del home (positions[0]) en el clásico JH C vs JH NEGRO.

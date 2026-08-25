@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { prisma, getJwtSecret, JWT_EXPIRES_IN } from "../config.js";
-import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import { requireAuth, requireAdmin } from "../middlewares/auth.js";
 
 const router = Router();
 

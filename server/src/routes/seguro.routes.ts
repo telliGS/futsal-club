@@ -4,7 +4,7 @@
 
 import { Router } from "express";
 import { prisma } from "../config.js";
-import { requireAuth, requireAdmin, canAccessTeam } from "../middleware/auth.js";
+import { requireAuth, requireAdmin, canAccessTeam } from "../middlewares/auth.js";
 
 const router = Router();
 

@@ -4,7 +4,7 @@
 
 import { Router, Request, Response } from "express";
 import { prisma } from "../config.js";
-import { requireAuth, requireAdmin, canAccessTeam } from "../middleware/auth.js";
+import { requireAuth, requireAdmin, canAccessTeam } from "../middlewares/auth.js";
 import { calcularEstadoGym } from "../lib/gym.js";
 import { calcularEstadoCuota } from "../lib/cuota.js";
 

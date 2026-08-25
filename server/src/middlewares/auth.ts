@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { prisma, getJwtSecret } from "../config.js";
 
-export interface AuthUser {
+export interface IAuthUser {
   id: string;
   fullName: string;
   email: string;
@@ -12,7 +12,7 @@ export interface AuthUser {
 declare global {
   namespace Express {
     interface Request {
-      user?: AuthUser;
+      user?: IAuthUser;
     }
   }
 }
@@ -24,7 +24,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ success: false, error: "Token requerido" });
   }
   try {
-    const payload = jwt.verify(header.slice(7), getJwtSecret()) as AuthUser;
+    const payload = jwt.verify(header.slice(7), getJwtSecret()) as IAuthUser;
     req.user = payload;
     next();
   } catch {

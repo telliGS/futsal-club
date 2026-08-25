@@ -3,12 +3,12 @@
 // (deadline, por defecto 10). Desde el día siguiente sin pagar el mes en
 // curso → el jugador es DEUDOR y NO tiene permiso de jugar (hasta regularizar).
 
-export interface PagoLike {
+export interface IPagoLike {
   month: string; // YYYY-MM
   paid: boolean;
 }
 
-export interface EstadoCuota {
+export interface IEstadoCuota {
   deudor: boolean; // no puede jugar
   alDia: boolean; // mes actual pago y sin deuda previa
   pendiente: boolean; // dentro de los primeros 10 días y aún no pagó
@@ -24,10 +24,10 @@ function mesKey(d: Date): string {
 export const DIA_CORTE = 10;
 
 export function calcularEstadoCuota(
-  payments: PagoLike[],
+  payments: IPagoLike[],
   now: Date = new Date(),
   opts: { congelarDesde?: string; deadline?: number } = {}
-): EstadoCuota {
+): IEstadoCuota {
   const { congelarDesde } = opts;
   // Día límite del jugador: por defecto 10, pero cada jugador puede tener uno
   // propio (Player.deadline). Se valida 1..31 con fallback a 10.

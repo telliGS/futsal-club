@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../config.js";
-import { requireAuth, requireAdmin, canAccessTeam } from "../middleware/auth.js";
+import { requireAuth, requireAdmin, canAccessTeam } from "../middlewares/auth.js";
 import { weekendWindowArg, ARG_TZ_OFFSET_MS } from "../lib/timbo.js";
 
 const router = Router();

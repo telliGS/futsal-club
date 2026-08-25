@@ -94,13 +94,13 @@ export function vencimientoPorRegla(
 
 export type EstadoFicha = "VIGENTE" | "PROXIMO_A_VENCER" | "VENCIDO" | "SIN_CARGAR";
 
-export interface DocumentoFicha {
+export interface IDocumentoFicha {
   tipo: TipoDocumento | string;
   fechaVencimiento?: Date | string | null;
 }
 
 /** Estado de un tipo de documento según su vencimiento frente al día de hoy. */
-export function estadoDocumento(doc: DocumentoFicha | undefined, now: Date): EstadoFicha {
+export function estadoDocumento(doc: IDocumentoFicha | undefined, now: Date): EstadoFicha {
   if (!doc) return "SIN_CARGAR";
   const vence = doc.fechaVencimiento ? new Date(doc.fechaVencimiento) : null;
   if (!vence) return "VIGENTE"; // sin fecha = referencia permanente
@@ -121,15 +121,15 @@ export function labelTipo(t: string): string {
   }
 }
 
-export interface EstadoUnTipo {
+export interface IEstadoUnTipo {
   tipo: TipoDocumento;
   estado: EstadoFicha;
   vence?: string | null; // ISO de la fecha que manda
   hayDoc: boolean;
 }
 
-export interface EstadoDocumentos {
-  porTipo: Record<TipoDocumento, EstadoUnTipo>;
+export interface IEstadoDocumentos {
+  porTipo: Record<TipoDocumento, IEstadoUnTipo>;
   /** true si todos los bloqueantes de la categoría están en orden */
   aptoFichas: boolean;
   /** bloqueantes en falta: VENCIDO o SIN_CARGAR (según categoría) */
@@ -147,15 +147,15 @@ export interface EstadoDocumentos {
  * categoria define qué tipos bloquean (mayores → ergo, menores → electro).
  */
 export function calcularDocumentos(
-  docs: DocumentoFicha[],
+  docs: IDocumentoFicha[],
   now = new Date(),
   categoria?: string | Array<string | null | undefined> | null
-): EstadoDocumentos {
-  const porTipo: Record<TipoDocumento, EstadoUnTipo> = {} as Record<TipoDocumento, EstadoUnTipo>;
+): IEstadoDocumentos {
+  const porTipo: Record<TipoDocumento, IEstadoUnTipo> = {} as Record<TipoDocumento, IEstadoUnTipo>;
 
   for (const t of TIPOS_DOCUMENTO) {
     const delTipo = docs.filter((d) => d.tipo === t);
-    let vigente: DocumentoFicha | undefined;
+    let vigente: IDocumentoFicha | undefined;
     if (delTipo.length > 0) {
       // la fecha más lejana manda (renovaciones); sin fecha → último subido
       vigente = [...delTipo].sort((a, b) => {
@@ -203,7 +203,7 @@ export function calcularDocumentos(
  */
 export function aptoParaJugar(
   cuotaPuedeJugar: boolean,
-  docs: EstadoDocumentos,
+  docs: IEstadoDocumentos,
 ): { puedeJugar: boolean; razones: string[] } {
   const razones: string[] = [];
   if (!cuotaPuedeJugar) razones.push("cuota adeudada");

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../config.js";
-import { requireAuth, canAccessTeam } from "../middleware/auth.js";
+import { requireAuth, canAccessTeam } from "../middlewares/auth.js";
 import { buildTemplateWorkbook, parseWorkbook, importFila, TEMPLATE_MAX_BYTES } from "../lib/import.js";
 import { registrarAvisoSeguro } from "../lib/seguro.js";
 

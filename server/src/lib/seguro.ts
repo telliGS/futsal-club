@@ -6,7 +6,7 @@ import { prisma } from "../config.js";
 
 export type AvisoTipo = "ALTA" | "BAJA";
 
-export interface DatosAviso {
+export interface IDatosAviso {
   playerId: string;
   tipo: AvisoTipo;
   creadoPorId: string;
@@ -28,7 +28,7 @@ export async function registrarAvisoSeguro({
   creadoPorId,
   teamId,
   snapshot,
-}: DatosAviso): Promise<void> {
+}: IDatosAviso): Promise<void> {
   const pendiente = await prisma.avisoSeguro.findFirst({
     where: { playerId, tipo, resueltoAt: null },
   });
