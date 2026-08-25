@@ -191,14 +191,14 @@ export async function runTimboSync(now = new Date()): Promise<{
 router.post("/timbo", async (req, res) => {
   const token = (req.headers["x-timbo-sync-token"] as string) ?? (req.body?.token as string | undefined);
   if (!SYNC_TOKEN || token !== SYNC_TOKEN) {
-    return res.status(401).json({ error: "Token inválido" });
+    return res.status(401).json({ success: false, error: "Token inválido" });
   }
   try {
     const result = await runTimboSync();
     res.json(result);
   } catch (e) {
     console.error("Sync TIMBO falló:", e);
-    res.status(500).json({ error: "Sync TIMBO falló", detail: (e as Error).message });
+    res.status(500).json({ success: false, error: "Sync TIMBO falló", detail: (e as Error).message });
   }
 });
 

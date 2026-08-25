@@ -79,12 +79,12 @@ router.get("/slots", requireAuth, async (_req, res) => {
 router.post("/slots", requireAuth, requireAdminOrDelegado, async (req, res) => {
   const parsed = slotSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
+    return res.status(400).json({ success: false, error: "Datos inválidos", details: parsed.error.issues });
   }
   const { teamId, ...rest } = parsed.data;
   const delegateError = await delegateTeamAccessError(req, teamId ?? null);
   if (delegateError) {
-    return res.status(403).json({ error: delegateError });
+    return res.status(403).json({ success: false, error: delegateError });
   }
   const slot = await prisma.poliSlot.create({
     data: { ...rest, teamId: teamId ?? null },
@@ -97,17 +97,17 @@ router.post("/slots", requireAuth, requireAdminOrDelegado, async (req, res) => {
 router.patch("/slots/:id", requireAuth, requireAdminOrDelegado, async (req, res) => {
   const parsed = slotSchema.partial().safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
+    return res.status(400).json({ success: false, error: "Datos inválidos", details: parsed.error.issues });
   }
   const { teamId, ...rest } = parsed.data;
   const existing = await prisma.poliSlot.findUnique({ where: { id: req.params.id }, select: { teamId: true } });
   if (!existing) {
-    return res.status(404).json({ error: "Slot no encontrado" });
+    return res.status(404).json({ success: false, error: "Slot no encontrado" });
   }
   const updatedTeamId = teamId === undefined ? existing.teamId : teamId;
   const delegateError = await delegateTeamAccessError(req, updatedTeamId ?? null);
   if (delegateError) {
-    return res.status(403).json({ error: delegateError });
+    return res.status(403).json({ success: false, error: delegateError });
   }
   const slot = await prisma.poliSlot.update({
     where: { id: req.params.id },
@@ -121,11 +121,11 @@ router.patch("/slots/:id", requireAuth, requireAdminOrDelegado, async (req, res)
 router.delete("/slots/:id", requireAuth, requireAdminOrDelegado, async (req, res) => {
   const existing = await prisma.poliSlot.findUnique({ where: { id: req.params.id }, select: { teamId: true } });
   if (!existing) {
-    return res.status(404).json({ error: "Slot no encontrado" });
+    return res.status(404).json({ success: false, error: "Slot no encontrado" });
   }
   const delegateError = await delegateTeamAccessError(req, existing.teamId ?? null);
   if (delegateError) {
-    return res.status(403).json({ error: delegateError });
+    return res.status(403).json({ success: false, error: delegateError });
   }
   await prisma.poliSlot.delete({ where: { id: req.params.id } });
   res.json({ ok: true });
@@ -155,13 +155,13 @@ router.get("/exceptions", requireAuth, async (req, res) => {
 router.post("/exceptions", requireAuth, requireAdminOrDelegado, async (req, res) => {
   const parsed = exceptionSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
+    return res.status(400).json({ success: false, error: "Datos inválidos", details: parsed.error.issues });
   }
   const { date, slotId, teamId, ...rest } = parsed.data;
   const effectiveTeamId = await resolveExceptionTeamId({ slotId, teamId });
   const delegateError = await delegateTeamAccessError(req, effectiveTeamId);
   if (delegateError) {
-    return res.status(403).json({ error: delegateError });
+    return res.status(403).json({ success: false, error: delegateError });
   }
   const ex = await prisma.poliException.create({
     data: { ...rest, date: dateUTC(date), slotId: slotId ?? null, teamId: teamId ?? null },
@@ -177,20 +177,20 @@ router.post("/exceptions", requireAuth, requireAdminOrDelegado, async (req, res)
 router.patch("/exceptions/:id", requireAuth, requireAdminOrDelegado, async (req, res) => {
   const parsed = exceptionSchema.partial().safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
+    return res.status(400).json({ success: false, error: "Datos inválidos", details: parsed.error.issues });
   }
   const existing = await prisma.poliException.findUnique({
     where: { id: req.params.id },
     select: { slotId: true, teamId: true },
   });
   if (!existing) {
-    return res.status(404).json({ error: "Excepción no encontrada" });
+    return res.status(404).json({ success: false, error: "Excepción no encontrada" });
   }
   const { date, slotId, teamId, ...rest } = parsed.data;
   const effectiveTeamId = await resolveExceptionTeamId({ slotId, teamId }, existing);
   const delegateError = await delegateTeamAccessError(req, effectiveTeamId);
   if (delegateError) {
-    return res.status(403).json({ error: delegateError });
+    return res.status(403).json({ success: false, error: delegateError });
   }
   const ex = await prisma.poliException.update({
     where: { id: req.params.id },
@@ -215,12 +215,12 @@ router.delete("/exceptions/:id", requireAuth, requireAdminOrDelegado, async (req
     select: { slotId: true, teamId: true },
   });
   if (!existing) {
-    return res.status(404).json({ error: "Excepción no encontrada" });
+    return res.status(404).json({ success: false, error: "Excepción no encontrada" });
   }
   const effectiveTeamId = await resolveExceptionTeamId(existing, existing);
   const delegateError = await delegateTeamAccessError(req, effectiveTeamId);
   if (delegateError) {
-    return res.status(403).json({ error: delegateError });
+    return res.status(403).json({ success: false, error: delegateError });
   }
   await prisma.poliException.delete({ where: { id: req.params.id } });
   res.json({ ok: true });
@@ -236,7 +236,7 @@ router.get("/week", requireAuth, async (req, res) => {
   const from = (req.query.from as string) || dayStr(new Date());
   const to = (req.query.to as string) || from;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
-    return res.status(400).json({ error: "from/to deben ser YYYY-MM-DD" });
+    return res.status(400).json({ success: false, error: "from/to deben ser YYYY-MM-DD" });
   }
   res.json(await buildSemana(from, to));
 });

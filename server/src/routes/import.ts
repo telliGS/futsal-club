@@ -10,9 +10,9 @@ const router = Router();
 // GET /api/teams/:teamId/template — descarga la plantilla xlsx
 router.get("/:teamId/template", requireAuth, async (req, res) => {
   const team = await prisma.team.findUnique({ where: { id: req.params.teamId } });
-  if (!team) return res.status(404).json({ error: "Equipo no encontrado" });
+  if (!team) return res.status(404).json({ success: false, error: "Equipo no encontrado" });
   if (!(await canAccessTeam(req.user!.id, team.id))) {
-    return res.status(403).json({ error: "No tenés acceso a este equipo" });
+    return res.status(403).json({ success: false, error: "No tenés acceso a este equipo" });
   }
 
   const wb = await buildTemplateWorkbook();
@@ -27,9 +27,9 @@ router.get("/:teamId/template", requireAuth, async (req, res) => {
 // POST /api/teams/:teamId/import — sube el xlsx con el plantel y lo aplica (idempotente por DNI)
 router.post("/:teamId/import", requireAuth, async (req, res) => {
   const team = await prisma.team.findUnique({ where: { id: req.params.teamId } });
-  if (!team) return res.status(404).json({ error: "Equipo no encontrado" });
+  if (!team) return res.status(404).json({ success: false, error: "Equipo no encontrado" });
   if (!(await canAccessTeam(req.user!.id, team.id))) {
-    return res.status(403).json({ error: "No tienes acceso a este equipo" });
+    return res.status(403).json({ success: false, error: "No tienes acceso a este equipo" });
   }
 
   const schema = z.object({
@@ -37,14 +37,14 @@ router.post("/:teamId/import", requireAuth, async (req, res) => {
     fileName: z.string().optional(),
   });
   const parsed = schema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Faltan datos del archivo" });
+  if (!parsed.success) return res.status(400).json({ success: false, error: "Faltan datos del archivo" });
 
   const buf = Buffer.from(parsed.data.dataBase64, "base64");
-  if (buf.length === 0) return res.status(400).json({ error: "El archivo está vacío" });
+  if (buf.length === 0) return res.status(400).json({ success: false, error: "El archivo está vacío" });
   if (buf.length > TEMPLATE_MAX_BYTES) {
     return res
       .status(400)
-      .json({ error: `El archivo supera el máximo de 5 MB (son ${(buf.length / 1024 / 1024).toFixed(1)} MB)` });
+      .json({ success: false, error: `El archivo supera el máximo de 5 MB (son ${(buf.length / 1024 / 1024).toFixed(1)} MB)` });
   }
 
   let filas;
@@ -54,7 +54,7 @@ router.post("/:teamId/import", requireAuth, async (req, res) => {
   } catch {
     return res
       .status(400)
-      .json({ error: "No se pudo leer el archivo. ¿Es un .xlsx generado desde la plantilla?" });
+      .json({ success: false, error: "No se pudo leer el archivo. ¿Es un .xlsx generado desde la plantilla?" });
   }
 
   const errores: Array<{ fila: number; motivo: string }> = [];

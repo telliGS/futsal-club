@@ -56,12 +56,12 @@ router.get("/seguro/lista", requireAuth, async (req, res) => {
   const teamId = String(req.query.teamId ?? "");
 
   if (scope === "club" && req.user!.role !== "ADMIN") {
-    return res.status(403).json({ error: "La lista del club completo es solo para administradores" });
+    return res.status(403).json({ success: false, error: "La lista del club completo es solo para administradores" });
   }
   if (scope === "teamId") {
-    if (!teamId) return res.status(400).json({ error: "Falta el equipo (teamId)" });
+    if (!teamId) return res.status(400).json({ success: false, error: "Falta el equipo (teamId)" });
     if (!(await canAccessTeam(req.user!.id, teamId))) {
-      return res.status(403).json({ error: "No tenés acceso a este equipo" });
+      return res.status(403).json({ success: false, error: "No tenés acceso a este equipo" });
     }
   }
 

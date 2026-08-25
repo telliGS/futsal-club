@@ -2,7 +2,7 @@
 // + avisos de altas/bajas, y pagos mensuales del gym por jugador (discriminados
 // igual que la cuota, con monto real + detalle).
 
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { prisma } from "../config.js";
 import { requireAuth, requireAdmin, canAccessTeam } from "../middleware/auth.js";
 import { calcularEstadoGym } from "../lib/gym.js";
@@ -40,7 +40,7 @@ router.get("/gym/config", requireAuth, async (_req, res) => {
 router.put("/gym/config", requireAdmin, async (req, res) => {
   const precio = Number(req.body?.precio);
   if (!Number.isFinite(precio) || precio < 0) {
-    return res.status(400).json({ error: "Ingresá un precio válido (mayor o igual a 0)" });
+    return res.status(400).json({ success: false, error: "Ingresá un precio válido (mayor o igual a 0)" });
   }
   const cfg = await prisma.gymConfig.upsert({
     where: { id: "global" },
@@ -88,12 +88,12 @@ router.get("/gym/lista", requireAuth, async (req, res) => {
   const mes = MES_RE.test(rawMes) ? rawMes : new Date().toISOString().slice(0, 7);
 
   if (scope === "club" && req.user!.role !== "ADMIN") {
-    return res.status(403).json({ error: "La lista del club completo es solo para administradores" });
+    return res.status(403).json({ success: false, error: "La lista del club completo es solo para administradores" });
   }
   if (scope === "teamId") {
-    if (!teamId) return res.status(400).json({ error: "Falta el equipo (teamId)" });
+    if (!teamId) return res.status(400).json({ success: false, error: "Falta el equipo (teamId)" });
     if (!(await canAccessTeam(req.user!.id, teamId))) {
-      return res.status(403).json({ error: "No tenés acceso a este equipo" });
+      return res.status(403).json({ success: false, error: "No tenés acceso a este equipo" });
     }
   }
 
@@ -218,11 +218,11 @@ router.get("/gym/lista", requireAuth, async (req, res) => {
 });
 
 // Acceso del usuario a TODOS los equipos del jugador (igual que cuotas).
-async function checkPlayerAccess(req: any, res: any, playerId: string): Promise<boolean> {
+async function checkPlayerAccess(req: Request, res: Response, playerId: string): Promise<boolean> {
   const links = await prisma.playerTeam.findMany({ where: { playerId } });
   for (const l of links) {
     if (!(await canAccessTeam(req.user!.id, l.teamId))) {
-      res.status(403).json({ error: "No tenés acceso a este jugador" });
+      res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
       return false;
     }
   }
@@ -233,14 +233,14 @@ async function checkPlayerAccess(req: any, res: any, playerId: string): Promise<
 // Registra/actualiza el pago del gym del mes (paid + monto real + detalle).
 router.post("/gym/players/:id/pagos/:month", requireAuth, async (req, res) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
   if (!(await checkPlayerAccess(req, res, player.id))) return;
 
   const { month } = req.params;
-  if (!MES_RE.test(month)) return res.status(400).json({ error: "Formato de mes inválido. Usá YYYY-MM" });
+  if (!MES_RE.test(month)) return res.status(400).json({ success: false, error: "Formato de mes inválido. Usá YYYY-MM" });
   const mesActual = new Date().toISOString().slice(0, 7);
   if (month > mesActual) {
-    return res.status(400).json({ error: `No se puede registrar el mes ${month}: todavía no llegó (mes actual: ${mesActual})` });
+    return res.status(400).json({ success: false, error: `No se puede registrar el mes ${month}: todavía no llegó (mes actual: ${mesActual})` });
   }
 
   const paid = Boolean(req.body?.paid);
@@ -259,11 +259,11 @@ router.post("/gym/players/:id/pagos/:month", requireAuth, async (req, res) => {
 // ---------- DELETE /api/gym/players/:id/pagos/:month — pone el mes en NULO ----------
 router.delete("/gym/players/:id/pagos/:month", requireAuth, async (req, res) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
   if (!(await checkPlayerAccess(req, res, player.id))) return;
 
   const { month } = req.params;
-  if (!MES_RE.test(month)) return res.status(400).json({ error: "Formato de mes inválido. Usá YYYY-MM" });
+  if (!MES_RE.test(month)) return res.status(400).json({ success: false, error: "Formato de mes inválido. Usá YYYY-MM" });
 
   await prisma.gymPayment.deleteMany({ where: { playerId: player.id, month } });
   res.json({ removed: true });

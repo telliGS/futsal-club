@@ -13,7 +13,7 @@ router.get("/status", async (req, res) => {
   const schema = z.object({ document: z.string().min(6) });
   const parsed = schema.safeParse(req.query);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Ingresá un DNI válido" });
+    return res.status(400).json({ success: false, error: "Ingresá un DNI válido" });
   }
   const { document } = parsed.data;
 
@@ -25,7 +25,7 @@ router.get("/status", async (req, res) => {
       documentos: { select: { tipo: true, fechaVencimiento: true } },
     },
   });
-  if (!player) return res.status(404).json({ error: "No se encontró ningún jugador con ese DNI" });
+  if (!player) return res.status(404).json({ success: false, error: "No se encontró ningún jugador con ese DNI" });
 
   // Equipos donde la persona es JUGADOR (los vínculos de técnico/delegado
   // no definen cuota ni ficha). Si no juega en ninguno (puro técnico/DT),

@@ -34,6 +34,6 @@ app.use("/api/poli", poliRoutes);
 app.use("/api", seguroRoutes);
 app.use("/api", gymRoutes);
 
-app.use((_req, res) => res.status(404).json({ error: "Ruta no encontrada" }));
+app.use((_req, res) => res.status(404).json({ success: false, error: "Ruta no encontrada" }));
 
 export default app;

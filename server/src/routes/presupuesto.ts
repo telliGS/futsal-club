@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { prisma } from "../config.js";
 import { requireAuth, canAccessTeam } from "../middleware/auth.js";
@@ -10,14 +10,14 @@ const router = Router();
 
 const MES_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-async function verificarAcceso(req: any, res: any): Promise<boolean> {
+async function verificarAcceso(req: Request, res: Response): Promise<boolean> {
   const team = await prisma.team.findUnique({ where: { id: req.params.teamId } });
   if (!team) {
-    res.status(404).json({ error: "Equipo no encontrado" });
+    res.status(404).json({ success: false, error: "Equipo no encontrado" });
     return false;
   }
   if (!(await canAccessTeam(req.user!.id, team.id))) {
-    res.status(403).json({ error: "No tenés acceso a este equipo" });
+    res.status(403).json({ success: false, error: "No tenés acceso a este equipo" });
     return false;
   }
   return true;
@@ -108,7 +108,7 @@ router.put("/:teamId/quota", requireAuth, async (req, res) => {
     quota: z.number().min(0).nullable(),
   });
   const parsed = schema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Ingresá un monto de cuota válido" });
+  if (!parsed.success) return res.status(400).json({ success: false, error: "Ingresá un monto de cuota válido" });
   await prisma.team.update({
     where: { id: req.params.teamId },
     data: { quota: parsed.data.quota },
@@ -124,7 +124,7 @@ router.post("/:teamId/gastos/fijos", requireAuth, async (req, res) => {
     monto: z.number().min(0),
   });
   const parsed = schema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Datos inválidos" });
+  if (!parsed.success) return res.status(400).json({ success: false, error: "Datos inválidos" });
   const g = await prisma.gastoFijo.create({
     data: { teamId: req.params.teamId, nombre: parsed.data.nombre.trim(), monto: parsed.data.monto },
   });
@@ -137,7 +137,7 @@ router.delete("/:teamId/gastos/fijos/:id", requireAuth, async (req, res) => {
   const exists = await prisma.gastoFijo.findFirst({
     where: { id: req.params.id, teamId: req.params.teamId },
   });
-  if (!exists) return res.status(404).json({ error: "Gasto no encontrado" });
+  if (!exists) return res.status(404).json({ success: false, error: "Gasto no encontrado" });
   await prisma.gastoFijo.delete({ where: { id: exists.id } });
   res.json({ ok: true });
 });
@@ -151,7 +151,7 @@ router.post("/:teamId/gastos/extras", requireAuth, async (req, res) => {
     monto: z.number().min(0),
   });
   const parsed = schema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Datos inválidos" });
+  if (!parsed.success) return res.status(400).json({ success: false, error: "Datos inválidos" });
   const g = await prisma.gastoExtra.create({
     data: { teamId: req.params.teamId, mes: parsed.data.mes, nombre: parsed.data.nombre.trim(), monto: parsed.data.monto },
   });
@@ -164,7 +164,7 @@ router.delete("/:teamId/gastos/extras/:id", requireAuth, async (req, res) => {
   const exists = await prisma.gastoExtra.findFirst({
     where: { id: req.params.id, teamId: req.params.teamId },
   });
-  if (!exists) return res.status(404).json({ error: "Gasto no encontrado" });
+  if (!exists) return res.status(404).json({ success: false, error: "Gasto no encontrado" });
   await prisma.gastoExtra.delete({ where: { id: exists.id } });
   res.json({ ok: true });
 });
@@ -307,7 +307,8 @@ router.get("/presupuesto/total", requireAuth, async (req, res) => {
   }
   // Quito el detalle interno por equipo
   for (const e of porEquipo) {
-    delete (e as any).recaudadoPorMes;
+    const { recaudadoPorMes: _, ...rest } = e as typeof e & { recaudadoPorMes?: unknown };
+    Object.assign(e, rest);
   }
 
   // --- Gimnasio: gasto variable por jugador que va (vaAlGym, activo o con

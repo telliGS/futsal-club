@@ -22,15 +22,15 @@ const updateCredentialsSchema = z.object({
 router.post("/login", async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Email o contraseña inválidos" });
+    return res.status(400).json({ success: false, error: "Email o contraseña inválidos" });
   }
   const { email, password } = parsed.data;
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !user.active) {
-    return res.status(401).json({ error: "Credenciales incorrectas" });
+    return res.status(401).json({ success: false, error: "Credenciales incorrectas" });
   }
   const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) return res.status(401).json({ error: "Credenciales incorrectas" });
+  if (!ok) return res.status(401).json({ success: false, error: "Credenciales incorrectas" });
 
   const token = jwt.sign(
     { id: user.id, fullName: user.fullName, email: user.email, role: user.role },
@@ -47,7 +47,7 @@ router.get("/me", requireAuth, async (req, res) => {
     where: { id: req.user!.id },
     include: { teamAccess: { include: { team: true } } },
   });
-  if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+  if (!user) return res.status(404).json({ success: false, error: "Usuario no encontrado" });
   const teams = user.role === "ADMIN"
     ? await prisma.team.findMany({ orderBy: { name: "asc" } })
     : user.teamAccess.map((a) => a.team);
@@ -74,11 +74,11 @@ const createDelegadoSchema = z.object({
 router.post("/delegados", requireAuth, requireAdmin, async (req, res) => {
   const parsed = createDelegadoSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
+    return res.status(400).json({ success: false, error: "Datos inválidos", details: parsed.error.issues });
   }
   const { fullName, email, password, role, teamIds } = parsed.data;
   if (role === "DELEGADO" && (!teamIds || teamIds.length === 0)) {
-    return res.status(400).json({ error: "Asignale al menos un equipo al delegado" });
+    return res.status(400).json({ success: false, error: "Asignale al menos un equipo al delegado" });
   }
   const hash = await bcrypt.hash(password, 10);
   try {
@@ -98,7 +98,7 @@ router.post("/delegados", requireAuth, requireAdmin, async (req, res) => {
     });
     res.status(201).json({ id: user.id, fullName: user.fullName, email: user.email, role: user.role });
   } catch {
-    res.status(409).json({ error: "Ese email ya existe" });
+    res.status(409).json({ success: false, error: "Ese email ya existe" });
   }
 });
 
@@ -109,12 +109,12 @@ router.post("/delegados", requireAuth, requireAdmin, async (req, res) => {
 router.patch("/me/credentials", requireAuth, async (req, res) => {
   const parsed = updateCredentialsSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
+    return res.status(400).json({ success: false, error: "Datos inválidos", details: parsed.error.issues });
   }
 
   const { email, password, currentPassword } = parsed.data;
   const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-  if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+  if (!user) return res.status(404).json({ success: false, error: "Usuario no encontrado" });
 
   if (user.role !== "ADMIN" && !user.canChangeCredentials) {
     return res.status(403).json({
@@ -124,18 +124,18 @@ router.patch("/me/credentials", requireAuth, async (req, res) => {
 
   if (password) {
     if (!currentPassword) {
-      return res.status(400).json({ error: "Debes enviar la contraseña actual para cambiarla" });
+      return res.status(400).json({ success: false, error: "Debes enviar la contraseña actual para cambiarla" });
     }
     const ok = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!ok) {
-      return res.status(401).json({ error: "La contraseña actual no es correcta" });
+      return res.status(401).json({ success: false, error: "La contraseña actual no es correcta" });
     }
   }
 
   if (email && email !== user.email) {
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) {
-      return res.status(409).json({ error: "Ese email ya está en uso" });
+      return res.status(409).json({ success: false, error: "Ese email ya está en uso" });
     }
   }
 
@@ -170,22 +170,22 @@ router.patch("/delegados/:id", requireAuth, requireAdmin, async (req, res) => {
   }).safeParse(req.body);
 
   if (!parsed.success) {
-    return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
+    return res.status(400).json({ success: false, error: "Datos inválidos", details: parsed.error.issues });
   }
 
   const { fullName, email, password, role, teamIds, active, canChangeCredentials } = parsed.data;
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) {
-    return res.status(404).json({ error: "Usuario no encontrado" });
+    return res.status(404).json({ success: false, error: "Usuario no encontrado" });
   }
   if (user.role === "ADMIN" && user.id === req.user!.id) {
-    return res.status(400).json({ error: "No podés modificar tu propia cuenta de administrador" });
+    return res.status(400).json({ success: false, error: "No podés modificar tu propia cuenta de administrador" });
   }
 
   if (email && email !== user.email) {
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) {
-      return res.status(409).json({ error: "Ese email ya está en uso" });
+      return res.status(409).json({ success: false, error: "Ese email ya está en uso" });
     }
   }
 
@@ -245,10 +245,10 @@ router.delete("/delegados/:id", requireAuth, requireAdmin, async (req, res) => {
   const id = req.params.id;
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user || (user.role !== "DELEGADO" && user.role !== "ADMIN")) {
-    return res.status(404).json({ error: "Usuario no encontrado" });
+    return res.status(404).json({ success: false, error: "Usuario no encontrado" });
   }
   if (user.id === req.user!.id) {
-    return res.status(400).json({ error: "No podés eliminar tu propia cuenta de administrador" });
+    return res.status(400).json({ success: false, error: "No podés eliminar tu propia cuenta de administrador" });
   }
   // userTeamAccess se borra en cascada (relación onDelete: Cascade)
   await prisma.user.delete({ where: { id } });

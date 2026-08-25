@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { prisma } from "../config.js";
 import { requireAuth, canAccessTeam } from "../middleware/auth.js";
@@ -15,7 +15,7 @@ const router = Router();
 router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
   const { teamId } = req.params;
   const can = await canAccessTeam(req.user!.id, teamId);
-  if (!can) return res.status(403).json({ error: "No tenés acceso a este equipo" });
+  if (!can) return res.status(403).json({ success: false, error: "No tenés acceso a este equipo" });
 
   const team = await prisma.team.findUnique({ where: { id: teamId }, select: { category: true, type: true } });
   const tipoEquipoActual = team?.type ?? null;
@@ -122,11 +122,11 @@ const createPlayerSchema = z.object({
 router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
   const { teamId } = req.params;
   const can = await canAccessTeam(req.user!.id, teamId);
-  if (!can) return res.status(403).json({ error: "No tenés acceso a este equipo" });
+  if (!can) return res.status(403).json({ success: false, error: "No tenés acceso a este equipo" });
 
   const parsed = createPlayerSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
+    return res.status(400).json({ success: false, error: "Datos inválidos", details: parsed.error.issues });
   }
   const { document, lastName, firstName, birthDate, hasInsurance, vaAlGym, gymPrecio, deadline, role, position, jersey, cuentaPresupuesto } = parsed.data;
 
@@ -218,20 +218,20 @@ router.post("/players/:id/cambiar-primera", requireAuth, async (req, res) => {
   const { id } = req.params;
   const parsed = cambiarPrimeraSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
+    return res.status(400).json({ success: false, error: "Datos inválidos", details: parsed.error.issues });
   }
   const { deTeamId, aTeamId, position, jersey, cuentaPresupuesto } = parsed.data;
-  if (deTeamId === aTeamId) return res.status(400).json({ error: "El jugador ya está en ese equipo" });
+  if (deTeamId === aTeamId) return res.status(400).json({ success: false, error: "El jugador ya está en ese equipo" });
 
   const can = await canAccessTeam(req.user!.id, aTeamId);
-  if (!can) return res.status(403).json({ error: "No tenés acceso a este equipo" });
+  if (!can) return res.status(403).json({ success: false, error: "No tenés acceso a este equipo" });
 
   // coherente con el 409: el jugador debe ser JUGADOR en una PRIMERA distinta del destino
   const origen = await prisma.playerTeam.findFirst({
     where: { playerId: id, role: "JUGADOR", teamId: deTeamId },
   });
   if (!origen) {
-    return res.status(400).json({ error: "El jugador no es JUGADOR en el equipo de origen" });
+    return res.status(400).json({ success: false, error: "El jugador no es JUGADOR en el equipo de origen" });
   }
 
   await prisma.$transaction([
@@ -299,7 +299,7 @@ router.patch("/players/:id/status", requireAuth, async (req, res) => {
   const { id } = req.params;
   const parsed = statusSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Status inválido", details: parsed.error.issues });
+    return res.status(400).json({ success: false, error: "Status inválido", details: parsed.error.issues });
   }
   const { status: nuevo, inactiveSince } = parsed.data;
 
@@ -307,7 +307,7 @@ router.patch("/players/:id/status", requireAuth, async (req, res) => {
     where: { id },
     include: { teams: { select: { teamId: true } }, payments: { orderBy: { month: "desc" }, take: 24 } },
   });
-  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
 
   // acceso: cualquiera de los equipos donde está el jugador
   let acceso = false;
@@ -317,7 +317,7 @@ router.patch("/players/:id/status", requireAuth, async (req, res) => {
       break;
     }
   }
-  if (!acceso) return res.status(403).json({ error: "No tenés acceso a equipos de este jugador" });
+  if (!acceso) return res.status(403).json({ success: false, error: "No tenés acceso a equipos de este jugador" });
 
   if (nuevo === "INACTIVO") {
     // hasta dónde jugó: el mes indicado (o si no, hoy) → primer día del mes
@@ -325,7 +325,7 @@ router.patch("/players/:id/status", requireAuth, async (req, res) => {
     if (inactiveSince && /^\d{4}-\d{2}/.test(inactiveSince)) {
       const mesActual = new Date().toISOString().slice(0, 7);
       if (inactiveSince.slice(0, 7) > mesActual) {
-        return res.status(400).json({ error: `El mes de corte no puede ser futuro (mes actual: ${mesActual})` });
+        return res.status(400).json({ success: false, error: `El mes de corte no puede ser futuro (mes actual: ${mesActual})` });
       }
       desde = new Date(`${inactiveSince.slice(0, 7)}-01T00:00:00Z`);
     } else {
@@ -381,7 +381,7 @@ const updatePlayerSchema = z.object({
 // PATCH /api/players/:id  (body: datos del jugador + opcional teamId para rol/pos/n° del vínculo correcto)
 router.patch("/players/:id", requireAuth, async (req, res) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
 
   // verificar acceso por cualquiera de sus vínculos
   const links = await prisma.playerTeam.findMany({ where: { playerId: player.id } });
@@ -392,10 +392,10 @@ router.patch("/players/:id", requireAuth, async (req, res) => {
       break;
     }
   }
-  if (!allowed) return res.status(403).json({ error: "No tenés acceso a este jugador" });
+  if (!allowed) return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
 
   const parsed = updatePlayerSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Datos inválidos" });
+  if (!parsed.success) return res.status(400).json({ success: false, error: "Datos inválidos" });
 
   const { birthDate, role, position, jersey, cuentaPresupuesto, ...rest } = parsed.data;
   const nuevoStatus = rest.status as string | undefined;
@@ -442,11 +442,11 @@ router.patch("/players/:id", requireAuth, async (req, res) => {
 // DELETE /api/players/:id  (quita del vínculo; si no le queda equipo, borra)
 router.delete("/players/:id", requireAuth, async (req, res) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
   const links = await prisma.playerTeam.findMany({ where: { playerId: player.id } });
   for (const l of links) {
     if (!(await canAccessTeam(req.user!.id, l.teamId))) {
-      return res.status(403).json({ error: "No tenés acceso a este jugador" });
+      return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
     }
   }
   if (links.length === 1) {
@@ -492,11 +492,11 @@ router.delete("/players/:id", requireAuth, async (req, res) => {
 
 // Acceso del usuario a TODOS los equipos del jugador (con uno alcanza... en
 // realidad exige acceso a todos, igual que el POST actual).
-async function checkPlayerAccess(req: any, res: any, playerId: string): Promise<boolean> {
+async function checkPlayerAccess(req: Request, res: Response, playerId: string): Promise<boolean> {
   const links = await prisma.playerTeam.findMany({ where: { playerId } });
   for (const l of links) {
     if (!(await canAccessTeam(req.user!.id, l.teamId))) {
-      res.status(403).json({ error: "No tenés acceso a este jugador" });
+      res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
       return false;
     }
   }
@@ -526,18 +526,18 @@ async function recalcularTrasPago(player: { id: string; status: string; deadline
 // POST /api/players/:id/payments/:month
 router.post("/players/:id/payments/:month", requireAuth, async (req, res) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
   if (!(await checkPlayerAccess(req, res, player.id))) return;
 
   const { month } = req.params;
   if (!/^\d{4}-\d{2}$/.test(month)) {
-    return res.status(400).json({ error: "Formato de mes inválido. Usá YYYY-MM" });
+    return res.status(400).json({ success: false, error: "Formato de mes inválido. Usá YYYY-MM" });
   }
   // No se puede pagar un mes que todavía no llegó (evita "pagos" futuros que
   // rompen la consulta de cuota y el calendario)
   const mesActual = new Date().toISOString().slice(0, 7);
   if (month > mesActual) {
-    return res.status(400).json({ error: `No se puede registrar el mes ${month}: todavía no llegó (mes actual: ${mesActual})` });
+    return res.status(400).json({ success: false, error: `No se puede registrar el mes ${month}: todavía no llegó (mes actual: ${mesActual})` });
   }
   const paid = Boolean(req.body?.paid);
   const amount = typeof req.body?.amount === "number" ? req.body.amount : 0;
@@ -560,12 +560,12 @@ router.post("/players/:id/payments/:month", requireAuth, async (req, res) => {
 // de contar como deuda). Idempotente: si no hay registro, responde ok igual.
 router.delete("/players/:id/payments/:month", requireAuth, async (req, res) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
   if (!(await checkPlayerAccess(req, res, player.id))) return;
 
   const { month } = req.params;
   if (!/^\d{4}-\d{2}$/.test(month)) {
-    return res.status(400).json({ error: "Formato de mes inválido. Usá YYYY-MM" });
+    return res.status(400).json({ success: false, error: "Formato de mes inválido. Usá YYYY-MM" });
   }
 
   await prisma.payment.deleteMany({ where: { playerId: player.id, month } });
@@ -578,11 +578,11 @@ router.delete("/players/:id/payments/:month", requireAuth, async (req, res) => {
 // GET /api/players/:id/payments — historial
 router.get("/players/:id/payments", requireAuth, async (req, res) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
   const links = await prisma.playerTeam.findMany({ where: { playerId: player.id } });
   for (const l of links) {
     if (!(await canAccessTeam(req.user!.id, l.teamId))) {
-      return res.status(403).json({ error: "No tenés acceso a este jugador" });
+      return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
     }
   }
   const payments = await prisma.payment.findMany({
@@ -628,9 +628,9 @@ const uploadDocSchema = z.object({
 // GET /api/players/:id/documents — lista de documentos (sin el archivo) + estado calculado
 router.get("/players/:id/documents", requireAuth, async (req, res) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
   if (!(await canAccessPlayer(req.user!.id, player.id))) {
-    return res.status(403).json({ error: "No tenés acceso a este jugador" });
+    return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
   }
   const docs = await prisma.jugadorDocumento.findMany({
     where: { playerId: player.id },
@@ -650,18 +650,18 @@ router.get("/players/:id/documents", requireAuth, async (req, res) => {
 // POST /api/players/:id/documents — subir documento (data en base64, máx ~2 MB)
 router.post("/players/:id/documents", requireAuth, async (req, res) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
   if (!(await canAccessPlayer(req.user!.id, player.id))) {
-    return res.status(403).json({ error: "No tenés acceso a este jugador" });
+    return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
   }
   const parsed = uploadDocSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
+  if (!parsed.success) return res.status(400).json({ success: false, error: "Datos inválidos", details: parsed.error.issues });
 
   const { tipo, descripcion, fileName, mime, dataBase64, fechaEmision, fechaVencimiento, categoria } = parsed.data;
   const buf = Buffer.from(dataBase64, "base64");
-  if (buf.length === 0) return res.status(400).json({ error: "El archivo está vacío" });
+  if (buf.length === 0) return res.status(400).json({ success: false, error: "El archivo está vacío" });
   if (buf.length > MAX_DOC_BYTES) {
-    return res.status(400).json({ error: `El archivo supera el máximo de 2 MB (son ${(buf.length / 1024 / 1024).toFixed(1)} MB)` });
+    return res.status(400).json({ success: false, error: `El archivo supera el máximo de 2 MB (son ${(buf.length / 1024 / 1024).toFixed(1)} MB)` });
   }
 
   const emision = fechaEmision ? new Date(fechaEmision) : null;
@@ -696,12 +696,12 @@ router.post("/players/:id/documents", requireAuth, async (req, res) => {
 // GET /api/players/:id/documents/:docId/download — descargar el archivo
 router.get("/players/:id/documents/:docId/download", requireAuth, async (req, res) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
   if (!(await canAccessPlayer(req.user!.id, player.id))) {
-    return res.status(403).json({ error: "No tenés acceso a este jugador" });
+    return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
   }
   const doc = await prisma.jugadorDocumento.findUnique({ where: { id: req.params.docId } });
-  if (!doc || doc.playerId !== player.id) return res.status(404).json({ error: "Documento no encontrado" });
+  if (!doc || doc.playerId !== player.id) return res.status(404).json({ success: false, error: "Documento no encontrado" });
 
   res.setHeader("Content-Type", doc.mime);
   res.setHeader("Content-Disposition", `attachment; filename="${doc.fileName.replace(/[\\"]/g, "_")}"`);
@@ -711,12 +711,12 @@ router.get("/players/:id/documents/:docId/download", requireAuth, async (req, re
 // DELETE /api/players/:id/documents/:docId — borrar (con confirmación de quién)
 router.delete("/players/:id/documents/:docId", requireAuth, async (req, res) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (!player) return res.status(404).json({ error: "Jugador no encontrado" });
+  if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
   if (!(await canAccessPlayer(req.user!.id, player.id))) {
-    return res.status(403).json({ error: "No tenés acceso a este jugador" });
+    return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
   }
   const doc = await prisma.jugadorDocumento.findFirst({ where: { id: req.params.docId, playerId: player.id } });
-  if (!doc) return res.status(404).json({ error: "Documento no encontrado" });
+  if (!doc) return res.status(404).json({ success: false, error: "Documento no encontrado" });
   await prisma.jugadorDocumento.delete({ where: { id: doc.id } });
   res.json({ ok: true });
 });

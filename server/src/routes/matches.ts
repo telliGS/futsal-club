@@ -82,11 +82,11 @@ const createMatchSchema = z.object({
 router.post("/", requireAuth, async (req, res) => {
   const parsed = createMatchSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Datos inválidos", details: parsed.error.issues });
+    return res.status(400).json({ success: false, error: "Datos inválidos", details: parsed.error.issues });
   }
   const { teamId, dateTime, venue, rival, isHome } = parsed.data;
   const can = await canAccessTeam(req.user!.id, teamId);
-  if (!can) return res.status(403).json({ error: "No tenés acceso a este equipo" });
+  if (!can) return res.status(403).json({ success: false, error: "No tenés acceso a este equipo" });
 
   const match = await prisma.match.create({
     data: {
@@ -104,9 +104,9 @@ router.post("/", requireAuth, async (req, res) => {
 // DELETE /api/matches/:id — borrar partido
 router.delete("/:id", requireAuth, async (req, res) => {
   const match = await prisma.match.findUnique({ where: { id: req.params.id } });
-  if (!match) return res.status(404).json({ error: "Partido no encontrado" });
+  if (!match) return res.status(404).json({ success: false, error: "Partido no encontrado" });
   const can = await canAccessTeam(req.user!.id, match.teamId);
-  if (!can) return res.status(403).json({ error: "No tenés acceso a este equipo" });
+  if (!can) return res.status(403).json({ success: false, error: "No tenés acceso a este equipo" });
   await prisma.match.delete({ where: { id: match.id } });
   res.json({ ok: true });
 });
