@@ -37,15 +37,22 @@ router.get("/upcoming", async (_req, res) => {
   const desdeEnCurso = new Date(localNow.getTime() - PARTIDO_EN_CURSO_WINDOW_MS);
   const { start: inicioFindeActual, end: finFindeActual } = weekendWindowArg(new Date());
 
-  // Partidos del finde en curso (incluye los que ya se jugaron, para el frontend)
+  // Partidos del finde en curso
   const matchesActuales = await prisma.match.findMany({
     where: { dateTime: { gte: inicioFindeActual, lte: finFindeActual } },
     include: { team: true },
     orderBy: [{ dateTime: "asc" }],
   });
 
-  // ¿Quedan partidos por jugar? (con resultado null = todavía no se jugó)
-  const quedanPorJugar = matchesActuales.some((m) => m.clubGoals === null);
+  // ¿Quedan partidos por jugar?
+  // Un partido se considera "jugado" si tiene resultado O si ya pasaron 1:30h desde su horario
+  const FIN_MATCH_MS = 90 * 60_000;
+  const now = Date.now();
+  const quedanPorJugar = matchesActuales.some((m) => {
+    if (m.clubGoals !== null) return false; // ya tiene resultado
+    const tiempoRestante = new Date(m.dateTime).getTime() + FIN_MATCH_MS - now;
+    return tiempoRestante > 0; // todavía no pasaron 1:30h
+  });
 
   if (quedanPorJugar) {
     // Mostrar solo los que faltan (desde hace 2h en adelante)

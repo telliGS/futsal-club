@@ -127,16 +127,20 @@ router.get("/teams", async (_req, res) => {
 // GET /api/public/stats — números del club para el home (datos agregados, sin datos personales)
 router.get("/stats", async (_req, res) => {
   const { end: finFindeActual } = weekendWindowArg(new Date());
+  const now = new Date();
+  const FIN_MATCH_MS = 90 * 60_000; // 1:30h = duración aprox. de un partido de futsal
   const [equipos, vínculos, partidos] = await Promise.all([
     prisma.team.count(),
     prisma.playerTeam.findMany({
       where: { role: "JUGADOR", player: { status: { not: "INACTIVO" } } },
       select: { playerId: true },
     }),
-    // Partidos por jugar del finde en curso (los que no tienen resultado aún)
+    // Partidos por jugar del finde en curso:
+    // - Sin resultado (clubGoals null) Y
+    // - Faltan menos de 1:30h para que empiece, O empezó hace menos de 1:30h
     prisma.match.count({
       where: {
-        dateTime: { gte: new Date(Date.now() - 2 * 3_600_000), lte: finFindeActual },
+        dateTime: { gte: new Date(now.getTime() - FIN_MATCH_MS), lte: finFindeActual },
         clubGoals: null,
       },
     }),
