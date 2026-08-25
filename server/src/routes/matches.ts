@@ -36,36 +36,25 @@ router.get("/upcoming", async (req, res) => {
   // Inicio: hace 2h en hora ARG (para capturar partidos en curso)
   const localNow = new Date(Date.now() + ARG_TZ_OFFSET_MS);
   const desdeEnCurso = new Date(localNow.getTime() - PARTIDO_EN_CURSO_WINDOW_MS);
+  const { end: finFindeActual } = weekendWindowArg(new Date());
 
-  if (weekend === "1" || weekend === "true") {
-    const { end } = weekendWindowArg(new Date());
-    const matches = await prisma.match.findMany({
-      where: { dateTime: { gte: desdeEnCurso, lte: end } },
-      include: { team: true },
-      orderBy: [{ dateTime: "asc" }],
-    });
-    return res.json(matches);
-  }
-  if (weekend === "2") {
-    // finde actual + el siguiente (+7 días al fin del actual)
-    const { end } = weekendWindowArg(new Date());
-    const finalFindeSiguiente = new Date(end.getTime() + 7 * 86_400_000);
-    const matches = await prisma.match.findMany({
-      where: { dateTime: { gte: desdeEnCurso, lte: finalFindeSiguiente } },
-      include: { team: true },
-      orderBy: [{ dateTime: "asc" }],
-    });
-    return res.json(matches);
-  }
-  // Sin parámetro: todos los próximos hasta el lunes siguiente
-  const { end: nextMonday } = weekendWindowArg(new Date());
-  const finalEnd = new Date(nextMonday.getTime() + 7 * 86_400_000);
-  const matches = await prisma.match.findMany({
-    where: { dateTime: { gte: desdeEnCurso, lte: finalEnd } },
+  // Primero:partidos del finde en curso
+  let matches = await prisma.match.findMany({
+    where: { dateTime: { gte: desdeEnCurso, lte: finFindeActual } },
     include: { team: true },
-    orderBy: { dateTime: "asc" },
-    take: 30,
+    orderBy: [{ dateTime: "asc" }],
   });
+
+  // Si el finde ya pasó (no hay partidos), mostrar el siguiente
+  if (matches.length === 0) {
+    const finFindeSiguiente = new Date(finFindeActual.getTime() + 7 * 86_400_000);
+    matches = await prisma.match.findMany({
+      where: { dateTime: { gte: new Date(finFindeActual.getTime() + 1), lte: finFindeSiguiente } },
+      include: { team: true },
+      orderBy: [{ dateTime: "asc" }],
+    });
+  }
+
   res.json(matches);
 });
 

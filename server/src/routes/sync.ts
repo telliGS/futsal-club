@@ -48,18 +48,16 @@ async function saveState(payload: Record<string, unknown>): Promise<void> {
 }
 
 /**
- * Ventana extendida: desde hace 2h (para capturar partidos en curso)
- * hasta el lunes siguiente al próximo finde (+7 días).
- * Así se traen: findes actuales, próximos, y partidos entre semana.
+ * Ventana del finde en curso: desde hace 2h (para capturar partidos
+ * en curso) hasta el lunes 23:59 (fin del finde).
  */
 function extendedWindow(now: Date): { start: Date; end: Date } {
-  const { end: currentEnd } = weekendWindowArg(now);
-  // Fin del próximo finde: +7 días desde el fin del actual
-  const nextEnd = new Date(currentEnd.getTime() + 7 * 86_400_000);
+  const { start: weekendStart, end: weekendEnd } = weekendWindowArg(now);
   // Inicio: hace 2 horas (hora ARG)
   const localNow = new Date(now.getTime() + ARG_TZ_OFFSET_MS);
   const start = new Date(localNow.getTime() - PARTIDO_EN_CURSO_WINDOW_MS);
-  return { start, end: nextEnd };
+  // Usar el fin del finde en curso (lunes 23:59)
+  return { start, end: weekendEnd };
 }
 
 export async function runTimboSync(now = new Date()): Promise<{
