@@ -69,7 +69,7 @@ function colorEquipo(tipo: string): string {
   return tipo === "FORMATIVA" ? "bg-primary/15 border-primary/30" : "bg-surface-1 border-outline";
 }
 
-const EN_CURSO_WINDOW_MS = 2 * 3_600_000;
+const EN_CURSO_WINDOW_MS = 90 * 60_000; // 1:30h = duración aprox. de un partido de futsal
 function estadoPartido(m: Match): "proximo" | "en_curso" | "terminado" {
   const inicio = new Date(m.dateTime).getTime();
   const ahora = Date.now();
