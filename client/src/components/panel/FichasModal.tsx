@@ -1,5 +1,5 @@
-import { labelTipo } from "../../lib/panel-helpers";
-import { DocItem, FichaEstado, Player } from "../../lib/panel-types";
+﻿import { labelTipo } from "../../lib/panel-helpers";
+import { IDocItem, IFichaEstado, IPlayer } from "../../lib/panel-types";
 import { cn } from "../../lib/cn";
 
 export interface DocFormState {
@@ -9,19 +9,19 @@ export interface DocFormState {
   file: File | null;
 }
 
-interface FichasModalProps {
-  player: Player | null;
-  setPlayer: (p: Player | null) => void;
-  estado: FichaEstado | null;
+interface IFichasModalProps {
+  player: IPlayer | null;
+  setPlayer: (p: IPlayer | null) => void;
+  estado: IFichaEstado | null;
   form: DocFormState;
   setForm: (f: DocFormState) => void;
-  list: DocItem[];
+  list: IDocItem[];
   loading: boolean;
   msg: string;
   vigenciaHint: () => string;
   subirDoc: () => void;
-  descargarDoc: (d: DocItem) => void;
-  borrarDoc: (d: DocItem) => void;
+  descargarDoc: (d: IDocItem) => void;
+  borrarDoc: (d: IDocItem) => void;
 }
 
 export default function FichasModal({
@@ -37,7 +37,7 @@ export default function FichasModal({
   subirDoc,
   descargarDoc,
   borrarDoc,
-}: FichasModalProps) {
+}: IFichasModalProps) {
   if (!player) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">

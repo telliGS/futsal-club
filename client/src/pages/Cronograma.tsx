@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 import Layout from "../components/Layout";
 import { cn } from "../lib/cn";
 
-interface ScheduleBloque {
+interface IScheduleBloque {
   id: string;
   tipo: "PLANTILLA" | "EXTRA";
   startTime: string;
@@ -23,7 +23,7 @@ interface ScheduleBloque {
   } | null;
 }
 
-interface SchedulePartido {
+interface ISchedulePartido {
   id: string;
   time: string;
   rival: string;
@@ -32,20 +32,20 @@ interface SchedulePartido {
   team: { id: string; name: string };
 }
 
-interface ScheduleDia {
+interface IScheduleDia {
   fecha: string;
   dia: string;
-  bloques: ScheduleBloque[];
-  partidos: SchedulePartido[];
+  bloques: IScheduleBloque[];
+  partidos: ISchedulePartido[];
 }
 
-interface Schedule {
+interface ISchedule {
   from: string;
   to: string;
-  semana: ScheduleDia[];
+  semana: IScheduleDia[];
 }
 
-interface EquipoPublico {
+interface IEquipoPublico {
   id: string;
   name: string;
   type: string;
@@ -66,16 +66,16 @@ function getLugarInfo(place: string) {
 }
 
 export default function Cronograma() {
-  const [schedule, setSchedule] = useState<Schedule | null>(null);
-  const [teams, setTeams] = useState<EquipoPublico[]>([]);
+  const [schedule, setSchedule] = useState<ISchedule | null>(null);
+  const [teams, setTeams] = useState<IEquipoPublico[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("todas");
 
   useEffect(() => {
     Promise.all([
-      apiFetch<Schedule>("/public/schedule"),
-      apiFetch<EquipoPublico[]>("/public/teams"),
+      apiFetch<ISchedule>("/public/schedule"),
+      apiFetch<IEquipoPublico[]>("/public/teams"),
     ])
       .then(([s, t]) => {
         setSchedule(s);

@@ -1,4 +1,4 @@
-import { Team } from "../../lib/panel-types";
+﻿import { ITeam } from "../../lib/panel-types";
 
 export interface PoliSlotFormState {
   dayOfWeek: number;
@@ -10,14 +10,14 @@ export interface PoliSlotFormState {
   note: string;
 }
 
-interface PoliSlotModalProps {
+interface IPoliSlotModalProps {
   show: boolean;
   setShow: (v: boolean) => void;
   editingId: string | null;
   form: PoliSlotFormState;
   setForm: (f: PoliSlotFormState) => void;
   esAdmin: boolean;
-  equiposPoliEditables: Team[];
+  equiposPoliEditables: ITeam[];
   error: string;
   saving: boolean;
   save: (e: React.FormEvent) => void;
@@ -34,7 +34,7 @@ export default function PoliSlotModal({
   error,
   saving,
   save,
-}: PoliSlotModalProps) {
+}: IPoliSlotModalProps) {
   if (!show) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">

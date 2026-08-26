@@ -1,4 +1,4 @@
-import { PoliBloque, Team } from "../../lib/panel-types";
+﻿import { IPoliBloque, ITeam } from "../../lib/panel-types";
 
 export interface PoliExFormState {
   teamId: string;
@@ -9,13 +9,13 @@ export interface PoliExFormState {
   note: string;
 }
 
-interface PoliExModalProps {
-  modal: { fecha: string; bloque?: PoliBloque } | null;
-  setModal: (m: { fecha: string; bloque?: PoliBloque } | null) => void;
+interface IPoliExModalProps {
+  modal: { fecha: string; bloque?: IPoliBloque } | null;
+  setModal: (m: { fecha: string; bloque?: IPoliBloque } | null) => void;
   form: PoliExFormState;
   setForm: (f: PoliExFormState) => void;
   esAdmin: boolean;
-  equiposPoliEditables: Team[];
+  equiposPoliEditables: ITeam[];
   error: string;
   saving: boolean;
   save: (e: React.FormEvent) => void;
@@ -31,7 +31,7 @@ export default function PoliExModal({
   error,
   saving,
   save,
-}: PoliExModalProps) {
+}: IPoliExModalProps) {
   if (!modal) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">

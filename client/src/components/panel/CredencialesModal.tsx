@@ -1,6 +1,6 @@
-import { cn } from "../../lib/cn";
+﻿import { cn } from "../../lib/cn";
 
-interface CredMsg {
+interface ICredMsg {
   ok: boolean;
   text: string;
 }
@@ -11,13 +11,13 @@ export interface CredFormState {
   currentPassword: string;
 }
 
-interface CredencialesModalProps {
+interface ICredencialesModalProps {
   show: boolean;
   setShow: (v: boolean) => void;
   credForm: CredFormState;
   setCredForm: (f: CredFormState) => void;
   credSaving: boolean;
-  credMsg: CredMsg | null;
+  credMsg: ICredMsg | null;
   guardarCredenciales: () => void;
 }
 
@@ -29,7 +29,7 @@ export default function CredencialesModal({
   credSaving,
   credMsg,
   guardarCredenciales,
-}: CredencialesModalProps) {
+}: ICredencialesModalProps) {
   if (!show) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">

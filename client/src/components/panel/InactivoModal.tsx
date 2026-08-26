@@ -1,11 +1,11 @@
-import { Player } from "../../lib/panel-types";
+import { IPlayer } from "../../lib/panel-types";
 
 interface InactivoModalProps {
-  player: Player | null;
-  setPlayer: (p: Player | null) => void;
+  player: IPlayer | null;
+  setPlayer: (p: IPlayer | null) => void;
   mes: string;
   setMes: (m: string) => void;
-  confirmar: (p: Player, mes: string) => void;
+  confirmar: (p: IPlayer, mes: string) => void;
 }
 
 export default function InactivoModal({

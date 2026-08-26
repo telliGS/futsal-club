@@ -1,13 +1,13 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { monthShort } from "../../lib/panel-helpers";
-import { Player } from "../../lib/panel-types";
+import { IPlayer } from "../../lib/panel-types";
 
 export interface PagoModalState {
-  player: Player;
+  player: IPlayer;
   month: string;
 }
 
-interface PagoModalProps {
+interface IPagoModalProps {
   modal: PagoModalState | null;
   setModal: (v: PagoModalState | null) => void;
   cuotaSugerida: number | null; // cuota de la categoría (default del monto)
@@ -25,7 +25,7 @@ export default function PagoModal({
   guardarPago,
   quitarPago,
   ponerNulo,
-}: PagoModalProps) {
+}: IPagoModalProps) {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
 

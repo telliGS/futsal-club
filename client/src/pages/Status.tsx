@@ -1,9 +1,9 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { apiFetch } from "../lib/api";
 import Layout from "../components/Layout";
 import { cn } from "../lib/cn";
 
-interface StatusResult {
+interface IStatusResult {
   fullName: string;
   teams: string[];
   currentMonth: string;
@@ -27,7 +27,7 @@ function monthLabel(month: string) {
 
 export default function Status() {
   const [dni, setDni] = useState("");
-  const [result, setResult] = useState<StatusResult | null>(null);
+  const [result, setResult] = useState<IStatusResult | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -37,7 +37,7 @@ export default function Status() {
     setResult(null);
     setLoading(true);
     try {
-      const r = await apiFetch<StatusResult>(`/public/status?document=${encodeURIComponent(dni.trim())}`);
+      const r = await apiFetch<IStatusResult>(`/public/status?document=${encodeURIComponent(dni.trim())}`);
       setResult(r);
     } catch (err) {
       setError((err as Error).message);

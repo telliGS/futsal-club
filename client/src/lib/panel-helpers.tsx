@@ -1,4 +1,4 @@
-import { EstadoUnTipo } from "./panel-types";
+import { IEstadoUnTipo } from "./panel-types";
 
 export const MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -39,7 +39,7 @@ export function tiposBloqueantes(cat?: string | null): string[] {
 }
 
 // Badge compacto del estado de un tipo de documento
-export function BadgeFicha({ st }: { st: EstadoUnTipo | undefined }) {
+export function BadgeFicha({ st }: { st: IEstadoUnTipo | undefined }) {
   if (!st) return <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-surface-2 text-white/45">—</span>;
   switch (st.estado) {
     case "VIGENTE":

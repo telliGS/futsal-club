@@ -1,9 +1,9 @@
-import { monthShort } from "../../lib/panel-helpers";
-import { PresupuestoData, TotalPresupuesto } from "../../lib/panel-types";
+﻿import { monthShort } from "../../lib/panel-helpers";
+import { IPresupuestoData, ITotalPresupuesto } from "../../lib/panel-types";
 import { cn } from "../../lib/cn";
 
-interface PresupuestoViewProps {
-  presup: PresupuestoData | null;
+interface IPresupuestoViewProps {
+  presup: IPresupuestoData | null;
   presupMes: string;
   setPresupMes: (m: string) => void;
   mesActual: () => string;
@@ -16,7 +16,7 @@ interface PresupuestoViewProps {
   setShowQuotaModal: (v: boolean) => void;
   openGastoModal: (tipo: "fijo" | "extra") => void;
   borrarGasto: (tipo: "fijo" | "extra", id: string) => void;
-  totalData: TotalPresupuesto | null;
+  totalData: ITotalPresupuesto | null;
   totalLoading: boolean;
   totalError: string;
 }
@@ -38,7 +38,7 @@ export default function PresupuestoView({
   totalData,
   totalLoading,
   totalError,
-}: PresupuestoViewProps) {
+}: IPresupuestoViewProps) {
   return (
     <div className="mt-6">
       <div className="flex flex-wrap items-center justify-between gap-3">

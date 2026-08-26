@@ -1,11 +1,11 @@
-import { monthShort } from "../../lib/panel-helpers";
+﻿import { monthShort } from "../../lib/panel-helpers";
 
 export interface GastoFormState {
   nombre: string;
   monto: string;
 }
 
-interface GastoModalProps {
+interface IGastoModalProps {
   modal: null | { tipo: "fijo" | "extra"; mes?: string };
   setModal: (m: null | { tipo: "fijo" | "extra"; mes?: string }) => void;
   form: GastoFormState;
@@ -23,7 +23,7 @@ export default function GastoModal({
   saving,
   mesActual,
   save,
-}: GastoModalProps) {
+}: IGastoModalProps) {
   if (!modal) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">

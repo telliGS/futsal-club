@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch, getToken, setToken } from "../lib/api";
 import Layout from "../components/Layout";
 
-interface LoginResponse {
+interface ILoginResponse {
   token: string;
   user: { role: string };
 }
@@ -32,7 +32,7 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const r = await apiFetch<LoginResponse>("/auth/login", {
+      const r = await apiFetch<ILoginResponse>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });

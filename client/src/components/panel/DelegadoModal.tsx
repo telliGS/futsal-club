@@ -1,4 +1,4 @@
-import { Team } from "../../lib/panel-types";
+import { ITeam } from "../../lib/panel-types";
 import { cn } from "../../lib/cn";
 
 export interface DelegadoFormState {
@@ -9,13 +9,13 @@ export interface DelegadoFormState {
   teamIds: string[];
 }
 
-interface DelegadoModalProps {
+interface IDelegadoModalProps {
   show: boolean;
   setShow: (v: boolean) => void;
   editingId: string | null;
   form: DelegadoFormState;
   setForm: (f: DelegadoFormState) => void;
-  allTeams: Team[];
+  allTeams: ITeam[];
   error: string;
   saving: boolean;
   save: (e: React.FormEvent) => void;
@@ -31,7 +31,7 @@ export default function DelegadoModal({
   error,
   saving,
   save,
-}: DelegadoModalProps) {
+}: IDelegadoModalProps) {
   if (!show) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">

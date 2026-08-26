@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { apiFetch, API, getToken, setToken } from "../lib/api";
@@ -25,35 +25,35 @@ import PagoGymModal from "../components/panel/PagoGymModal";
 import { monthRange, monthShort, Icon } from "../lib/panel-helpers";
 import { cn } from "../lib/cn";
 import {
-  Team,
-  FichaEstado,
-  DocItem,
-  Player,
-  Toast,
-  MeData,
-  DelegadoAdmin,
-  PoliSlot,
-  PoliBloque,
-  PoliDia,
-  PoliSemana,
-  PresupuestoData,
-  TotalPresupuesto,
-  SeguroAvisos,
-  GymAvisos,
+  ITeam,
+  IFichaEstado,
+  IDocItem,
+  IPlayer,
+  IToast,
+  IMeData,
+  IDelegadoAdmin,
+  IPoliSlot,
+  IPoliBloque,
+  IPoliDia,
+  IPoliSemana,
+  IPresupuestoData,
+  ITotalPresupuesto,
+  ISeguroAvisos,
+  IGymAvisos,
 } from "../lib/panel-types";
 
 export default function Dashboard() {
   const token = getToken();
-  const [me, setMe] = useState<MeData | null>(null);
+  const [me, setMe] = useState<IMeData | null>(null);
   const [teamId, setTeamId] = useState("");
-  const [players, setPlayers] = useState<Player[]>([]);
+  const [players, setPlayers] = useState<IPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filtroEstado, setFiltroEstado] = useState<string>("todos");
   const [busqueda, setBusqueda] = useState("");
   const [view, setView] = useState<"lista" | "calendario" | "presupuesto" | "delegados" | "poli">("lista");
-  const [allTeams, setAllTeams] = useState<Team[]>([]);
-  const [delegados, setDelegados] = useState<DelegadoAdmin[]>([]);
+  const [allTeams, setallTeams] = useState<ITeam[]>([]);
+  const [delegados, setDelegados] = useState<IDelegadoAdmin[]>([]);
   const [delegadosLoading, setDelegadosLoading] = useState(false);
   const [delegadosError, setDelegadosError] = useState("");
   const [delegadoForm, setDelegadoForm] = useState<{
@@ -74,8 +74,8 @@ export default function Dashboard() {
   const [showDelegadoModal, setShowDelegadoModal] = useState(false);
   const [delegadoMsg, setDelegadoMsg] = useState("");
 
-  // ----- Toasts -----
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  // ----- IToasts -----
+  const [toasts, setToasts] = useState<IToast[]>([]);
   const [toastCounter, setToastCounter] = useState(0);
 
   // ----- Exportación -----
@@ -83,12 +83,12 @@ export default function Dashboard() {
 
   // ----- Seguro (lista de asegurados + avisos) -----
   const [showSeguro, setShowSeguro] = useState(false);
-  const [seguroAvisos, setSeguroAvisos] = useState<SeguroAvisos | null>(null);
+  const [seguroAvisos, setSeguroAvisos] = useState<ISeguroAvisos | null>(null);
 
   async function cargarAvisosSeguro() {
     if (!token) return;
     try {
-      const r = await apiFetch<SeguroAvisos>("/seguro/avisos", {}, token);
+      const r = await apiFetch<ISeguroAvisos>("/seguro/avisos", {}, token);
       setSeguroAvisos(r);
     } catch {
       setSeguroAvisos(null);
@@ -97,13 +97,13 @@ export default function Dashboard() {
 
   // ----- Gimnasio (lista de los que van + avisos + pagos mensuales) -----
   const [showGym, setShowGym] = useState(false);
-  const [gymAvisos, setGymAvisos] = useState<GymAvisos | null>(null);
+  const [gymAvisos, setGymAvisos] = useState<IGymAvisos | null>(null);
   const [gymPrecioGlobal, setGymPrecioGlobal] = useState<number | null>(null);
 
   async function cargarAvisosGym() {
     if (!token) return;
     try {
-      const r = await apiFetch<GymAvisos>("/gym/avisos", {}, token);
+      const r = await apiFetch<IGymAvisos>("/gym/avisos", {}, token);
       setGymAvisos(r);
       const cfg = await apiFetch<{ precio: number }>("/gym/config", {}, token);
       setGymPrecioGlobal(cfg.precio);
@@ -126,14 +126,14 @@ export default function Dashboard() {
   const [credMsg, setCredMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   // ---------- Poli ----------
-  const [poliSemana, setPoliSemana] = useState<PoliDia[]>([]);
-  const [poliSlots, setPoliSlots] = useState<PoliSlot[]>([]);
+  const [poliSemana, setPoliSemana] = useState<IPoliDia[]>([]);
+  const [poliSlots, setPoliSlots] = useState<IPoliSlot[]>([]);
   const [poliLoading, setPoliLoading] = useState(false);
   const [poliError, setPoliError] = useState("");
   const [poliMsg, setPoliMsg] = useState("");
   const [poliSemanaOffset, setPoliSemanaOffset] = useState(0); // 0 = semana actual
   const [poliHoy, setPoliHoy] = useState<string | undefined>(); // "YYYY-MM-DD" en hora ARG (del server)
-  const [showPoliSlotModal, setShowPoliSlotModal] = useState(false);
+  const [showPoliSlotModal, setshowPoliSlotModal] = useState(false);
   const [poliSlotForm, setPoliSlotForm] = useState({
     dayOfWeek: 1,
     startTime: "19:00",
@@ -145,7 +145,7 @@ export default function Dashboard() {
   });
   const [poliSlotEditingId, setPoliSlotEditingId] = useState<string | null>(null);
   const [poliSlotSaving, setPoliSlotSaving] = useState(false);
-  const [showPoliExModal, setShowPoliExModal] = useState<{ fecha: string; bloque?: PoliBloque } | null>(null);
+  const [showPoliExModal, setShowPoliExModal] = useState<{ fecha: string; bloque?: IPoliBloque } | null>(null);
   const [poliExForm, setPoliExForm] = useState({
     place: "",
     startTime: "",
@@ -158,7 +158,7 @@ export default function Dashboard() {
 
   // ---------- Alta / edición de jugadores ----------
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<Player | null>(null);
+  const [editing, setEditing] = useState<IPlayer | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState({
@@ -177,13 +177,13 @@ export default function Dashboard() {
   const [cuentaPresupuesto, setCuentaPresupuesto] = useState(true);
 
   // Jugador ya registrado para ese DNI (se vincula sin duplicar)
-  interface PlayerEncontrado {
+  interface IPlayerEncontrado {
     id: string;
     firstName: string;
     lastName: string;
     equipos: { name: string; type: string }[];
   }
-  const [foundPlayer, setFoundPlayer] = useState<PlayerEncontrado | null>(null);
+  const [foundPlayer, setfoundPlayer] = useState<IPlayerEncontrado | null>(null);
   const [buscandoDni, setBuscandoDni] = useState(false);
 
   // Al escribir un DNI en alta: ¿ya existe? (debounce 450 ms)
@@ -191,19 +191,19 @@ export default function Dashboard() {
     if (editing || !showForm) return;
     const dni = form.document.replace(/\D/g, "");
     if (dni.length < 6) {
-      setFoundPlayer(null);
+      setfoundPlayer(null);
       setBuscandoDni(false);
       return;
     }
     setBuscandoDni(true);
     const t = setTimeout(async () => {
       try {
-        const r = await apiFetch<{ found: boolean; player?: PlayerEncontrado }>(
+        const r = await apiFetch<{ found: boolean; player?: IPlayerEncontrado }>(
           `/players/by-document?document=${dni}`,
           {},
           token ?? undefined
         );
-        setFoundPlayer(r.found ? (r.player ?? null) : null);
+        setfoundPlayer(r.found ? (r.player ?? null) : null);
         // autocompletar datos si vino el jugador
         if (r.found && r.player) {
           setForm((f) => ({
@@ -213,7 +213,7 @@ export default function Dashboard() {
           }));
         }
       } catch {
-        setFoundPlayer(null);
+        setfoundPlayer(null);
       } finally {
         setBuscandoDni(false);
       }
@@ -234,7 +234,7 @@ export default function Dashboard() {
     setShowForm(true);
   }
 
-  function openEditar(p: Player) {
+  function openEditar(p: IPlayer) {
     setEditing(p);
     setForm({
       lastName: p.lastName,
@@ -283,7 +283,7 @@ export default function Dashboard() {
         await apiFetch(`/teams/${teamId}/players`, { method: "POST", body: JSON.stringify(body) }, token);
       }
       setShowForm(false);
-      const updated = await apiFetch<Player[]>(`/teams/${teamId}/players`, {}, token);
+      const updated = await apiFetch<IPlayer[]>(`/teams/${teamId}/players`, {}, token);
       setPlayers(updated);
       mostrarToast(editing ? `Jugador actualizado: ${body.firstName} ${body.lastName}` : `Jugador agregado: ${body.firstName} ${body.lastName}`, "success");
     } catch (e) {
@@ -307,7 +307,7 @@ export default function Dashboard() {
               }),
             }, token);
             setShowForm(false);
-            const updated = await apiFetch<Player[]>(`/teams/${teamId}/players`, {}, token);
+            const updated = await apiFetch<IPlayer[]>(`/teams/${teamId}/players`, {}, token);
             setPlayers(updated);
           } catch (e2) {
             setFormError((e2 as Error).message);
@@ -321,7 +321,7 @@ export default function Dashboard() {
     }
   }
 
-  async function removePlayer(p: Player) {
+  async function removePlayer(p: IPlayer) {
     if (!token) return;
     const ok = window.confirm(`¿Quitar a ${p.firstName} ${p.lastName} del equipo? (el jugador se elimina si no está en otro equipo)`);
     if (!ok) return;
@@ -339,15 +339,15 @@ export default function Dashboard() {
   // tardan en marcar la baja — el corte va al mes en que dejó de jugar).
   // REACTIVAR: si tenía deuda real vuelve DEUDOR y no puede jugar hasta
   // ponerse al día.
-  const [inactivoModal, setInactivoModal] = useState<Player | null>(null);
+  const [inactivoModal, setInactivoModal] = useState<IPlayer | null>(null);
   const [inactivoMes, setInactivoMes] = useState(() => new Date().toISOString().slice(0, 7));
 
-  function abrirInactivo(p: Player) {
+  function abrirInactivo(p: IPlayer) {
     setInactivoMes(new Date().toISOString().slice(0, 7));
     setInactivoModal(p);
   }
 
-  async function setInactivo(p: Player, desde: string) {
+  async function setInactivo(p: IPlayer, desde: string) {
     if (!token) return;
     try {
       await apiFetch(
@@ -361,7 +361,7 @@ export default function Dashboard() {
     }
   }
 
-  async function reactivar(p: Player) {
+  async function reactivar(p: IPlayer) {
     if (!token) return;
     const ok = window.confirm(
       `¿Reactivar a ${p.firstName} ${p.lastName}?\n\nSi tiene meses de deuda de antes de irse, quedará DEUDOR y no podrá jugar hasta ponerse al día.`
@@ -386,9 +386,9 @@ export default function Dashboard() {
   }
 
   // ---------- Fichas / documentos médicos ----------
-  const [docsPlayer, setDocsPlayer] = useState<Player | null>(null);
-  const [docsList, setDocsList] = useState<DocItem[]>([]);
-  const [docsEstado, setDocsEstado] = useState<FichaEstado | null>(null);
+  const [docsPlayer, setdocsPlayer] = useState<IPlayer | null>(null);
+  const [docsList, setDocsList] = useState<IDocItem[]>([]);
+  const [docsEstado, setDocsEstado] = useState<IFichaEstado | null>(null);
   const [docsLoading, setDocsLoading] = useState(false);
   const [docsMsg, setDocsMsg] = useState("");
   const [docForm, setDocForm] = useState({
@@ -428,14 +428,14 @@ export default function Dashboard() {
     return "Documento: sin vencimiento por regla.";
   }
 
-  async function openDocs(p: Player) {
+  async function openDocs(p: IPlayer) {
     if (!token) return;
-    setDocsPlayer(p);
+    setdocsPlayer(p);
     setDocsMsg("");
     setDocForm({ tipo: "FICHA_MEDICA", descripcion: "", fechaEmision: "", file: null });
     setDocsLoading(true);
     try {
-      const res = await apiFetch<{ documentos: DocItem[]; estado: FichaEstado }>(
+      const res = await apiFetch<{ documentos: IDocItem[]; estado: IFichaEstado }>(
         `/players/${p.id}/documents`, {}, token
       );
       setDocsList(res.documentos);
@@ -467,7 +467,7 @@ export default function Dashboard() {
         binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
       }
       const b64 = btoa(binary);
-      const res = await apiFetch<{ documento: DocItem; estado: FichaEstado }>(
+      const res = await apiFetch<{ documento: IDocItem; estado: IFichaEstado }>(
         `/players/${docsPlayer.id}/documents`,
         {
           method: "POST",
@@ -494,20 +494,20 @@ export default function Dashboard() {
     }
   }
 
-  async function borrarDoc(doc: DocItem) {
+  async function borrarDoc(doc: IDocItem) {
     if (!token || !docsPlayer) return;
     const ok = window.confirm(`¿Eliminar "${doc.fileName}"?`);
     if (!ok) return;
     try {
       await apiFetch(`/players/${docsPlayer.id}/documents/${doc.id}`, { method: "DELETE" }, token);
       setDocsList((prev) => prev.filter((d) => d.id !== doc.id));
-      const res = await apiFetch<{ estado: FichaEstado }>(
+      const res = await apiFetch<{ estado: IFichaEstado }>(
         `/players/${docsPlayer.id}/documents`, {}, token
       );
       setDocsEstado(res.estado);
       // refrescar el estado del jugador en la tabla
       try {
-        const updated = await apiFetch<Player[]>(`/teams/${teamId}/players`, {}, token);
+        const updated = await apiFetch<IPlayer[]>(`/teams/${teamId}/players`, {}, token);
         setPlayers(updated);
       } catch { /* noop */ }
     } catch (e) {
@@ -515,7 +515,7 @@ export default function Dashboard() {
     }
   }
 
-  async function descargarDoc(doc: DocItem) {
+  async function descargarDoc(doc: IDocItem) {
     if (!token || !docsPlayer) return;
     try {
       const res = await fetch(`${API}/players/${docsPlayer.id}/documents/${doc.id}/download`, {
@@ -596,7 +596,7 @@ export default function Dashboard() {
       );
       setImportMsg({ ...res, error: undefined });
       // recargar el plantel
-      const updated = await apiFetch<Player[]>(`/teams/${teamId}/players`, {}, token);
+      const updated = await apiFetch<IPlayer[]>(`/teams/${teamId}/players`, {}, token);
       setPlayers(updated);
     } catch (e) {
       setImportMsg({ creados: 0, actualizados: 0, vinculados: 0, errores: [], error: (e as Error).message });
@@ -609,13 +609,13 @@ export default function Dashboard() {
   // Recargar plantel (tras inactivar/reactivar/guardar)
   async function recargarPlantel() {
     if (!token || !teamId) return;
-    const updated = await apiFetch<Player[]>(`/teams/${teamId}/players`, {}, token);
+    const updated = await apiFetch<IPlayer[]>(`/teams/${teamId}/players`, {}, token);
     setPlayers(updated);
   }
 
 
   // ---------- Presupuesto ----------
-  const [presup, setPresup] = useState<PresupuestoData | null>(null);
+  const [presup, setPresup] = useState<IPresupuestoData | null>(null);
   const [presupMes, setPresupMes] = useState(() => new Date().toISOString().slice(0, 7));
   const [presupLoading, setPresupLoading] = useState(false);
   const [presupError, setPresupError] = useState("");
@@ -627,16 +627,16 @@ export default function Dashboard() {
   const [gastoSaving, setGastoSaving] = useState(false);
 
   // ---------- Pago de cuota (monto + detalle) ----------
-  const [pagoModal, setPagoModal] = useState<{ player: Player; month: string } | null>(null);
+  const [pagoModal, setPagoModal] = useState<{ player: IPlayer; month: string } | null>(null);
   const [pagoSaving, setPagoSaving] = useState(false);
 
   // ---------- Pago de gimnasio (monto + detalle, discrimina igual que la cuota) ----------
-  const [pagoGymModal, setPagoGymModal] = useState<{ player: Player; month: string } | null>(null);
+  const [pagoGymModal, setPagoGymModal] = useState<{ player: IPlayer; month: string } | null>(null);
   const [pagoGymSaving, setPagoGymSaving] = useState(false);
 
   // ---------- Total del club (solo ADMIN) ----------
   const [verTotal, setVerTotal] = useState(false);
-  const [totalData, setTotalData] = useState<TotalPresupuesto | null>(null);
+  const [totalData, setTotalData] = useState<ITotalPresupuesto | null>(null);
   const [totalLoading, setTotalLoading] = useState(false);
   const [totalError, setTotalError] = useState("");
 
@@ -654,7 +654,7 @@ export default function Dashboard() {
     if (!teamId || !token) return;
     setPresupLoading(true);
     setPresupError("");
-    apiFetch<PresupuestoData>(`/teams/${teamId}/presupuesto?mes=${presupMes}`, {}, token)
+    apiFetch<IPresupuestoData>(`/teams/${teamId}/presupuesto?mes=${presupMes}`, {}, token)
       .then(setPresup)
       .catch(() => {
         setPresup(null);
@@ -668,7 +668,7 @@ export default function Dashboard() {
     if (!verTotal || !token) return;
     setTotalLoading(true);
     setTotalError("");
-    apiFetch<TotalPresupuesto>(`/teams/presupuesto/total?mes=${presupMes}`, {}, token)
+    apiFetch<ITotalPresupuesto>(`/teams/presupuesto/total?mes=${presupMes}`, {}, token)
       .then(setTotalData)
       .catch(() => {
         setTotalData(null);
@@ -685,7 +685,7 @@ export default function Dashboard() {
       await apiFetch(`/teams/${teamId}/quota`, { method: "PUT", body: JSON.stringify({ quota: n > 0 ? n : null }) }, token);
       setQuotaInput("");
       setShowQuotaModal(false);
-      const updated = await apiFetch<PresupuestoData>(`/teams/${teamId}/presupuesto?mes=${presupMes}`, {}, token);
+      const updated = await apiFetch<IPresupuestoData>(`/teams/${teamId}/presupuesto?mes=${presupMes}`, {}, token);
       setPresup(updated);
     } catch (e) {
       setPresupError((e as Error).message);
@@ -715,7 +715,7 @@ export default function Dashboard() {
       }
       setGastoForm({ nombre: "", monto: "" });
       setGastoModal(null);
-      const updated = await apiFetch<PresupuestoData>(`/teams/${teamId}/presupuesto?mes=${presupMes}`, {}, token);
+      const updated = await apiFetch<IPresupuestoData>(`/teams/${teamId}/presupuesto?mes=${presupMes}`, {}, token);
       setPresup(updated);
     } catch (e) {
       setPresupError((e as Error).message);
@@ -729,7 +729,7 @@ export default function Dashboard() {
     if (!window.confirm("¿Eliminar este gasto?")) return;
     try {
       await apiFetch(`/teams/${teamId}/gastos/${tipo === "fijo" ? "fijos" : "extras"}/${id}`, { method: "DELETE" }, token);
-      const updated = await apiFetch<PresupuestoData>(`/teams/${teamId}/presupuesto?mes=${presupMes}`, {}, token);
+      const updated = await apiFetch<IPresupuestoData>(`/teams/${teamId}/presupuesto?mes=${presupMes}`, {}, token);
       setPresup(updated);
     } catch (e) {
       setPresupError((e as Error).message);
@@ -744,7 +744,7 @@ export default function Dashboard() {
       return;
     }
 
-    apiFetch<MeData>("/auth/me", {}, currentToken)
+    apiFetch<IMeData>("/auth/me", {}, currentToken)
       .then((m) => {
         setMe(m);
         setTeamId((prev) => prev || (m.role === "ADMIN" && m.teams.length === 0 ? "" : m.teams[0]?.id ?? ""));
@@ -759,7 +759,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!token || me?.role !== "ADMIN") return;
     setDelegadosLoading(true);
-    apiFetch<DelegadoAdmin[]>("/auth/delegados", {}, token)
+    apiFetch<IDelegadoAdmin[]>("/auth/delegados", {}, token)
       .then(setDelegados)
       .catch(() => setDelegadosError("No se pudo cargar la lista de delegados"))
       .finally(() => setDelegadosLoading(false));
@@ -779,7 +779,7 @@ export default function Dashboard() {
       );
       setCredMsg({ ok: true, text: `Listo. Tus credenciales se actualizaron (email: ${res.email}).` });
       // Recargar el /me para que refleje el canChangeCredentials: false
-      const m = await apiFetch<MeData>("/auth/me", {}, token);
+      const m = await apiFetch<IMeData>("/auth/me", {}, token);
       setMe(m);
       setTimeout(() => setShowCredModal(false), 1800);
     } catch (err) {
@@ -791,14 +791,14 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!token) return;
-    apiFetch<Team[]>("/teams", {}, token)
-      .then(setAllTeams)
-      .catch(() => setAllTeams([]));
+    apiFetch<ITeam[]>("/teams", {}, token)
+      .then(setallTeams)
+      .catch(() => setallTeams([]));
   }, [token]);
 
   useEffect(() => {
     if (!teamId || !token) return;
-    apiFetch<Player[]>(`/teams/${teamId}/players`, {}, token)
+    apiFetch<IPlayer[]>(`/teams/${teamId}/players`, {}, token)
       .then(setPlayers)
       .catch(() => {
         setPlayers([]);
@@ -826,7 +826,7 @@ export default function Dashboard() {
         await apiFetch("/auth/delegados", { method: "POST", body: JSON.stringify(payload) }, token);
       }
 
-      const refreshed = await apiFetch<DelegadoAdmin[]>("/auth/delegados", {}, token);
+      const refreshed = await apiFetch<IDelegadoAdmin[]>("/auth/delegados", {}, token);
       setDelegados(refreshed);
       setDelegadoForm({ fullName: "", email: "", password: "", role: "DELEGADO", teamIds: [] });
       setDelegadoEditingId(null);
@@ -847,7 +847,7 @@ export default function Dashboard() {
     setShowDelegadoModal(true);
   }
 
-  function startEditDelegado(d: DelegadoAdmin) {
+  function startEditDelegado(d: IDelegadoAdmin) {
     setDelegadoEditingId(d.id);
     setDelegadoForm({
       fullName: d.fullName,
@@ -860,7 +860,7 @@ export default function Dashboard() {
     setShowDelegadoModal(true);
   }
 
-  async function toggleDelegadoActive(d: DelegadoAdmin) {
+  async function toggleDelegadoActive(d: IDelegadoAdmin) {
     if (!token) return;
     const activando = !d.active;
     const nombre = d.fullName;
@@ -876,7 +876,7 @@ export default function Dashboard() {
   }
 
   // El delegado usó su único autocambio → el admin puede habilitarle otro.
-  async function reactivarCredenciales(d: DelegadoAdmin) {
+  async function reactivarCredenciales(d: IDelegadoAdmin) {
     if (!token) return;
     if (!window.confirm(`¿Volver a habilitar el cambio de credenciales de ${d.fullName}?`)) return;
     try {
@@ -889,7 +889,7 @@ export default function Dashboard() {
     }
   }
 
-  async function eliminarDelegado(d: DelegadoAdmin) {
+  async function eliminarDelegado(d: IDelegadoAdmin) {
     if (!token) return;
     if (!window.confirm(`¿Eliminar la cuenta de ${d.fullName} (${d.email})? Esta acción no se puede deshacer.`)) return;
     try {
@@ -945,8 +945,8 @@ export default function Dashboard() {
       const dom = new Date(lun);
       dom.setDate(lun.getDate() + 6);
       const [sem, slots] = await Promise.all([
-        apiFetch<PoliSemana>(`/poli/week?from=${fmtDay(lun)}&to=${fmtDay(dom)}`, {}, token),
-        apiFetch<PoliSlot[]>("/poli/slots", {}, token),
+        apiFetch<IPoliSemana>(`/poli/week?from=${fmtDay(lun)}&to=${fmtDay(dom)}`, {}, token),
+        apiFetch<IPoliSlot[]>("/poli/slots", {}, token),
       ]);
       setPoliSemana(sem.semana);
       setPoliHoy(sem.hoy);
@@ -975,10 +975,10 @@ export default function Dashboard() {
       note: "",
     });
     setPoliError("");
-    setShowPoliSlotModal(true);
+    setshowPoliSlotModal(true);
   }
 
-  function startEditPoliSlot(s: PoliSlot) {
+  function startEditPoliSlot(s: IPoliSlot) {
     setPoliSlotEditingId(s.id);
     setPoliSlotForm({
       dayOfWeek: s.dayOfWeek,
@@ -990,7 +990,7 @@ export default function Dashboard() {
       note: s.note ?? "",
     });
     setPoliError("");
-    setShowPoliSlotModal(true);
+    setshowPoliSlotModal(true);
   }
 
   async function savePoliSlot(e: React.FormEvent) {
@@ -1016,7 +1016,7 @@ export default function Dashboard() {
         setPoliMsg("Bloque semanal creado.");
       }
       setTimeout(() => setPoliMsg(""), 3000);
-      setShowPoliSlotModal(false);
+      setshowPoliSlotModal(false);
       cargarPoli();
     } catch (err) {
       setPoliError((err as Error).message);
@@ -1025,7 +1025,7 @@ export default function Dashboard() {
     }
   }
 
-  async function borrarPoliSlot(s: PoliSlot) {
+  async function borrarPoliSlot(s: IPoliSlot) {
     if (!token) return;
     if (!window.confirm(`¿Eliminar el bloque ${s.startTime}-${s.endTime} (${s.place})?`)) return;
     setPoliLoading(true);
@@ -1040,7 +1040,7 @@ export default function Dashboard() {
     }
   }
 
-  function abrirExcepcion(fecha: string, bloque?: PoliBloque) {
+  function abrirExcepcion(fecha: string, bloque?: IPoliBloque) {
     const defaultTeam = bloque?.team?.id ?? (esAdmin ? "" : (equiposPoliEditables[0]?.id ?? ""));
     setPoliExForm({
       place: bloque?.place ?? "",
@@ -1136,7 +1136,7 @@ export default function Dashboard() {
     setPoliSemanaOffset((o) => o + delta);
   }
 
-  async function togglePoliSlot(s: PoliSlot) {
+  async function togglePoliSlot(s: IPoliSlot) {
     if (!token) return;
     setPoliLoading(true);
     try {
@@ -1152,7 +1152,7 @@ export default function Dashboard() {
 
   // Abrir el modal de pago de un jugador para un mes. Se usa desde la lista y
   // desde el calendario (celda vacía o ya marcada).
-  function abrirPago(p: Player, month: string) {
+  function abrirPago(p: IPlayer, month: string) {
     setPagoModal({ player: p, month });
   }
 
@@ -1162,7 +1162,7 @@ export default function Dashboard() {
     const { player, month } = pagoModal;
     setPagoSaving(true);
     try {
-      const res = await apiFetch<{ estadoCuota: Player["estadoCuota"]; status: string }>(
+      const res = await apiFetch<{ estadoCuota: IPlayer["estadoCuota"]; status: string }>(
         `/players/${player.id}/payments/${month}`,
         { method: "POST", body: JSON.stringify({ paid: true, amount, note }) },
         token
@@ -1201,7 +1201,7 @@ export default function Dashboard() {
     if (!ok) return;
     setPagoSaving(true);
     try {
-      const res = await apiFetch<{ estadoCuota: Player["estadoCuota"]; status: string }>(
+      const res = await apiFetch<{ estadoCuota: IPlayer["estadoCuota"]; status: string }>(
         `/players/${player.id}/payments/${month}`,
         { method: "POST", body: JSON.stringify({ paid: false, amount: 0 }) },
         token
@@ -1242,7 +1242,7 @@ export default function Dashboard() {
     if (!ok) return;
     setPagoSaving(true);
     try {
-      const res = await apiFetch<{ estadoCuota: Player["estadoCuota"]; status: string }>(
+      const res = await apiFetch<{ estadoCuota: IPlayer["estadoCuota"]; status: string }>(
         `/players/${player.id}/payments/${month}`,
         { method: "DELETE" },
         token
@@ -1269,7 +1269,7 @@ export default function Dashboard() {
   }
 
   // ----- Pago de gimnasio (mismo flujo que la cuota, contra /gym) -----
-  function abrirPagoGym(p: Player, month: string) {
+  function abrirPagoGym(p: IPlayer, month: string) {
     setPagoGymModal({ player: p, month });
   }
 
@@ -1366,7 +1366,7 @@ export default function Dashboard() {
   }
 
   // Estado del gym de un jugador para el mes actual (usa el mismo deadline).
-  function estadoLocalGym(p: Player, now = new Date()): "PAGO" | "DEBE" | "PENDIENTE" {
+  function estadoLocalGym(p: IPlayer, now = new Date()): "PAGO" | "DEBE" | "PENDIENTE" {
     const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const deadline = p.deadline && p.deadline >= 1 && p.deadline <= 31 ? p.deadline : 10;
     const pago = (p.gymPayments ?? []).find((x) => x.month === cur);
@@ -1375,7 +1375,7 @@ export default function Dashboard() {
   }
   // regla de cuota: cada jugador tiene un día límite (default 10); al pasar
   // ese día sin pagar el mes en curso = deudor, no juega)
-  function estadoLocal(p: Player, now = new Date()): NonNullable<Player["estadoCuota"]> {
+  function estadoLocal(p: IPlayer, now = new Date()): NonNullable<IPlayer["estadoCuota"]> {
     const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const deadline = p.deadline && p.deadline >= 1 && p.deadline <= 31 ? p.deadline : 10;
     const pagadoMesActual = p.payments.some((x) => x.month === cur && x.paid);
@@ -1874,7 +1874,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
       {/* ===================== MODAL FICHAS / DOCUMENTOS ===================== */}
       <FichasModal
         player={docsPlayer}
-        setPlayer={setDocsPlayer}
+        setPlayer={setdocsPlayer}
         estado={docsEstado}
         form={docForm}
         setForm={setDocForm}
@@ -1912,7 +1912,7 @@ const jugadoresBusqueda = jugadoresFiltrados.filter((p) => {
       {/* ===================== MODAL BLOQUE SEMANAL (POLI) ===================== */}
       <PoliSlotModal
         show={showPoliSlotModal}
-        setShow={setShowPoliSlotModal}
+        setShow={setshowPoliSlotModal}
         editingId={poliSlotEditingId}
         form={poliSlotForm}
         setForm={setPoliSlotForm}

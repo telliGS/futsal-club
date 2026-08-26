@@ -1,16 +1,16 @@
-import { monthShort, Icon } from "../../lib/panel-helpers";
-import { Player } from "../../lib/panel-types";
+﻿import { monthShort, Icon } from "../../lib/panel-helpers";
+import { IPlayer } from "../../lib/panel-types";
 import { cn } from "../../lib/cn";
 
-interface CalendarioViewProps {
-  plantel: Player[];
+interface ICalendarioViewProps {
+  plantel: IPlayer[];
   months: string[];
   currentMonth: string;
-  abrirPago: (p: Player, month: string) => void;
-  estadoLocal: (p: Player, now?: Date) => NonNullable<Player["estadoCuota"]>;
+  abrirPago: (p: IPlayer, month: string) => void;
+  estadoLocal: (p: IPlayer, now?: Date) => NonNullable<IPlayer["estadoCuota"]>;
 }
 
-export default function CalendarioView({ plantel, months, currentMonth, abrirPago, estadoLocal }: CalendarioViewProps) {
+export default function CalendarioView({ plantel, months, currentMonth, abrirPago, estadoLocal }: ICalendarioViewProps) {
   return (
     <div className="mt-6">
       {/* Header + leyenda */}

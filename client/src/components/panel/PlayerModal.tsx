@@ -1,13 +1,13 @@
-import { Player } from "../../lib/panel-types";
+﻿import { IPlayer } from "../../lib/panel-types";
 
-interface PlayerEncontrado {
+interface IPlayerEncontrado {
   id: string;
   firstName: string;
   lastName: string;
   equipos: { name: string; type: string }[];
 }
 
-export interface PlayerFormState {
+export interface IPlayerFormState {
   lastName: string;
   firstName: string;
   document: string;
@@ -21,15 +21,15 @@ export interface PlayerFormState {
   deadline: string;
 }
 
-interface PlayerModalProps {
+interface IPlayerModalProps {
   showForm: boolean;
   setShowForm: (v: boolean) => void;
-  editing: Player | null;
-  form: PlayerFormState;
-  setForm: (f: PlayerFormState) => void;
+  editing: IPlayer | null;
+  form: IPlayerFormState;
+  setForm: (f: IPlayerFormState) => void;
   saving: boolean;
   formError: string;
-  foundPlayer: PlayerEncontrado | null;
+  foundPlayer: IPlayerEncontrado | null;
   buscandoDni: boolean;
   cuentaPresupuesto: boolean;
   setCuentaPresupuesto: (v: boolean) => void;
@@ -49,7 +49,7 @@ export default function PlayerModal({
   cuentaPresupuesto,
   setCuentaPresupuesto,
   savePlayer,
-}: PlayerModalProps) {
+}: IPlayerModalProps) {
   if (!showForm) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">

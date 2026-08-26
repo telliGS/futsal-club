@@ -1,4 +1,4 @@
-export interface Team {
+export interface ITeam {
   id: string;
   name: string;
   gender: string;
@@ -10,22 +10,22 @@ export interface Team {
 // ---------- Fichas médicas / estudios ----------
 export type EstadoFicha = "VIGENTE" | "PROXIMO_A_VENCER" | "VENCIDO" | "SIN_CARGAR";
 
-export interface EstadoUnTipo {
+export interface IEstadoUnTipo {
   tipo: string;
   estado: EstadoFicha;
   vence?: string | null;
   hayDoc: boolean;
 }
 
-export interface FichaEstado {
-  porTipo: Record<string, EstadoUnTipo>;
+export interface IFichaEstado {
+  porTipo: Record<string, IEstadoUnTipo>;
   aptoFichas: boolean;
   faltantes: string[];
   bloqueantes: string[];
   resumen: string;
 }
 
-export interface DocItem {
+export interface IDocItem {
   id: string;
   tipo: string;
   descripcion?: string | null;
@@ -38,7 +38,7 @@ export interface DocItem {
   createdAt: string;
 }
 
-export interface Player {
+export interface IPlayer {
   id: string;
   lastName: string;
   firstName: string;
@@ -70,37 +70,37 @@ export interface Player {
     puedeJugar: boolean;
     mesesDebe: number;
   };
-  fichas?: FichaEstado;
+  fichas?: IFichaEstado;
   apto?: { puedeJugar: boolean; razones: string[] };
 }
 
-export interface Toast {
+export interface IToast {
   id: number;
   message: string;
   type: "success" | "error" | "warning" | "info";
 }
 
-export interface MeData {
+export interface IMeData {
   id: string;
   fullName: string;
   email: string;
   role: string;
   canChangeCredentials?: boolean;
-  teams: Team[];
+  teams: ITeam[];
 }
 
-export interface DelegadoAdmin {
+export interface IDelegadoAdmin {
   id: string;
   fullName: string;
   email: string;
   role: string;
   active: boolean;
   canChangeCredentials?: boolean;
-  teamAccess: Array<{ team: Team }>;
+  teamAccess: Array<{ team: ITeam }>;
 }
 
 // ---------- Poli (cronograma de entrenamiento) ----------
-export interface PoliSlot {
+export interface IPoliSlot {
   id: string;
   dayOfWeek: number; // 1=lun ... 7=dom
   startTime: string;
@@ -113,7 +113,7 @@ export interface PoliSlot {
   team: { id: string; name: string } | null;
 }
 
-export interface PoliBloque {
+export interface IPoliBloque {
   id: string;
   tipo: "PLANTILLA" | "EXTRA";
   startTime: string;
@@ -133,7 +133,7 @@ export interface PoliBloque {
   } | null;
 }
 
-export interface PoliPartido {
+export interface IPoliPartido {
   id: string;
   time: string;
   rival: string;
@@ -142,37 +142,37 @@ export interface PoliPartido {
   team: { id: string; name: string };
 }
 
-export interface PoliDia {
+export interface IPoliDia {
   fecha: string;
   dia: string;
-  bloques: PoliBloque[];
-  partidos: PoliPartido[];
+  bloques: IPoliBloque[];
+  partidos: IPoliPartido[];
 }
 
-export interface PoliSemana {
+export interface IPoliSemana {
   from: string;
   to: string;
-  semana: PoliDia[];
+  semana: IPoliDia[];
   hoy?: string;
 }
 
 // ---------- Presupuesto ----------
-export interface GastoItem {
+export interface IGastoItem {
   id: string;
   nombre: string;
   monto: number;
   mes?: string | null;
 }
 
-export interface PresupuestoData {
+export interface IPresupuestoData {
   teamId: string;
   categoria: string;
   mes: string;
   jugadores: number;
   cuota: number | null;
   jugadoresExcluidos: number;
-  gastosFijos: GastoItem[];
-  gastosExtra: GastoItem[];
+  gastosFijos: IGastoItem[];
+  gastosExtra: IGastoItem[];
   // Ingreso real del mes: lo que realmente pagaron los que cuentan (monto
   // real, pago parcial incluido) vs el estimado (jugadores × cuota).
   // Opcional: el server puede no estar desplegado aún (el front se auto-
@@ -190,7 +190,7 @@ export interface PresupuestoData {
 }
 
 // Total del club (ADMIN): un renglón por equipo + totales
-export interface TotalEquipo {
+export interface ITotalEquipo {
   teamId: string;
   categoria: string;
   tipo: string;
@@ -206,9 +206,9 @@ export interface TotalEquipo {
   deuda: number;
 }
 
-export interface TotalPresupuesto {
+export interface ITotalPresupuesto {
   mes: string;
-  porEquipo: TotalEquipo[];
+  porEquipo: ITotalEquipo[];
   totales: {
     jugadores: number;
     ingreso: number;
@@ -239,7 +239,7 @@ export interface TotalPresupuesto {
 }
 
 // ---------- Seguro (lista de asegurados + avisos de altas/bajas) ----------
-export interface AvisoSeguro {
+export interface IAvisoSeguro {
   id: string;
   playerId?: string | null;
   tipo: "ALTA" | "BAJA";
@@ -253,14 +253,14 @@ export interface AvisoSeguro {
   resueltoAt?: string | null;
 }
 
-export interface SeguroAvisos {
+export interface ISeguroAvisos {
   total: number;
   altas: number;
   bajas: number;
-  avisos: AvisoSeguro[];
+  avisos: IAvisoSeguro[];
 }
 
-export interface SeguroFilaCompleta {
+export interface ISeguroFilaCompleta {
   document: string;
   lastName: string;
   firstName: string;
@@ -269,7 +269,7 @@ export interface SeguroFilaCompleta {
   equipos: string[];
 }
 
-export interface SeguroFilaCambio {
+export interface ISeguroFilaCambio {
   tipo: "ALTA" | "BAJA";
   fecha: string;
   document: string;
@@ -280,7 +280,7 @@ export interface SeguroFilaCambio {
 }
 
 // ---------- Gimnasio (lista de los que van + avisos de altas/bajas) ----------
-export interface AvisoGym {
+export interface IAvisoGym {
   id: string;
   playerId?: string | null;
   tipo: "ALTA" | "BAJA";
@@ -294,16 +294,16 @@ export interface AvisoGym {
   resueltoAt?: string | null;
 }
 
-export interface GymAvisos {
+export interface IGymAvisos {
   total: number;
   altas: number;
   bajas: number;
-  avisos: AvisoGym[];
+  avisos: IAvisoGym[];
 }
 
 // Una fila del export del gym (lista completa): datos del jugador + estado
 // del gym del mes + estado de la cuota del mes (para saber quién debe qué).
-export interface GymFilaCompleta {
+export interface IGymFilaCompleta {
   document: string;
   lastName: string;
   firstName: string;
@@ -317,7 +317,7 @@ export interface GymFilaCompleta {
   equipos: string[];
 }
 
-export interface GymFilaCambio {
+export interface IGymFilaCambio {
   tipo: "ALTA" | "BAJA";
   fecha: string;
   document: string;

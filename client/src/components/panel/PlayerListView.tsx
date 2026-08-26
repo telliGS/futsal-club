@@ -1,27 +1,27 @@
-import { monthShort, tiposBloqueantes, labelTipo, BadgeFicha, Icon } from "../../lib/panel-helpers";
-import { Player } from "../../lib/panel-types";
+﻿import { monthShort, tiposBloqueantes, labelTipo, BadgeFicha, Icon } from "../../lib/panel-helpers";
+import { IPlayer } from "../../lib/panel-types";
 import { cn } from "../../lib/cn";
 
-interface PlayerListViewProps {
-  jugadoresBusqueda: Player[];
-  jugadoresFiltrados: Player[];
-  plantel: Player[];
-  plantelSinCuota: Player[];
+interface IPlayerListViewProps {
+  jugadoresBusqueda: IPlayer[];
+  jugadoresFiltrados: IPlayer[];
+  plantel: IPlayer[];
+  plantelSinCuota: IPlayer[];
   busqueda: string;
   setBusqueda: (v: string) => void;
   filtroEstado: string;
   setFiltroEstado: (v: string) => void;
   currentMonth: string;
   categoriaActual: string | null;
-  estadoLocal: (p: Player) => NonNullable<Player["estadoCuota"]>;
-  abrirPago: (p: Player, month: string) => void;
-  abrirPagoGym: (p: Player, month: string) => void;
-  estadoLocalGym: (p: Player) => "PAGO" | "DEBE" | "PENDIENTE";
-  abrirInactivo: (p: Player) => void;
-  reactivar: (p: Player) => void;
-  openDocs: (p: Player) => void;
-  openEditar: (p: Player) => void;
-  removePlayer: (p: Player) => void;
+  estadoLocal: (p: IPlayer) => NonNullable<IPlayer["estadoCuota"]>;
+  abrirPago: (p: IPlayer, month: string) => void;
+  abrirPagoGym: (p: IPlayer, month: string) => void;
+  estadoLocalGym: (p: IPlayer) => "PAGO" | "DEBE" | "PENDIENTE";
+  abrirInactivo: (p: IPlayer) => void;
+  reactivar: (p: IPlayer) => void;
+  openDocs: (p: IPlayer) => void;
+  openEditar: (p: IPlayer) => void;
+  removePlayer: (p: IPlayer) => void;
 }
 
 export default function PlayerListView({
@@ -44,7 +44,7 @@ export default function PlayerListView({
   openDocs,
   openEditar,
   removePlayer,
-}: PlayerListViewProps) {
+}: IPlayerListViewProps) {
   return (
     <>
       {/* ===== RESUMEN EJECUTIVO ===== */}

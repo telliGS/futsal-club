@@ -1,13 +1,13 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { monthShort } from "../../lib/panel-helpers";
-import { Player } from "../../lib/panel-types";
+import { IPlayer } from "../../lib/panel-types";
 
 export interface PagoGymModalState {
-  player: Player;
+  player: IPlayer;
   month: string;
 }
 
-interface PagoGymModalProps {
+interface IPagoGymModalProps {
   modal: PagoGymModalState | null;
   setModal: (v: PagoGymModalState | null) => void;
   precioGlobal: number | null; // precio global del gym (default del monto)
@@ -25,7 +25,7 @@ export default function PagoGymModal({
   guardarPago,
   quitarPago,
   ponerNulo,
-}: PagoGymModalProps) {
+}: IPagoGymModalProps) {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
 

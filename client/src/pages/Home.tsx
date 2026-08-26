@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import Layout from "../components/Layout";
 import { cn } from "../lib/cn";
 
-interface Match {
+interface IMatch {
   id: string;
   dateTime: string;
   venue: string;
@@ -15,13 +15,13 @@ interface Match {
   team: { name: string; tier?: string | null };
 }
 
-interface EquipoPublico {
+interface IEquipoPublico {
   id: string;
   name: string;
   type: string;
 }
 
-interface Stats {
+interface IStats {
   equipos: number;
   jugadores: number;
   partidosProximos: number;
@@ -71,7 +71,7 @@ function colorEquipo(tipo: string): string {
 }
 
 const EN_CURSO_WINDOW_MS = 90 * 60_000; // 1:30h = duración aprox. de un partido de futsal
-function estadoPartido(m: Match): "proximo" | "en_curso" | "terminado" {
+function estadoPartido(m: IMatch): "proximo" | "en_curso" | "terminado" {
   const inicio = new Date(m.dateTime).getTime();
   const ahora = Date.now();
   if (inicio > ahora) return "proximo";
@@ -92,13 +92,13 @@ function BadgeEnCurso() {
 }
 
 export default function Home() {
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [teams, setTeams] = useState<EquipoPublico[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [matches, setMatches] = useState<IMatch[]>([]);
+  const [teams, setTeams] = useState<IEquipoPublico[]>([]);
+  const [stats, setStats] = useState<IStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selTeam, setSelTeam] = useState<EquipoPublico | null>(null);
-  const [teamMatches, setTeamMatches] = useState<Match[] | null>(null);
+  const [selTeam, setSelTeam] = useState<IEquipoPublico | null>(null);
+  const [teamMatches, setteamMatches] = useState<IMatch[] | null>(null);
   const [teamLoading, setTeamLoading] = useState(false);
   const [teamError, setTeamError] = useState("");
 
@@ -126,9 +126,9 @@ export default function Home() {
 
   useEffect(() => {
     Promise.all([
-      apiFetch<Match[]>("/matches/upcoming?weekend=2"),
-      apiFetch<EquipoPublico[]>("/public/teams"),
-      apiFetch<Stats>("/public/stats"),
+      apiFetch<IMatch[]>("/matches/upcoming?weekend=2"),
+      apiFetch<IEquipoPublico[]>("/public/teams"),
+      apiFetch<IStats>("/public/stats"),
     ])
       .then(([m, t, s]) => {
         setMatches(m);
@@ -146,14 +146,14 @@ export default function Home() {
     return () => window.removeEventListener("keydown", onKey);
   }, [selTeam]);
 
-  const openTeam = async (t: EquipoPublico) => {
+  const openTeam = async (t: IEquipoPublico) => {
     setSelTeam(t);
-    setTeamMatches(null);
+    setteamMatches(null);
     setTeamError("");
     setTeamLoading(true);
     try {
-      const m = await apiFetch<Match[]>(`/matches?teamId=${t.id}&limit=50`);
-      setTeamMatches(m);
+      const m = await apiFetch<IMatch[]>(`/matches?teamId=${t.id}&limit=50`);
+      setteamMatches(m);
     } catch (e) {
       setTeamError((e as Error).message);
     } finally {
@@ -161,7 +161,7 @@ export default function Home() {
     }
   };
 
-  const porDia = new Map<string, Match[]>();
+  const porDia = new Map<string, IMatch[]>();
   for (const m of teamMatches ?? []) {
     const dia = diaKeyLocal(m.dateTime);
     const grupo = porDia.get(dia) ?? [];
@@ -169,7 +169,7 @@ export default function Home() {
     porDia.set(dia, grupo);
   }
 
-  const restoPorDia = new Map<string, Match[]>();
+  const restoPorDia = new Map<string, IMatch[]>();
   for (const m of matches) {
     const dia = diaKeyLocal(m.dateTime);
     const grupo = restoPorDia.get(dia) ?? [];

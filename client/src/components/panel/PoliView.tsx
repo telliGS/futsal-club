@@ -1,22 +1,22 @@
-import { PoliBloque, PoliDia, PoliSlot } from "../../lib/panel-types";
+﻿import { IPoliBloque, IPoliDia, IPoliSlot } from "../../lib/panel-types";
 import { cn } from "../../lib/cn";
 
-interface PoliViewProps {
+interface IPoliViewProps {
   poliMsg: string;
   poliError: string;
   poliLoading: boolean;
-  poliSemana: PoliDia[];
+  poliSemana: IPoliDia[];
   poliHoy?: string;
-  poliSlots: PoliSlot[];
+  poliSlots: IPoliSlot[];
   poliSemanaOffset: number;
   openNuevoPoliSlot: () => void;
   moverSemana: (delta: number) => void;
-  abrirExcepcion: (fecha: string, bloque?: PoliBloque) => void;
+  abrirExcepcion: (fecha: string, bloque?: IPoliBloque) => void;
   placeColor: (place: string) => string;
   puedeOperarPoli: (teamIdSlot: string | null | undefined) => boolean;
-  togglePoliSlot: (s: PoliSlot) => void;
-  startEditPoliSlot: (s: PoliSlot) => void;
-  borrarPoliSlot: (s: PoliSlot) => void;
+  togglePoliSlot: (s: IPoliSlot) => void;
+  startEditPoliSlot: (s: IPoliSlot) => void;
+  borrarPoliSlot: (s: IPoliSlot) => void;
 }
 
 export default function PoliView({
@@ -35,7 +35,7 @@ export default function PoliView({
   togglePoliSlot,
   startEditPoliSlot,
   borrarPoliSlot,
-}: PoliViewProps) {
+}: IPoliViewProps) {
   return (
     <div className="mt-8 rounded-lg border border-outline bg-surface-1 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">

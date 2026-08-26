@@ -1,14 +1,14 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import * as XLSX from "xlsx";
 import { apiFetch } from "../../lib/api";
-import { Team, GymFilaCompleta, GymFilaCambio } from "../../lib/panel-types";
+import { ITeam, IGymFilaCompleta, IGymFilaCambio } from "../../lib/panel-types";
 import { cn } from "../../lib/cn";
 
-interface GymModalProps {
+interface IGymModalProps {
   show: boolean;
   setShow: (b: boolean) => void;
   esAdmin: boolean;
-  teams: Team[];
+  teams: ITeam[];
   teamId: string;
   token: string | null;
   precioGlobal: number | null;
@@ -33,9 +33,9 @@ export default function GymModal({
   setPrecioGlobal,
   onExportado,
   onMsg,
-}: GymModalProps) {
+}: IGymModalProps) {
   const [scope, setScope] = useState<"club" | "teamId">("club");
-  const [scopeTeamId, setScopeTeamId] = useState(teamId);
+  const [scopeITeamId, setScopeITeamId] = useState(teamId);
   const [tipo, setTipo] = useState<"completa" | "altas" | "bajas">("completa");
   const [mes, setMes] = useState(mesActual());
   const [exportando, setExportando] = useState(false);
@@ -45,7 +45,7 @@ export default function GymModal({
   if (!show) return null;
 
   const equipos = teams.length > 0 ? teams : [];
-  const equipoSeleccionado = equipos.find((t) => t.id === scopeTeamId) ?? equipos[0] ?? null;
+  const equipoSeleccionado = equipos.find((t) => t.id === scopeITeamId) ?? equipos[0] ?? null;
 
   const estadoGymLabel = (e: string) =>
     e === "PAGO" ? "Pagó" : e === "DEBE" ? "Debe" : "Pendiente";
@@ -61,7 +61,7 @@ export default function GymModal({
         const e = equipoSeleccionado ?? { id: teamId };
         qs.set("teamId", e.id);
       }
-      const data = await apiFetch<GymFilaCompleta[] | GymFilaCambio[]>(`/gym/lista?${qs}`, {}, token);
+      const data = await apiFetch<IGymFilaCompleta[] | IGymFilaCambio[]>(`/gym/lista?${qs}`, {}, token);
       if (!data || data.length === 0) {
         onMsg(tipo === "completa" ? "No hay jugadores que vayan al gym para exportar" : "No hay cambios de ese tipo pendientes", "warning");
         return;
@@ -69,7 +69,7 @@ export default function GymModal({
 
       const filas =
         tipo === "completa"
-          ? (data as GymFilaCompleta[]).map((p) => ({
+          ? (data as IGymFilaCompleta[]).map((p) => ({
               "DNI": p.document,
               "Apellido": p.lastName,
               "Nombre": p.firstName,
@@ -81,7 +81,7 @@ export default function GymModal({
               "Cuota del mes": estadoCuotaLabel(p.cuotaEstado),
               "Monto cuota": p.cuotaMonto > 0 ? "$" + p.cuotaMonto.toLocaleString("es-AR") : "",
             }))
-          : (data as GymFilaCambio[]).map((c) => ({
+          : (data as IGymFilaCambio[]).map((c) => ({
               "Cambio": c.tipo === "ALTA" ? "Alta" : "Baja",
               "Fecha": c.fecha,
               "DNI": c.document,
@@ -204,7 +204,7 @@ export default function GymModal({
             <span className="text-xs text-white/60">Equipo</span>
             <select
               value={equipoSeleccionado?.id ?? ""}
-              onChange={(e) => setScopeTeamId(e.target.value)}
+              onChange={(e) => setScopeITeamId(e.target.value)}
               className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-1 border border-outline text-sm"
             >
               {equipos.map((t) => (

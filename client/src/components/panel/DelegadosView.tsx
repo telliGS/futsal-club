@@ -1,17 +1,17 @@
-import { DelegadoAdmin } from "../../lib/panel-types";
+﻿import { IDelegadoAdmin } from "../../lib/panel-types";
 import { cn } from "../../lib/cn";
 
-interface DelegadosViewProps {
-  delegados: DelegadoAdmin[];
+interface IDelegadosViewProps {
+  delegados: IDelegadoAdmin[];
   delegadosLoading: boolean;
   delegadosError: string;
   delegadoMsg: string;
   eliminarTodosDelegados: () => void;
   openNuevoDelegado: () => void;
-  startEditDelegado: (d: DelegadoAdmin) => void;
-  toggleDelegadoActive: (d: DelegadoAdmin) => void;
-  reactivarCredenciales: (d: DelegadoAdmin) => void;
-  eliminarDelegado: (d: DelegadoAdmin) => void;
+  startEditDelegado: (d: IDelegadoAdmin) => void;
+  toggleDelegadoActive: (d: IDelegadoAdmin) => void;
+  reactivarCredenciales: (d: IDelegadoAdmin) => void;
+  eliminarDelegado: (d: IDelegadoAdmin) => void;
 }
 
 export default function DelegadosView({
@@ -25,7 +25,7 @@ export default function DelegadosView({
   toggleDelegadoActive,
   reactivarCredenciales,
   eliminarDelegado,
-}: DelegadosViewProps) {
+}: IDelegadosViewProps) {
   return (
     <div className="mt-8 rounded-lg border border-outline bg-surface-1 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
