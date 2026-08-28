@@ -2,6 +2,7 @@
 import { apiFetch } from "../lib/api";
 import Layout from "../components/Layout";
 import { cn } from "../lib/cn";
+import { usePageMeta } from "../lib/usePageMeta";
 
 interface IStatusResult {
   fullName: string;
@@ -26,6 +27,10 @@ function monthLabel(month: string) {
 }
 
 export default function Status() {
+  usePageMeta({
+    title: "Mi Cuota",
+    description: "Consultá con tu DNI si estás al día con la cuota del Club José Hernández. Estado, deuda y plazo para pagar.",
+  });
   const [dni, setDni] = useState("");
   const [result, setResult] = useState<IStatusResult | null>(null);
   const [error, setError] = useState("");

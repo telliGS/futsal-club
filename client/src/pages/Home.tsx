@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import Layout from "../components/Layout";
 import { cn } from "../lib/cn";
+import { usePageMeta } from "../lib/usePageMeta";
 
 interface IMatch {
   id: string;
@@ -92,6 +93,10 @@ function BadgeEnCurso() {
 }
 
 export default function Home() {
+  usePageMeta({
+    title: "Inicio",
+    description: "Futsal de Paraná: próximos partidos, categorías formativas y primera. Club José Hernández, 10 equipos y más de 100 jugadores.",
+  });
   const [matches, setMatches] = useState<IMatch[]>([]);
   const [teams, setTeams] = useState<IEquipoPublico[]>([]);
   const [stats, setStats] = useState<IStats | null>(null);

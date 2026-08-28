@@ -2,6 +2,7 @@
 import { apiFetch } from "../lib/api";
 import Layout from "../components/Layout";
 import { cn } from "../lib/cn";
+import { usePageMeta } from "../lib/usePageMeta";
 
 interface IScheduleBloque {
   id: string;
@@ -66,6 +67,10 @@ function getLugarInfo(place: string) {
 }
 
 export default function Cronograma() {
+  usePageMeta({
+    title: "Cronograma",
+    description: "Horarios y lugares de entrenamiento por categoría y partidos del finde. Cronograma semanal del Club José Hernández.",
+  });
   const [schedule, setSchedule] = useState<ISchedule | null>(null);
   const [teams, setTeams] = useState<IEquipoPublico[]>([]);
   const [loading, setLoading] = useState(true);

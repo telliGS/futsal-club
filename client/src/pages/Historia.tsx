@@ -1,8 +1,13 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
+import { usePageMeta } from "../lib/usePageMeta";
 
 export default function Historia() {
+  usePageMeta({
+    title: "Historia",
+    description: "Conocé la historia del Club José Hernández: desde 2010 en el barrio hasta los títulos de Copa de Oro, Elite y 1ra Femenina.",
+  });
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);

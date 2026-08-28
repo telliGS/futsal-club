@@ -2,6 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import { apiFetch, getToken, setToken } from "../lib/api";
 import Layout from "../components/Layout";
+import { usePageMeta } from "../lib/usePageMeta";
 
 interface ILoginResponse {
   token: string;
@@ -17,6 +18,10 @@ const FEATURES = [
 ];
 
 export default function Login() {
+  usePageMeta({
+    title: "Ingresar",
+    description: "Acceso para delegados del Club José Hernández. Gestioná plantel, cuotas y fichas de tu categoría.",
+  });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
