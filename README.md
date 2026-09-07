@@ -67,7 +67,7 @@ Acceso al área de delegados: `http://localhost:5173/ingresar`
 - Frontend: https://jh-futsal.vercel.app
 - Backend/API: https://server-tellig.vercel.app
 - Health check: https://server-tellig.vercel.app/api/health
-- Último commit deployado: `1977f1c` (`Deploy club features and fixes`)
+- Último commit deployado: `c538b7a` (`fix: quitar jugador del equipo concreto (multi-equipo) y acceso a al menos un equipo en pagos`)
 
 ## Datos: migración desde el Drive
 
