@@ -5,6 +5,22 @@ Web del club de futsal José Hernández (Paraná, Entre Ríos, Argentina): los d
 - **Web:** https://jh-futsal.vercel.app
 - **Instagram:** https://www.instagram.com/josehernandezfs
 
+## Capturas
+
+| Sitio público | Panel de delegados (vista plantel) |
+| :---: | :---: |
+| ![Home](client/public/screenshots/home.png) | ![Panel plantel](client/public/screenshots/panel-plantel.png) |
+
+| Cuotas | Presupuesto |
+| :---: | :---: |
+| ![Panel cuotas](client/public/screenshots/panel-cuotas.png) | ![Panel presupuesto](client/public/screenshots/panel-presupuesto.png) |
+
+| Delegados | Cronograma |
+| :---: | :---: |
+| ![Panel delegados](client/public/screenshots/panel-delegados.png) | ![Panel cronograma](client/public/screenshots/panel-cronograma.png) |
+
+> Las capturas del panel usan datos de demostración (jugadores ficticios).
+
 ## Stack
 
 | Capa      | Tecnología                                        |
