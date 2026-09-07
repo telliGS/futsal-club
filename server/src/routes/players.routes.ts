@@ -14,12 +14,12 @@ const router = Router();
 async function checkPlayerAccess(req: import("express").Request, res: import("express").Response, playerId: string): Promise<boolean> {
   const links = await prisma.playerTeam.findMany({ where: { playerId } });
   for (const l of links) {
-    if (!(await canAccessTeam(req.user!.id, l.teamId))) {
-      res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
-      return false;
+    if (await canAccessTeam(req.user!.id, l.teamId)) {
+      return true;
     }
   }
-  return true;
+  res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
+  return false;
 }
 
 router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
@@ -88,12 +88,18 @@ router.patch("/players/:id", requireAuth, async (req, res) => {
 router.delete("/players/:id", requireAuth, async (req, res) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
   if (player) {
+    // Acceso: basta con que el usuario controle ALGÚN equipo del jugador
+    // (consistente con documentos, status y update). El controller valida
+    // además que el vínculo concreto a quitar corresponda a un equipo accesible.
     const links = await prisma.playerTeam.findMany({ where: { playerId: player.id } });
+    let acceso = false;
     for (const l of links) {
-      if (!(await canAccessTeam(req.user!.id, l.teamId))) {
-        return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
+      if (await canAccessTeam(req.user!.id, l.teamId)) {
+        acceso = true;
+        break;
       }
     }
+    if (!acceso) return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
   }
   return deletePlayer(req, res);
 });
@@ -116,11 +122,14 @@ router.get("/players/:id/payments", requireAuth, async (req, res) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
   if (player) {
     const links = await prisma.playerTeam.findMany({ where: { playerId: player.id } });
+    let acceso = false;
     for (const l of links) {
-      if (!(await canAccessTeam(req.user!.id, l.teamId))) {
-        return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
+      if (await canAccessTeam(req.user!.id, l.teamId)) {
+        acceso = true;
+        break;
       }
     }
+    if (!acceso) return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
   }
   return getPayments(req, res);
 });

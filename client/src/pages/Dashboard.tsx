@@ -326,11 +326,21 @@ export default function Dashboard() {
   }
 
   async function removePlayer(p: IPlayer) {
-    if (!token) return;
-    const ok = window.confirm(`¿Quitar a ${p.firstName} ${p.lastName} del equipo? (el jugador se elimina si no está en otro equipo)`);
+    if (!token || !teamId) return;
+    const esTecnico = p.role !== "JUGADOR";
+    const nombreEquipo = me?.teams.find((t) => t.id === teamId)?.name ?? "este equipo";
+    const ok = window.confirm(
+      esTecnico
+        ? `¿Quitar a ${p.firstName} ${p.lastName} del cuerpo técnico de ${nombreEquipo}? (el jugador se elimina si no está en otro equipo)`
+        : `¿Quitar a ${p.firstName} ${p.lastName} de ${nombreEquipo}? (el jugador se elimina si no está en otro equipo)`
+    );
     if (!ok) return;
     try {
-      await apiFetch(`/players/${p.id}`, { method: "DELETE" }, token);
+      await apiFetch(
+        `/players/${p.id}`,
+        { method: "DELETE", body: JSON.stringify({ teamId }) },
+        token
+      );
       setPlayers((prev) => prev.filter((x) => x.id !== p.id));
     } catch (e) {
       setError((e as Error).message);

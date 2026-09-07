@@ -361,32 +361,46 @@ export const updatePlayer = async (req: Request, res: Response) => {
 export const deletePlayer = async (req: Request, res: Response) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
   if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
+
+  // QUÉ vínculo se quiere quitar. Si viene teamId explícito (desde una vista de
+  // equipo), lo usamos; si no y hay un solo vínculo, ese; si hay varios y no se
+  // especificó, no borramos a ciegas (error claro).
+  const teamId = typeof req.body?.teamId === "string" ? req.body.teamId : undefined;
   const links = await prisma.playerTeam.findMany({ where: { playerId: player.id } });
-  for (const l of links) {
-    if (!(await canAccessTeam(req.user!.id, l.teamId))) {
-      return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
-    }
+
+  const target = teamId
+    ? links.find((l) => l.teamId === teamId)
+    : links.length === 1
+      ? links[0]
+      : undefined;
+
+  if (!target) {
+    return res.status(400).json({
+      success: false,
+      error:
+        teamId && links.length > 1
+          ? `Este jugador no está vinculado al equipo indicado.`
+          : "Este jugador tiene varios vínculos (equipos y/o cuerpos técnicos). Usá la acción quitar desde el equipo específico.",
+    });
   }
+
+  // Acceso: basta con controlar el equipo al que pertenece el vínculo a quitar
+  // (no exige acceso a TODOS sus otros equipos).
+  if (!(await canAccessTeam(req.user!.id, target.teamId))) {
+    return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
+  }
+
+  const eraJugadorEnEseEquipo = target.role === "JUGADOR";
+
   if (links.length === 1) {
+    // Último vínculo → se elimina todo el jugador.
     if (player.status !== "INACTIVO") {
-      await registrarAvisoSeguro({
-        playerId: player.id,
-        tipo: "BAJA",
-        creadoPorId: req.user!.id,
-        teamId: links[0].teamId,
-        snapshot: {
-          document: player.document,
-          lastName: player.lastName,
-          firstName: player.firstName,
-          birthDate: player.birthDate,
-        },
-      });
-      if (player.vaAlGym) {
-        await registrarAvisoGym({
+      if (eraJugadorEnEseEquipo) {
+        await registrarAvisoSeguro({
           playerId: player.id,
           tipo: "BAJA",
           creadoPorId: req.user!.id,
-          teamId: links[0].teamId,
+          teamId: target.teamId,
           snapshot: {
             document: player.document,
             lastName: player.lastName,
@@ -394,13 +408,54 @@ export const deletePlayer = async (req: Request, res: Response) => {
             birthDate: player.birthDate,
           },
         });
+        if (player.vaAlGym) {
+          await registrarAvisoGym({
+            playerId: player.id,
+            tipo: "BAJA",
+            creadoPorId: req.user!.id,
+            teamId: target.teamId,
+            snapshot: {
+              document: player.document,
+              lastName: player.lastName,
+              firstName: player.firstName,
+              birthDate: player.birthDate,
+            },
+          });
+        }
+      } else {
+        // Solo se quita el cuerpo técnico: hoy no manejamos avisos de baja para
+        // DT/AT porque no tienen seguro ni gym.
       }
     }
     await prisma.player.delete({ where: { id: player.id } });
   } else {
-    await prisma.playerTeam.delete({ where: { playerId_teamId: { playerId: player.id, teamId: links[0].teamId } } });
+    // Queda al menos otro vínculo → solo se elimina el link del equipo indicado.
+    await prisma.playerTeam.delete({
+      where: { playerId_teamId: { playerId: player.id, teamId: target.teamId } },
+    });
+    // Si era JUGADOR en ese equipo y ahora ya no es JUGADOR en ningún lado,
+    // podríamos registrar la baja del seguro. Pero como el jugador conserva otros
+    // vínculos (ej. DT en otro equipo), no aplicamos aviso de baja de seguro/gym
+    // aquí: el seguro/gym están atados a ser jugador en algún equipo.
+    const sigueSiendoJugador = links.some(
+      (l) => l.teamId !== target.teamId && l.role === "JUGADOR"
+    );
+    if (eraJugadorEnEseEquipo && !sigueSiendoJugador && player.status !== "INACTIVO") {
+      await registrarAvisoSeguro({
+        playerId: player.id,
+        tipo: "BAJA",
+        creadoPorId: req.user!.id,
+        teamId: target.teamId,
+        snapshot: {
+          document: player.document,
+          lastName: player.lastName,
+          firstName: player.firstName,
+          birthDate: player.birthDate,
+        },
+      });
+    }
   }
-  res.json({ ok: true });
+  res.json({ ok: true, removedTeamId: target.teamId });
 };
 
 export const createPayment = async (req: Request, res: Response) => {
@@ -449,11 +504,8 @@ export const deletePayment = async (req: Request, res: Response) => {
 export const getPayments = async (req: Request, res: Response) => {
   const player = await prisma.player.findUnique({ where: { id: req.params.id } });
   if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
-  const links = await prisma.playerTeam.findMany({ where: { playerId: player.id } });
-  for (const l of links) {
-    if (!(await canAccessTeam(req.user!.id, l.teamId))) {
-      return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
-    }
+  if (!(await canAccessPlayer(req.user!.id, player.id))) {
+    return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
   }
   const payments = await prisma.payment.findMany({
     where: { playerId: player.id },
