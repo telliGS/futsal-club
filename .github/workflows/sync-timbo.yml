@@ -1,0 +1,82 @@
+name: Sync TIMBO (fixtures)
+
+on:
+  schedule:
+    # Cada 6 horas UTC (cada 4h sería 0 */4 * * *, pero 6h cubre bien el finde)
+    - cron: "17 */6 * * *"
+  push:
+    branches: [master]
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    name: Tests (server + client)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+
+      - name: Tests del server
+        working-directory: server
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+        run: |
+          npm ci
+          npm test
+
+      - name: Tests del client
+        working-directory: client
+        run: |
+          npm ci
+          npm test
+
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Disparar sync del server
+        run: |
+          curl -sS -X POST "${{ secrets.TIMBO_API_URL }}/api/sync/timbo" \
+            -H "Content-Type: application/json" \
+            -H "X-Timbo-Sync-Token: ${{ secrets.TIMBO_SYNC_TOKEN }}" \
+            -d '{}' \
+            -w "\nHTTP %{http_code}\n"
+
+  deploy-server:
+    name: Deploy server a Vercel
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Build del server
+        working-directory: server
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy a Vercel (production)
+        working-directory: server
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx vercel@latest pull --yes --environment=production --token=$VERCEL_TOKEN
+          npx vercel@latest build --prod --token=$VERCEL_TOKEN
+          npx vercel@latest deploy --prebuilt --prod --token=$VERCEL_TOKEN

@@ -1,0 +1,11 @@
+# Excluido de la subida a Vercel (se instala en build)
+node_modules
+dist
+*.db
+*.db-journal
+*.log
+.env
+.env.*
+tes-conn*.cjs
+de-conn.cjs
+.vscode

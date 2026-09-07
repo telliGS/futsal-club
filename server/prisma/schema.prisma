@@ -1,0 +1,327 @@
+// ============================================================
+// Modelo de datos — Club Futsal José Hernández
+// SQLite en desarrollo, PostgreSQL en producción (mismo schema)
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------- Usuarios y permisos ----------------
+
+// Rol como String por compatibilidad con SQLite (en Postgres podría ser enum)
+model User {
+  id           String   @id @default(cuid())
+  fullName     String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("DELEGADO") // "ADMIN" | "DELEGADO"
+  active       Boolean  @default(true)
+  // Cambio de credenciales UNA vez por cuenta creada por admin: el delegado
+  // cambia su email/contraseña temporales al entrar por primera vez y después
+  // solo el admin puede tocarle credenciales (PATCH /delegados/:id).
+  // true = todavía puede autocambiarse; false = ya usó su único cambio.
+  canChangeCredentials Boolean @default(true)
+  createdAt    DateTime @default(now())
+
+  teamAccess UserTeamAccess[]
+}
+
+// Un delegado puede manejar una o varias categorías (muchos a muchos)
+model UserTeamAccess {
+  userId String
+  teamId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@id([userId, teamId])
+  @@index([teamId])
+}
+
+// ---------------- Equipos / Categorías ----------------
+
+model Team {
+  id        String  @id @default(cuid())
+  name      String  @unique // Nombre de la pestaña: "C11", "JH NEGRO", "JH ELITE"...
+  gender    String  // "M" | "F"
+  type      String  // "FORMATIVA" | "PRIMERA"
+  category  String  // "C11", "C13", ..., "PRIMERA"
+  tier      String? // "elite" | "primera_a" (solo en primeras)
+  sheetName String  // Nombre exacto de la pestaña en el Drive
+  quota     Float?  // cuota mensual por jugador de esta categoría (presupuesto)
+
+  players     PlayerTeam[]
+  matches     Match[]
+  access      UserTeamAccess[]
+  gastosFijos GastoFijo[]
+  gastosExtra GastoExtra[]
+  poliSlots   PoliSlot[]
+  poliExceptions PoliException[]
+}
+
+// Jugador único: identificado por DNI; validado/creado una sola vez.
+model Player {
+  id           String   @id @default(cuid())
+  document     String   @unique // DNI (clave maestra de la migración)
+  lastName     String
+  firstName    String
+  birthDate    DateTime?
+  hasInsurance Boolean  @default(false)
+  // Gimnasio: el jugador va y paga su cuota de gym por mes. Todos los de élite
+  // van; algunos C20 / JH NEGRO también. gymPrecio opcional = costo propio
+  // (si es null se usa el precio global de GymConfig).
+  vaAlGym      Boolean  @default(false)
+  gymPrecio    Float?
+  status       String   @default("ACTIVO") // ACTIVO | DEUDA | INACTIVO (rojo del sheet)
+  // Día límite para pagar la cuota del mes en curso. Hasta ese día el jugador
+  // está "pendiente"; desde el día siguiente sin pagar pasa a DEUDOR (no juega).
+  deadline     Int      @default(10)
+  // Se setea al pasar a INACTIVO: hasta qué mes jugó. Al volver, la deuda
+  // se congela en esa fecha (no corre cuota durante el tiempo inactivo).
+  inactiveSince DateTime?
+  notes        String?
+
+  teams   PlayerTeam[]
+  payments Payment[]
+  gymPayments GymPayment[]
+  documentos JugadorDocumento[]
+}
+
+// Muchos a muchos: un jugador puede jugar en varios equipos.
+// role: JUGADOR por defecto, o marca de cuerpo técnico (DT/AT/PF/DEL...).
+model PlayerTeam {
+  id        String  @id @default(cuid())
+  playerId  String
+  teamId    String
+  role      String  @default("JUGADOR") // JUGADOR | DT | AT | PF | DEL | ...
+  jersey     Int?    // número de camiseta (opcional)
+  position   String? // posición en cancha
+  // Presupuesto: false para casos excepcionales (ej. jugador que está
+  // regularizando y no juega todavía) — no cuenta en el ingreso por cuotas.
+  cuentaPresupuesto Boolean @default(true)
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, teamId])
+  @@index([teamId])
+}
+
+// ---------------- Presupuesto por categoría ----------------
+
+// Gasto recurrente todos los meses (cancha, árbitros, viáticos...).
+// Si un mes cambia, se agrega un GastoExtra puntual que lo reemplaza.
+model GastoFijo {
+  id     String @id @default(cuid())
+  teamId String
+  nombre String  // "Cancha", "Árbitros", "Viáticos"...
+  monto  Float
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+}
+
+// Gasto puntual de UN mes (ej. cancha extra por lluvia).
+model GastoExtra {
+  id     String @id @default(cuid())
+  teamId String
+  mes    String // "YYYY-MM"  ejemplo: "2026-08"
+  nombre String
+  monto  Float
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, mes])
+}
+
+// ---------------- Jugadores: modelo viejo eliminado (ver PlayerTeam) ----------------
+// ---------------- Cuotas (mensuales por jugador) ----------------
+
+// Ficha médica / estudios (ergonometría, electro) cargados por el delegado.
+// 'data' guarda el archivo (PDF/imagen) en la misma BD (bytea) — máximo ~2 MB.
+model JugadorDocumento {
+  id                String    @id @default(cuid())
+  playerId          String
+  tipo              String    // "FICHA_MEDICA" | "ELECTROCARDIOGRAMA" | "ERGONOMETRIA" | "OTRO"
+  descripcion       String?   // ej: "Renovación 2do semestre 2026"
+  fileName          String    // nombre original del archivo (se descarga igual)
+  mime              String    // application/pdf, image/jpeg...
+  size              Int       // bytes
+  data              Bytes     // contenido del archivo
+  fechaEmision      DateTime? // fecha de emisión que figura en el papel (referencia)
+  fechaVencimiento  DateTime? // la que manda: vence por regla del club (ergo 2 años, electro 1 año desde emisión) o la que el delegado escriba
+  subidoPorId       String?   // auditoría: delegado que lo subió
+  createdAt         DateTime  @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  playerId  String
+  month     String   // "YYYY-MM"  ejemplo: "2026-08"
+  amount    Float    @default(0)    // monto de la cuota
+  note      String?                // detalle opcional (ej. "pagó la mitad, resta $X")
+  paid      Boolean  @default(false)
+  paidAt    DateTime?
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, month])
+}
+
+// ---------------- Gimnasio (config global + pagos por jugador) ----------------
+
+// Precio global del gimnasio: el costo mensual que paga el club por jugador
+// que va (variable por jugador). Cada jugador con vaAlGym paga su cuota de gym
+// por mes; si tiene gymPrecio propio usa ese, si no usa el global de acá.
+model GymConfig {
+  id     String @id @default("global") // única fila
+  precio Float  @default(0)
+}
+
+// Pago mensual de gimnasio por jugador (espejo del Payment de cuota):
+// permite monto real (pago parcial, ej. Telli Guillermo paga la mitad) + nota.
+model GymPayment {
+  id        String   @id @default(cuid())
+  playerId  String
+  month     String   // "YYYY-MM"  ejemplo: "2026-08"
+  amount    Float    @default(0)    // monto de gym pagado
+  note      String?                // detalle opcional (ej. "va 1 día de los 2")
+  paid      Boolean  @default(false)
+  paidAt    DateTime?
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, month])
+}
+
+// Aviso de alta/baja del gimnasio: se registra cuando un jugador empieza o
+// deja de ir al gym (vaAlGym cambia), igual que el seguro. Se limpia al
+// exportar la lista completa del gym (resueltoAt).
+model AvisoGym {
+  id          String    @id @default(cuid())
+  playerId    String?
+  tipo        String    // "ALTA" | "BAJA"
+  document    String
+  lastName    String
+  firstName   String
+  birthDate   DateTime?
+  teamId      String?
+  creadoPorId String?
+  createdAt   DateTime  @default(now())
+  resueltoAt  DateTime?
+
+  @@index([tipo])
+  @@index([creadoPorId])
+  @@index([resueltoAt])
+}
+
+// ---------------- Lista de asegurados (seguro) ----------------
+
+// Cada alta/baja de un jugador ACTIVO queda registrada como aviso para que el
+// admin (y el delegado que hizo el cambio) sepa que la lista del seguro quedó
+// desactualizada. Se limpia al exportar la lista completa (resueltoAt).
+// playerId puede ser null (si el jugador se borró): igual se exporta la BAJA
+// con el snapshot de datos guardado acá.
+model AvisoSeguro {
+  id          String    @id @default(cuid())
+  playerId    String?
+  tipo        String    // "ALTA" | "BAJA"
+  // Snapshot de datos del jugador al momento del evento
+  document    String
+  lastName    String
+  firstName   String
+  birthDate   DateTime?
+  teamId      String?   // equipo donde se registró el cambio (contexto)
+  creadoPorId String?   // delegado que hizo el cambio (auditoría)
+  createdAt   DateTime  @default(now())
+  resueltoAt  DateTime? // null = pendiente de resolver (exportar lista completa)
+
+  @@index([tipo])
+  @@index([creadoPorId])
+  @@index([resueltoAt])
+}
+
+// ---------------- Partidos ----------------
+
+model Match {
+  id         String    @id @default(cuid())
+  teamId     String
+  dateTime   DateTime  // día y hora del partido
+  venue      String    // cancha / sede
+  rival      String
+  isHome     Boolean   // true si juega de local
+  category   String?   // denormaliz nacional simple para el público
+  timboId    Int?      @unique // id del partido en TIMBO (sync automático); null = manual
+  clubGoals  Int?      // goles del club (null = sin resultado publicado / sin jugar)
+  rivalGoals Int?      // goles del rival (null = sin resultado publicado / sin jugar)
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([dateTime])
+  @@index([teamId, dateTime])
+}
+
+// Estado global de sincronizaciones (ej. última corrida de TIMBO)
+model SyncState {
+  id        String   @id @default(cuid())
+  key       String   @unique // "timbo" | ...
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------- Cronograma de entrenamiento (poli) ----------------
+
+// Plantilla SEMANAL fija: se repite todas las semanas en el mismo día y hora.
+// dayOfWeek: 1 = lunes ... 7 = domingo. Lugar default = Polideportivo del club.
+model PoliSlot {
+  id          String   @id @default(cuid())
+  dayOfWeek   Int      // 1=lun ... 7=dom
+  startTime   String   // "21:00" (HH:MM)
+  endTime     String   // "22:30" (HH:MM)
+  place       String   // "Polideportivo", "La Toma", "Palermo", "Borja", "Gimnasio"...
+  teamId      String?  // categoría que entrena (null = actividad libre: reunión, etc.)
+  responsable String?  // profe / DT a cargo (texto libre por ahora)
+  note        String?  // ej. "solo si no hay partido el lunes"
+  active      Boolean  @default(true) // suspendido sin borrar
+  createdAt   DateTime @default(now())
+
+  team       Team?            @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  exceptions PoliException[]
+
+  @@index([teamId])
+}
+
+// Excepción PUNTUAL por fecha concreta: sobrescribe un slot de la plantilla
+// para UN día (ej. "viernes 14/08 se entrena en La Toma"). canceled=true = no hay.
+// Si no tiene slotId es un bloque EXTRA (entrenamiento puntual nuevo ese día)
+// y puede llevar su propio teamId (categoría que entrena).
+model PoliException {
+  id        String    @id @default(cuid())
+  date      DateTime  // fecha concreta (solo la parte de día importa)
+  slotId    String?   // si sobrescribe un slot de la plantilla; null = bloque extra
+  teamId    String?   // equipo del entrenamiento (extra); si null → se hereda del slot
+  place     String?   // lugar reemplazado (si null → se mantiene el del slot)
+  startTime String?   // hora reemplazada (si null → se mantiene la del slot)
+  endTime   String?   // hora reemplazada (si null → se mantiene la del slot)
+  canceled  Boolean   @default(false) // true = ese día no se entrena
+  note      String?   // ej. "cambio por lluvia"
+  createdAt DateTime  @default(now())
+
+  slot PoliSlot? @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  team Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([date])
+  @@index([slotId])
+  @@index([teamId])
+}

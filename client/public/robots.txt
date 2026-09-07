@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /delegado
+
+Sitemap: https://jh-futsal.vercel.app/sitemap.xml
