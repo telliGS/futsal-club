@@ -77,6 +77,5 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          npx vercel@latest pull --yes --environment=production --token=$VERCEL_TOKEN
           npx vercel@latest build --prod --token=$VERCEL_TOKEN
           npx vercel@latest deploy --prebuilt --prod --token=$VERCEL_TOKEN
