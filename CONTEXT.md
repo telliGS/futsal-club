@@ -10,7 +10,7 @@ Sistema de gestión integral para el Club Social y Deportivo José Hernández (P
 | **Backend** | Node.js + Express + TypeScript (serverless en Vercel) |
 | **Datos** | Prisma ORM + PostgreSQL (Supabase) con RLS (Row Level Security) |
 | **Integraciones** | TIMBO (fixtures externos) vía adapter, Google Sheets (importación inicial) |
-| **CI/CD** | GitHub Actions (tests en cada push) + auto-deploy Vercel |
+| **CI/CD** | GitHub Actions (test + sync TIMBO solo en cada push; el deploy del server es MANUAL) |
 | **Testing** | `node --test` + loader `tsx` (sin framework extra) |
 
 ## Estructura
@@ -43,9 +43,15 @@ futsal-club/
 - **Fuente única de estado**: cuota/gym se calculan SOLO en el server (sin estado local duplicado en el client).
 
 ## URLs de producción
+- Repo: `https://github.com/telliGS/futsal-club` (**público** desde 07/09/2026)
 - Front: `https://jh-futsal.vercel.app`
 - API: `https://server-tellig.vercel.app`
 - Health check: `https://server-tellig.vercel.app/api/health`
+
+## Deploy
+- **Front**: auto-deploy en Vercel ante cada push a `master`.
+- **Server**: deploy **MANUAL** con `npx vercel --prod` desde `server/` (el job `deploy-server` del workflow se quitó de GitHub Actions porque el build prebuilt generaba deployments que colgaban los endpoints). Regla aprendida: NO usar `vercel build --prebuilt` local; deploy normal desde `server/` (necesita `server/.vercel/project.json`, ignorado por git).
+- Secrets disponibles en GitHub Actions (de un experimento, hoy sin uso): `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
 
 ## Seguridad
 - JWT (12 h) firmado con `JWT_SECRET` (solo en env del server).
@@ -75,7 +81,13 @@ Credenciales de ejemplo del seed: `admin@example.com` / `admin1234`, `delegado@e
 cd server && npm test     # node --test + tsx
 cd client && npm test
 ```
-CI corre ambos en cada push a `master` (GitHub Actions).
+CI corre ambos en cada push a `master` (GitHub Actions): `test` (server + client) y `sync` (dispara el sync de TIMBO). El deploy del server NO está en CI (manual, ver sección Deploy).
+
+## Regla de negocio: una persona hoy puede tener VARIOS roles
+`PlayerTeam` es many-to-many con `role` por fila (`JUGADOR`, `DT`, `AT`, `PF`, …) y `@@unique([playerId, teamId])`. Ejemplo real en producción: **Mauro Erben** es JUGADOR en JH NEGRO y DT en JH ELITE a la vez (ídem Mauro Schroeder = JUGADOR JH NEGRO + AT JH ELITE). Implicancias implementadas (fix 07/09/2026):
+- **Quitar de un equipo** (`DELETE /players/:id` con `teamId` en el body): borra SOLO el vínculo del equipo indicado, jamás a ciegas (`links[0]`). Si hay varios vínculos sin `teamId`, responde 400 pidiendo el equipo.
+- **Acceso**: criterio unificado a "al menos un equipo" en payments/delete (antes exigía TODOS los equipos, lo que bloqueaba a delegados con jugadores multi-equipo).
+- Avisos de baja de seguro/gym solo si el vínculo eliminado era `JUGADOR` (los DT/AT no llevan seguro) y solo si el jugador deja de ser JUGADOR en todos lados.
 
 ## Convenciones
 - TypeScript `strict: true`; evitar `any`.
@@ -90,4 +102,4 @@ CI corre ambos en cada push a `master` (GitHub Actions).
 4. Roadmap del club: panel de profesores, panel de ventas, alertas de pagos, PWA.
 
 ---
-**Última actualización**: 07/09/2026 — versión pública del contexto (sin credenciales ni datos personales).
+**Última actualización**: 07/09/2026 — versión pública del contexto (sin credenciales ni datos personales). Hoy: repo hecho público, fix de doble rol (jugador+DT/AT) con acceso unificado, deploy manual del server documentado, bugs de Home/Cronograma corregidos (emergente de próximo partido, práctica fantasma, filtro por categoría).
