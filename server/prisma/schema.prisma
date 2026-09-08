@@ -255,16 +255,16 @@ model AvisoSeguro {
 // ---------------- Partidos ----------------
 
 model Match {
-  id         String    @id @default(cuid())
+  id         String     @id @default(cuid())
   teamId     String
-  dateTime   DateTime  // día y hora del partido
-  venue      String    // cancha / sede
+  dateTime   DateTime?  // día y hora; null = TIMBO no asignó horario (no se muestra como próximo)
+  venue      String     // cancha / sede
   rival      String
-  isHome     Boolean   // true si juega de local
-  category   String?   // denormaliz nacional simple para el público
-  timboId    Int?      @unique // id del partido en TIMBO (sync automático); null = manual
-  clubGoals  Int?      // goles del club (null = sin resultado publicado / sin jugar)
-  rivalGoals Int?      // goles del rival (null = sin resultado publicado / sin jugar)
+  isHome     Boolean    // true si juega de local
+  category   String?    // denormaliz nacional simple para el público
+  timboId    Int?       @unique // id del partido en TIMBO (sync automático); null = manual
+  clubGoals  Int?       // goles del club (null = sin resultado publicado / sin jugar)
+  rivalGoals Int?       // goles del rival (null = sin resultado publicado / sin jugar)
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 

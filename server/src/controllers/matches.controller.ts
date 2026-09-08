@@ -42,13 +42,14 @@ export const getUpcoming = async (_req: Request, res: Response) => {
   const FIN_MATCH_MS = 90 * 60_000;
   const now = Date.now();
   const quedanPorJugar = matchesActuales.some((m) => {
+    if (!m.dateTime) return false;
     if (m.clubGoals !== null) return false;
-    const tiempoRestante = new Date(m.dateTime).getTime() + FIN_MATCH_MS - now;
+    const tiempoRestante = m.dateTime.getTime() + FIN_MATCH_MS - now;
     return tiempoRestante > 0;
   });
 
   if (quedanPorJugar) {
-    return res.json(matchesActuales.filter((m) => new Date(m.dateTime) >= desdeEnCurso));
+    return res.json(matchesActuales.filter((m) => m.dateTime !== null && m.dateTime.getTime() >= desdeEnCurso.getTime()));
   }
 
   const inicioFindeSig = new Date(finFindeActual.getTime() + 1);

@@ -126,6 +126,11 @@ export async function buildSemana(from: string, to: string): Promise<ISemanaResu
 
   const teamById = Object.fromEntries(teams.map((t) => [t.id, t.name]));
 
+  // Los partidos sin horario (dateTime null = TIMBO no asignó hora) no caen
+  // en el rango, pero TS no lo sabe: se filtran explícitamente.
+  type MatchConHora = (typeof matches)[number] & { dateTime: Date };
+  const matchesConHora = matches.filter((m): m is MatchConHora => m.dateTime !== null);
+
   // Días de la semana pedida (de lunes a domingo)
   const dias: string[] = [];
   const cursor = new Date(fromDate);
@@ -161,7 +166,7 @@ export async function buildSemana(from: string, to: string): Promise<ISemanaResu
 
     // Equipos con partido este día: se omite su entrenamiento de plantilla
     // (si se juega, no se entrena).
-    const partidosDelDia = matches.filter((m) => dayStr(argDate(m.dateTime)) === fecha);
+    const partidosDelDia = matchesConHora.filter((m) => dayStr(argDate(m.dateTime)) === fecha);
     const teamIdsConPartido = new Set(partidosDelDia.map((m) => m.teamId));
 
     const bloques = (slots
@@ -199,7 +204,7 @@ export async function buildSemana(from: string, to: string): Promise<ISemanaResu
 
     // Partidos agrupados por día en hora ARG (un partido del domingo
     // 21:30 ARG tiene dateTime = lunes 00:30Z → cae el domingo).
-    const partidos: ISemanaPartido[] = matches
+    const partidos: ISemanaPartido[] = matchesConHora
       .filter((m) => dayStr(argDate(m.dateTime)) === fecha)
       .map((m) => ({
         id: m.id,

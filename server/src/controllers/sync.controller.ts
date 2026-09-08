@@ -97,10 +97,13 @@ export async function runTimboSync(now = new Date()): Promise<{
         const info = clubInfoFromMatch(m);
         const result = resultFromMatch(m);
         const norm = adaptTimboMatch(m, clubTeamName, info, result);
+        // Sin horario confiable (TIMBO manda 00:00 como placeholder): se
+        // guarda dateTime null. Así no aparece como "próximo" (las queries de
+        // rango lo excluyen) y el client muestra "Horario a confirmar".
         if (!norm.dateTime) {
           details.push(`${zoneCfg.timboCategoryName}: sin horario (id=${m.id}, ${norm.rival})`);
         }
-        const dateTime = norm.dateTime ? new Date(norm.dateTime) : new Date(m.date_iso!);
+        const dateTime = norm.dateTime ? new Date(norm.dateTime) : null;
         const prev = await prisma.match.findUnique({ where: { timboId: m.id } });
         await prisma.match.upsert({
           where: { timboId: m.id },
