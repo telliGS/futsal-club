@@ -5,9 +5,9 @@ import { canAccessTeam } from "../middlewares/auth.js";
 import { calcularEstadoCuota } from "../lib/cuota.js";
 import { getTeamPlayersRows } from "../lib/listas.js";
 import { calcularDocumentos, MAX_DOC_BYTES, TipoDocumento, TIPOS_DOCUMENTO, aptoParaJugar, vencimientoPorRegla } from "../lib/ficha.js";
-import { pagaCuotaEnEquipo, categoriasPagoJugador } from "../lib/nativo.js";
 import { registrarAvisoSeguro } from "../lib/seguro.js";
 import { registrarAvisoGym } from "../lib/gym.js";
+import { canAccessPlayer } from "../lib/player-access.js";
 
 const createPlayerSchema = z.object({
   document: z.string().min(6),
@@ -64,17 +64,6 @@ const uploadDocSchema = z.object({
   categoria: z.string().optional().nullable(),
 });
 
-async function checkPlayerAccess(req: Request, res: Response, playerId: string): Promise<boolean> {
-  const links = await prisma.playerTeam.findMany({ where: { playerId } });
-  for (const l of links) {
-    if (!(await canAccessTeam(req.user!.id, l.teamId))) {
-      res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
-      return false;
-    }
-  }
-  return true;
-}
-
 async function recalcularTrasPago(player: { id: string; status: string; deadline?: number | null }) {
   const payments = await prisma.payment.findMany({
     where: { playerId: player.id },
@@ -92,16 +81,6 @@ async function recalcularTrasPago(player: { id: string; status: string; deadline
     await prisma.player.update({ where: { id: player.id }, data: { status: nuevoStatus } });
   }
   return { estadoCuota, status: nuevoStatus };
-}
-
-async function canAccessPlayer(userId: string, playerId: string): Promise<boolean> {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-  if (user?.role === "ADMIN") return true;
-  const links = await prisma.playerTeam.findMany({ where: { playerId }, select: { teamId: true } });
-  for (const l of links) {
-    if (await canAccessTeam(userId, l.teamId)) return true;
-  }
-  return false;
 }
 
 async function categoriasDeJugador(playerId: string): Promise<string[]> {

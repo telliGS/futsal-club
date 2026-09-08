@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { NextFunction, Request, Response } from "express";
 import { requireAuth, canAccessTeam } from "../middlewares/auth.js";
 import {
   getTeamPlayers, createPlayer, cambiarPrimera, getByDocument,
@@ -7,20 +8,17 @@ import {
   getDocuments, uploadDocument, downloadDocument, deleteDocument
 } from "../controllers/players.controller.js";
 import { exportTeamPlayers } from "../controllers/export.controller.js";
-import { prisma } from "../config.js";
+import { assertPlayerAccess } from "../lib/player-access.js";
 
 const router = Router();
 
-async function checkPlayerAccess(req: import("express").Request, res: import("express").Response, playerId: string): Promise<boolean> {
-  const links = await prisma.playerTeam.findMany({ where: { playerId } });
-  for (const l of links) {
-    if (await canAccessTeam(req.user!.id, l.teamId)) {
-      return true;
-    }
-  }
-  res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
-  return false;
-}
+// Acceso a un jugador = controlar ALGÚN equipo al que está vinculado (o ser
+// ADMIN). Si el jugador no existe, el guardia deja pasar y el controller
+// responde 404 "Jugador no encontrado". Fuente única: lib/player-access.ts.
+const accesoAJugador = (mensaje?: string) =>
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (await assertPlayerAccess(req, res, req.params.id, mensaje)) next();
+  };
 
 router.get("/teams/:teamId/players", requireAuth, async (req, res) => {
   const can = await canAccessTeam(req.user!.id, req.params.teamId);
@@ -51,163 +49,17 @@ router.post("/players/:id/cambiar-primera", requireAuth, async (req, res) => {
 
 router.get("/players/by-document", requireAuth, getByDocument);
 
-router.patch("/players/:id/status", requireAuth, async (req, res) => {
-  const player = await prisma.player.findUnique({
-    where: { id: req.params.id },
-    include: { teams: { select: { teamId: true } } },
-  });
-  if (player) {
-    let acceso = false;
-    for (const t of player.teams) {
-      if (await canAccessTeam(req.user!.id, t.teamId)) {
-        acceso = true;
-        break;
-      }
-    }
-    if (!acceso) return res.status(403).json({ success: false, error: "No tenés acceso a equipos de este jugador" });
-  }
-  return updateStatus(req, res);
-});
+router.patch("/players/:id/status", requireAuth, accesoAJugador("No tenés acceso a equipos de este jugador"), updateStatus);
+router.patch("/players/:id", requireAuth, accesoAJugador(), updatePlayer);
+router.delete("/players/:id", requireAuth, accesoAJugador(), deletePlayer);
 
-router.patch("/players/:id", requireAuth, async (req, res) => {
-  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (player) {
-    const links = await prisma.playerTeam.findMany({ where: { playerId: player.id } });
-    let allowed = false;
-    for (const l of links) {
-      if (await canAccessTeam(req.user!.id, l.teamId)) {
-        allowed = true;
-        break;
-      }
-    }
-    if (!allowed) return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
-  }
-  return updatePlayer(req, res);
-});
+router.post("/players/:id/payments/:month", requireAuth, accesoAJugador(), createPayment);
+router.delete("/players/:id/payments/:month", requireAuth, accesoAJugador(), deletePayment);
+router.get("/players/:id/payments", requireAuth, accesoAJugador(), getPayments);
 
-router.delete("/players/:id", requireAuth, async (req, res) => {
-  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (player) {
-    // Acceso: basta con que el usuario controle ALGÚN equipo del jugador
-    // (consistente con documentos, status y update). El controller valida
-    // además que el vínculo concreto a quitar corresponda a un equipo accesible.
-    const links = await prisma.playerTeam.findMany({ where: { playerId: player.id } });
-    let acceso = false;
-    for (const l of links) {
-      if (await canAccessTeam(req.user!.id, l.teamId)) {
-        acceso = true;
-        break;
-      }
-    }
-    if (!acceso) return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
-  }
-  return deletePlayer(req, res);
-});
-
-router.post("/players/:id/payments/:month", requireAuth, async (req, res) => {
-  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
-  if (!(await checkPlayerAccess(req, res, player.id))) return;
-  return createPayment(req, res);
-});
-
-router.delete("/players/:id/payments/:month", requireAuth, async (req, res) => {
-  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (!player) return res.status(404).json({ success: false, error: "Jugador no encontrado" });
-  if (!(await checkPlayerAccess(req, res, player.id))) return;
-  return deletePayment(req, res);
-});
-
-router.get("/players/:id/payments", requireAuth, async (req, res) => {
-  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (player) {
-    const links = await prisma.playerTeam.findMany({ where: { playerId: player.id } });
-    let acceso = false;
-    for (const l of links) {
-      if (await canAccessTeam(req.user!.id, l.teamId)) {
-        acceso = true;
-        break;
-      }
-    }
-    if (!acceso) return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
-  }
-  return getPayments(req, res);
-});
-
-router.get("/players/:id/documents", requireAuth, async (req, res) => {
-  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (player) {
-    const user = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { role: true } });
-    if (user?.role !== "ADMIN") {
-      const links = await prisma.playerTeam.findMany({ where: { playerId: player.id }, select: { teamId: true } });
-      let acceso = false;
-      for (const l of links) {
-        if (await canAccessTeam(req.user!.id, l.teamId)) {
-          acceso = true;
-          break;
-        }
-      }
-      if (!acceso) return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
-    }
-  }
-  return getDocuments(req, res);
-});
-
-router.post("/players/:id/documents", requireAuth, async (req, res) => {
-  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (player) {
-    const user = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { role: true } });
-    if (user?.role !== "ADMIN") {
-      const links = await prisma.playerTeam.findMany({ where: { playerId: player.id }, select: { teamId: true } });
-      let acceso = false;
-      for (const l of links) {
-        if (await canAccessTeam(req.user!.id, l.teamId)) {
-          acceso = true;
-          break;
-        }
-      }
-      if (!acceso) return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
-    }
-  }
-  return uploadDocument(req, res);
-});
-
-router.get("/players/:id/documents/:docId/download", requireAuth, async (req, res) => {
-  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (player) {
-    const user = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { role: true } });
-    if (user?.role !== "ADMIN") {
-      const links = await prisma.playerTeam.findMany({ where: { playerId: player.id }, select: { teamId: true } });
-      let acceso = false;
-      for (const l of links) {
-        if (await canAccessTeam(req.user!.id, l.teamId)) {
-          acceso = true;
-          break;
-        }
-      }
-      if (!acceso) return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
-    }
-  }
-  return downloadDocument(req, res);
-});
-
-router.delete("/players/:id/documents/:docId", requireAuth, async (req, res) => {
-  const player = await prisma.player.findUnique({ where: { id: req.params.id } });
-  if (player) {
-    const user = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { role: true } });
-    if (user?.role !== "ADMIN") {
-      const links = await prisma.playerTeam.findMany({ where: { playerId: player.id }, select: { teamId: true } });
-      let acceso = false;
-      for (const l of links) {
-        if (await canAccessTeam(req.user!.id, l.teamId)) {
-          acceso = true;
-          break;
-        }
-      }
-      if (!acceso) return res.status(403).json({ success: false, error: "No tenés acceso a este jugador" });
-    }
-  }
-  return deleteDocument(req, res);
-});
+router.get("/players/:id/documents", requireAuth, accesoAJugador(), getDocuments);
+router.post("/players/:id/documents", requireAuth, accesoAJugador(), uploadDocument);
+router.get("/players/:id/documents/:docId/download", requireAuth, accesoAJugador(), downloadDocument);
+router.delete("/players/:id/documents/:docId", requireAuth, accesoAJugador(), deleteDocument);
 
 export default router;
