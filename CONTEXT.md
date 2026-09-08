@@ -121,3 +121,17 @@ CI corre ambos en cada push a `master` (GitHub Actions): `test` (server + client
 - `Home.tsx`: `useMemo` para destacado/agrupaciones y `useCallback` para handlers; los 9 componentes de `components/home/` envueltos en `React.memo` — el tick de reloj de 30 s solo re-renderiza el countdown del Emergente.
 
 Verificado: tsc + builds + tests (6 client / 44 server) en ambas capas. **Pendiente: deploy MANUAL del server** (`npx vercel --prod` desde `server/`) para que `0f78ad9` + `fdf61c5` lleguen a producción — el push por sí solo no deploya el backend.
+
+---
+
+**Última actualización**: 08/09/2026 — fix partidos sin horario de TIMBO (commits `fa71eea`, `1d16bd0`).
+
+TIMBO manda `00:00` como placeholder cuando todavía no asignó la hora real. Un partido así quedaba guardado con `dateTime = 03:00Z` (= 00:00 ARG) y el sitio público lo mostraba como "próximo partido / 00:00". Ahora:
+- `Match.dateTime` es `DateTime?` (schema + `npx prisma db push` aplicado en Supabase).
+- El sync guarda `dateTime = null` cuando `adaptTimboMatch` no resuelve hora confiable.
+- Las queries de próximos/estadísticas (`gte/lte`) excluyen los `null` → el partido sin horario **no aparece** como próximo ni en el destacado.
+- Client: `IMatch.dateTime: string | null`, helpers null-safe y un data-fix en producción (`timboId 1952709735` C20 FEM quedó con NULL). Cuando TIMBO confirme la hora, el propio sync lo vuelve a poblar.
+- `poli.ts` y `getUpcoming` filtran los `null` explícitamente para TS.
+- README: se quitó el "Último commit deployado" hardcodeado (quedaba viejo) → apunta a este CONTEXT.md.
+
+**Pendiente: deploy MANUAL del server** para `0f78ad9` + `fdf61c5` + `fa71eea` (acceso jugador, ronda 10/10 y dateTime null). El front se deploya solo al pushear.

@@ -36,12 +36,17 @@ Web del club de futsal José Hernández (Paraná, Entre Ríos, Argentina): los d
 futsal-club/
 ├── client/            # Frontend React (Vite)
 │   ├── public/        # Escudo y estáticos
-│   └── src/pages/     # Home, Mi cuota, Login, Dashboard
+│   └── src/
+│       ├── pages/     # Home, Mi cuota, Login, Dashboard…
+│       ├── components/  # Layout, panel y secciones por página (ej. home/)
+│       └── lib/       # Helpers y hooks de dominio (use-*, home-helpers…)
 ├── server/            # API Express + Prisma
-│   ├── prisma/        # Schema y migraciones
-│   └── src/           # Rutas, middleware, scripts de importación
+│   ├── prisma/        # Schema (PostgreSQL en prod, SQLite en dev)
+│   └── src/           # routes/ controllers/ lib/ adapters/ scripts/
 └── assets/            # Material del club (escudo original)
 ```
+
+> Estructura condensada; el detalle fino está en `CONTEXT.md`.
 
 ## Puesta en marcha
 
@@ -67,7 +72,7 @@ Acceso al área de delegados: `http://localhost:5173/ingresar`
 - Frontend: https://jh-futsal.vercel.app
 - Backend/API: https://server-tellig.vercel.app
 - Health check: https://server-tellig.vercel.app/api/health
-- Último commit deployado: `c538b7a` (`fix: quitar jugador del equipo concreto (multi-equipo) y acceso a al menos un equipo en pagos`)
+- Último commit deployado: ver `CONTEXT.md` (solo el front hace auto-deploy; el server se deploya a mano con `npx vercel --prod` desde `server/`).
 
 ## Datos: migración desde el Drive
 
