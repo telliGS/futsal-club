@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import Layout from "../components/Layout";
 import Hero from "../components/home/Hero";
 import Metricas from "../components/home/Metricas";
@@ -35,7 +35,9 @@ export default function Home() {
 
   const [restante, setRestante] = useState<{ dias: number; horas: number; mins: number } | null>(null);
   const [showEmergente, setShowEmergente] = useState(true);
-  // Reloj para que el destacado avance solo cuando pasa la hora del partido
+  // Reloj para que el destacado avance solo cuando pasa la hora del partido.
+  // Los derivados están memoizados y los componentes segmentados con
+  // React.memo: el tick no re-renderiza el resto de la página.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000);
@@ -46,9 +48,13 @@ export default function Home() {
   // sin depender del orden de la lista. Avanza solo al pasar cada horario.
   // Nota: un partido a las 21:00 ARG = 00:00 UTC, así que NO se filtra por
   // "hora confirmada" (heurística rota para las 21:00).
-  const destacado = matches
-    .filter((m) => estadoPartido(m, now) !== "terminado")
-    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())[0];
+  const destacado = useMemo(
+    () =>
+      matches
+        .filter((m) => estadoPartido(m, now) !== "terminado")
+        .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())[0],
+    [matches, now]
+  );
 
   // Countdown derivado de `now` — un solo reloj alimenta destacado y restante.
   useEffect(() => {
@@ -90,7 +96,7 @@ export default function Home() {
     return () => window.removeEventListener("keydown", onKey);
   }, [selTeam]);
 
-  const openTeam = async (t: IEquipoPublico) => {
+  const openTeam = useCallback(async (t: IEquipoPublico) => {
     setSelTeam(t);
     setTeamMatches(null);
     setTeamError("");
@@ -103,29 +109,40 @@ export default function Home() {
     } finally {
       setTeamLoading(false);
     }
-  };
+  }, []);
+
+  const cerrarTeam = useCallback(() => setSelTeam(null), []);
+  const cerrarEmergente = useCallback(() => setShowEmergente(false), []);
 
   // Partidos del equipo seleccionado agrupados por día local
-  const porDia = new Map<string, IMatch[]>();
-  for (const m of teamMatches ?? []) {
-    const dia = diaKeyLocal(m.dateTime);
-    const grupo = porDia.get(dia) ?? [];
-    grupo.push(m);
-    porDia.set(dia, grupo);
-  }
+  const porDia = useMemo(() => {
+    const mapa = new Map<string, IMatch[]>();
+    for (const m of teamMatches ?? []) {
+      const dia = diaKeyLocal(m.dateTime);
+      const grupo = mapa.get(dia) ?? [];
+      grupo.push(m);
+      mapa.set(dia, grupo);
+    }
+    return mapa;
+  }, [teamMatches]);
 
   // Próximos agrupados por día local
-  const restoPorDia = new Map<string, IMatch[]>();
-  for (const m of matches) {
-    const dia = diaKeyLocal(m.dateTime);
-    const grupo = restoPorDia.get(dia) ?? [];
-    grupo.push(m);
-    restoPorDia.set(dia, grupo);
-  }
+  const restoPorDia = useMemo(() => {
+    const mapa = new Map<string, IMatch[]>();
+    for (const m of matches) {
+      const dia = diaKeyLocal(m.dateTime);
+      const grupo = mapa.get(dia) ?? [];
+      grupo.push(m);
+      mapa.set(dia, grupo);
+    }
+    return mapa;
+  }, [matches]);
 
-  const formativas = teams.filter((t) => t.type === "FORMATIVA");
-  const primeras = teams.filter((t) => t.type !== "FORMATIVA");
-  const ordenEquipos = [...formativas, ...primeras];
+  const { formativas, ordenEquipos } = useMemo(() => {
+    const formativas = teams.filter((t) => t.type === "FORMATIVA");
+    const primeras = teams.filter((t) => t.type !== "FORMATIVA");
+    return { formativas, ordenEquipos: [...formativas, ...primeras] };
+  }, [teams]);
 
   return (
     <Layout>
@@ -149,7 +166,7 @@ export default function Home() {
         teamError={teamError}
         teamMatches={teamMatches}
         porDia={porDia}
-        onClose={() => setSelTeam(null)}
+        onClose={cerrarTeam}
       />
 
       {!loading && destacado && (
@@ -157,7 +174,7 @@ export default function Home() {
           destacado={destacado}
           restante={restante}
           visible={showEmergente}
-          onClose={() => setShowEmergente(false)}
+          onClose={cerrarEmergente}
         />
       )}
     </Layout>

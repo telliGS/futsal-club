@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { IStats } from "../../lib/home-helpers";
 
 interface IMetricasProps {
@@ -5,7 +6,7 @@ interface IMetricasProps {
   stats: IStats | null;
 }
 
-export default function Metricas({ loading, stats }: IMetricasProps) {
+export default memo(function Metricas({ loading, stats }: IMetricasProps) {
   return (
     // Métricas sutiles — stats solo, destacado va como emergente flotante
     <section className="max-w-5xl mx-auto px-6 -mt-6 md:-mt-8 relative z-10" aria-label="Resumen del club">
@@ -44,4 +45,4 @@ export default function Metricas({ loading, stats }: IMetricasProps) {
       )}
     </section>
   );
-}
+});

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { API, apiFetch } from "./api";
 import { downloadAuthFile } from "./download";
+import { fileToBase64 } from "./file-utils";
 import type { ImportMsgState } from "../components/panel/ImportModal";
 
 /**
@@ -51,13 +52,7 @@ export function useExcel(
     setImporting(true);
     setImportMsg(null);
     try {
-      const buf = await importFile.arrayBuffer();
-      const bytes = new Uint8Array(buf);
-      let binary = "";
-      const CHUNK = 0x8000;
-      for (let i = 0; i < bytes.length; i += CHUNK) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-      }
+      const dataBase64 = await fileToBase64(importFile);
       const res = await apiFetch<{
         creados: number;
         actualizados: number;
@@ -65,7 +60,7 @@ export function useExcel(
         errores: Array<{ fila: number; motivo: string }>;
       }>(
         `/teams/${teamId}/import`,
-        { method: "POST", body: JSON.stringify({ dataBase64: btoa(binary), fileName: importFile.name }) },
+        { method: "POST", body: JSON.stringify({ dataBase64, fileName: importFile.name }) },
         token
       );
       setImportMsg({ ...res, error: undefined });

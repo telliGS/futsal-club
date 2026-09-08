@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cn } from "../../lib/cn";
 import { IMatch, estadoPartido, formatDia, formatFechaLegible, formatHora } from "../../lib/home-helpers";
 import { BadgeEnCurso } from "./BadgeEnCurso";
@@ -9,7 +10,7 @@ interface IProximosProps {
   restoPorDia: Map<string, IMatch[]>;
 }
 
-export default function SeccionProximos({ loading, error, matches, restoPorDia }: IProximosProps) {
+export default memo(function SeccionProximos({ loading, error, matches, restoPorDia }: IProximosProps) {
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-up">
@@ -95,4 +96,4 @@ export default function SeccionProximos({ loading, error, matches, restoPorDia }
       )}
     </>
   );
-}
+});

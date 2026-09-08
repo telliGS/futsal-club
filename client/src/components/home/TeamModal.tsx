@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cn } from "../../lib/cn";
 import { IMatch, IEquipoPublico, formatFechaLegible, formatHora } from "../../lib/home-helpers";
 
@@ -10,7 +11,7 @@ interface ITeamModalProps {
   onClose: () => void;
 }
 
-export default function TeamModal({ selTeam, teamLoading, teamError, teamMatches, porDia, onClose }: ITeamModalProps) {
+export default memo(function TeamModal({ selTeam, teamLoading, teamError, teamMatches, porDia, onClose }: ITeamModalProps) {
   if (!selTeam) return null;
   return (
     <div
@@ -140,4 +141,4 @@ export default function TeamModal({ selTeam, teamLoading, teamError, teamMatches
       </div>
     </div>
   );
-}
+});

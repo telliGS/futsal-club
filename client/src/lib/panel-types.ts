@@ -1,3 +1,5 @@
+import type { Dispatch, SetStateAction } from "react";
+
 export interface ITeam {
   id: string;
   name: string;
@@ -74,6 +76,11 @@ export interface IPlayer {
   fichas?: IFichaEstado;
   apto?: { puedeJugar: boolean; razones: string[] };
 }
+
+// Cambio del plantel local tras una operación: acepta un array nuevo o un
+// updater funcional (React `setState`). Fuente única: todos los hooks que
+// mutan `players` usan este tipo (antes había firmas distintas por hook).
+export type OnPlayersChange = Dispatch<SetStateAction<IPlayer[]>>;
 
 export interface IToast {
   id: number;

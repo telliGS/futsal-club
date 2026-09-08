@@ -1,124 +1,45 @@
-import { useState } from "react";
-import { apiFetch } from "./api";
-import { formatPesos, monthShort } from "./panel-helpers";
-import { IPlayer } from "./panel-types";
+import { usePagoMensual } from "./use-pago-mensual";
+import { IToast, OnPlayersChange } from "./panel-types";
 
 /**
  * Pago mensual de gimnasio (mismo flujo que la cuota pero contra /gym).
- * Actualiza `gymPayments` del plantel local.
+ * Actualiza `gymPayments` del plantel local. Vivo en `usePagoMensual`
+ * (comparte el flujo exacto con la cuota).
  */
+const cfgGym = {
+  etiqueta: "Gym",
+  articulo: "del gym",
+  consecuencia: "debe el gym",
+  preNuloConfirm: "del gym",
+  preNuloToast: "del gym de",
+  notaNulo: "",
+  campo: "gymPayments" as const,
+  aplicarEstado: false,
+  escribirUrl: (playerId: string, month: string) => `/gym/players/${playerId}/pagos/${month}`,
+  borrarUrl: (playerId: string, month: string) => `/gym/players/${playerId}/pagos/${month}`,
+};
+
 export function useGymPagos(
   token: string | null,
-  onPlayersChange: (updater: (prev: IPlayer[]) => IPlayer[]) => void,
+  onPlayersChange: OnPlayersChange,
   onError: (msg: string) => void,
-  onToast: (msg: string, type: "success" | "error" | "warning" | "info") => void
+  onToast: (msg: string, type: IToast["type"]) => void
 ) {
-  const [pagoGymModal, setPagoGymModal] = useState<{ player: IPlayer; month: string } | null>(null);
-  const [pagoGymSaving, setPagoGymSaving] = useState(false);
-
-  function abrirPagoGym(p: IPlayer, month: string) {
-    setPagoGymModal({ player: p, month });
-  }
-
-  async function guardarPagoGym(amount: number, note: string) {
-    if (!token || !pagoGymModal) return;
-    const { player, month } = pagoGymModal;
-    setPagoGymSaving(true);
-    try {
-      await apiFetch(`/gym/players/${player.id}/pagos/${month}`, {
-        method: "POST",
-        body: JSON.stringify({ paid: true, amount, note }),
-      }, token);
-      onPlayersChange((prev) =>
-        prev.map((x) =>
-          x.id === player.id
-            ? {
-                ...x,
-                gymPayments: [
-                  { month, paid: true, amount, note },
-                  ...(x.gymPayments ?? []).filter((y) => y.month !== month),
-                ],
-              }
-            : x
-        )
-      );
-      setPagoGymModal(null);
-      onToast(`Gym de ${monthShort(month)} registrado (${formatPesos(amount)}).`, "success");
-    } catch (e) {
-      onError((e as Error).message);
-    } finally {
-      setPagoGymSaving(false);
-    }
-  }
-
-  async function quitarPagoGym() {
-    if (!token || !pagoGymModal) return;
-    const { player, month } = pagoGymModal;
-    const ok = window.confirm(
-      `¿Quitar el pago del gym ${monthShort(month)} de ${player.firstName} ${player.lastName}? Queda como impago (debe el gym).`
-    );
-    if (!ok) return;
-    setPagoGymSaving(true);
-    try {
-      await apiFetch(`/gym/players/${player.id}/pagos/${month}`, {
-        method: "POST",
-        body: JSON.stringify({ paid: false, amount: 0 }),
-      }, token);
-      onPlayersChange((prev) =>
-        prev.map((x) =>
-          x.id === player.id
-            ? {
-                ...x,
-                gymPayments: [
-                  { month, paid: false, amount: 0 },
-                  ...(x.gymPayments ?? []).filter((y) => y.month !== month),
-                ],
-              }
-            : x
-        )
-      );
-      setPagoGymModal(null);
-      onToast(`Gym de ${monthShort(month)} quitado.`, "warning");
-    } catch (e) {
-      onError((e as Error).message);
-    } finally {
-      setPagoGymSaving(false);
-    }
-  }
-
-  async function ponerNuloGym() {
-    if (!token || !pagoGymModal) return;
-    const { player, month } = pagoGymModal;
-    const ok = window.confirm(
-      `¿Quitar el registro del gym ${monthShort(month)} de ${player.firstName} ${player.lastName}?\n\nQueda vacío: ni pagado ni adeudado.`
-    );
-    if (!ok) return;
-    setPagoGymSaving(true);
-    try {
-      await apiFetch(`/gym/players/${player.id}/pagos/${month}`, { method: "DELETE" }, token);
-      onPlayersChange((prev) =>
-        prev.map((x) =>
-          x.id === player.id
-            ? { ...x, gymPayments: (x.gymPayments ?? []).filter((y) => y.month !== month) }
-            : x
-        )
-      );
-      setPagoGymModal(null);
-      onToast(`Registro del gym de ${monthShort(month)} quitado (nulo).`, "info");
-    } catch (e) {
-      onError((e as Error).message);
-    } finally {
-      setPagoGymSaving(false);
-    }
-  }
+  const { modal, setModal, saving, abrir, guardar, quitar, ponerNulo } = usePagoMensual(
+    cfgGym,
+    token,
+    onPlayersChange,
+    onError,
+    onToast
+  );
 
   return {
-    pagoGymModal,
-    setPagoGymModal,
-    pagoGymSaving,
-    abrirPagoGym,
-    guardarPagoGym,
-    quitarPagoGym,
-    ponerNuloGym,
+    pagoGymModal: modal,
+    setPagoGymModal: setModal,
+    pagoGymSaving: saving,
+    abrirPagoGym: abrir,
+    guardarPagoGym: guardar,
+    quitarPagoGym: quitar,
+    ponerNuloGym: ponerNulo,
   };
 }

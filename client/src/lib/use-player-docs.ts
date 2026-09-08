@@ -1,6 +1,7 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 import { API, apiFetch } from "./api";
-import { IDocItem, IFichaEstado, IPlayer } from "./panel-types";
+import { IDocItem, IFichaEstado, IPlayer, OnPlayersChange } from "./panel-types";
+import { fileToBase64 } from "./file-utils";
 import type { DocFormState } from "../components/panel/FichasModal";
 
 const emptyDocForm = (): DocFormState => ({
@@ -19,7 +20,7 @@ export function usePlayerDocs(
   token: string | null,
   teamId: string,
   categoriaActual: string | null,
-  onPlayersChange: Dispatch<SetStateAction<IPlayer[]>>
+  onPlayersChange: OnPlayersChange
 ) {
   const [docsPlayer, setdocsPlayer] = useState<IPlayer | null>(null);
   const [docsList, setDocsList] = useState<IDocItem[]>([]);
@@ -59,14 +60,7 @@ export function usePlayerDocs(
     setDocsLoading(true);
     setDocsMsg("");
     try {
-      const buf = await docForm.file.arrayBuffer();
-      const bytes = new Uint8Array(buf);
-      let binary = "";
-      const CHUNK = 0x8000;
-      for (let i = 0; i < bytes.length; i += CHUNK) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-      }
-      const b64 = btoa(binary);
+      const b64 = await fileToBase64(docForm.file);
       const res = await apiFetch<{ documento: IDocItem; estado: IFichaEstado }>(
         `/players/${docsPlayer.id}/documents`,
         {

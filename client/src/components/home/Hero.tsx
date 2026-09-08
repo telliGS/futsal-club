@@ -1,6 +1,7 @@
+import { memo } from "react";
 import { Link } from "react-router-dom";
 
-export default function Hero() {
+export default memo(function Hero() {
   return (
     <header className="relative bg-surface overflow-hidden border-b border-outline">
       <div
@@ -71,4 +72,4 @@ export default function Hero() {
       </div>
     </header>
   );
-}
+});

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cn } from "../../lib/cn";
 import { IEquipoPublico, colorEquipo } from "../../lib/home-helpers";
 
@@ -8,7 +9,7 @@ interface ICategoriasProps {
   openTeam: (t: IEquipoPublico) => void;
 }
 
-export default function SeccionCategorias({ loading, teams, ordenEquipos, openTeam }: ICategoriasProps) {
+export default memo(function SeccionCategorias({ loading, teams, ordenEquipos, openTeam }: ICategoriasProps) {
   return (
     <section className="mt-16">
       <div className="flex flex-wrap items-end justify-between gap-3 animate-fade-up">
@@ -55,4 +56,4 @@ export default function SeccionCategorias({ loading, teams, ordenEquipos, openTe
       )}
     </section>
   );
-}
+});

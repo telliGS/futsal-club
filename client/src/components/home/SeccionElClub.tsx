@@ -1,10 +1,11 @@
+import { memo } from "react";
 import { IEquipoPublico } from "../../lib/home-helpers";
 
 interface IElClubProps {
   formativas: IEquipoPublico[];
 }
 
-export default function SeccionElClub({ formativas }: IElClubProps) {
+export default memo(function SeccionElClub({ formativas }: IElClubProps) {
   return (
     <section className="mt-16">
       <h2 className="font-display text-2xl font-bold flex items-center gap-3 animate-fade-up">
@@ -44,4 +45,4 @@ export default function SeccionElClub({ formativas }: IElClubProps) {
       </div>
     </section>
   );
-}
+});

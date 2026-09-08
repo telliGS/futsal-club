@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "./api";
-import { IMeData, IPlayer } from "./panel-types";
+import { IMeData, IPlayer, OnPlayersChange } from "./panel-types";
 import type { IPlayerFormState } from "../components/panel/PlayerModal";
 
 const emptyPlayerForm = (): IPlayerFormState => ({
@@ -35,7 +35,7 @@ export function usePlayerForm(
   token: string | null,
   teamId: string,
   me: IMeData | null,
-  onPlayersChange: (updater: (prev: IPlayer[]) => IPlayer[]) => void,
+  onPlayersChange: OnPlayersChange,
   onError: (msg: string) => void,
   onToast: (msg: string, type: "success" | "error" | "warning" | "info") => void
 ) {
@@ -81,7 +81,7 @@ export function usePlayerForm(
       }
     }, 450);
     return () => clearTimeout(t);
-  }, [form.document, editing, showForm]);
+  }, [form.document, editing, showForm, token]);
 
   function openNuevo() {
     setEditing(null);
@@ -101,9 +101,9 @@ export function usePlayerForm(
       role: p.role ?? "JUGADOR",
       position: p.position ?? "",
       jersey: p.jersey != null ? String(p.jersey) : "",
-      hasInsurance: Boolean((p as unknown as { hasInsurance?: boolean }).hasInsurance),
-      vaAlGym: Boolean((p as unknown as { vaAlGym?: boolean }).vaAlGym),
-      gymPrecio: (p as unknown as { gymPrecio?: number | null }).gymPrecio != null ? String((p as unknown as { gymPrecio?: number | null }).gymPrecio) : "",
+      hasInsurance: p.hasInsurance ?? false,
+      vaAlGym: p.vaAlGym ?? false,
+      gymPrecio: p.gymPrecio != null ? String(p.gymPrecio) : "",
       deadline: String(p.deadline ?? 10),
     });
     setCuentaPresupuesto(p.cuentaPresupuesto ?? true);

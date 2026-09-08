@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { IMatch, estadoPartido, formatFechaLegible, formatHora } from "../../lib/home-helpers";
 import { BadgeEnCurso } from "./BadgeEnCurso";
 
@@ -8,7 +9,7 @@ interface IEmergenteProps {
   onClose: () => void;
 }
 
-export default function Emergente({ destacado, restante, visible, onClose }: IEmergenteProps) {
+export default memo(function Emergente({ destacado, restante, visible, onClose }: IEmergenteProps) {
   if (!visible) return null;
   return (
     // Próximo partido emergente — fixed arriba, descartable
@@ -65,4 +66,4 @@ export default function Emergente({ destacado, restante, visible, onClose }: IEm
       </article>
     </div>
   );
-}
+});

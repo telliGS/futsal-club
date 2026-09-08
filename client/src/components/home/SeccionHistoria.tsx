@@ -1,6 +1,7 @@
+import { memo } from "react";
 import { Link } from "react-router-dom";
 
-export default function SeccionHistoria() {
+export default memo(function SeccionHistoria() {
   return (
     <section className="mt-16 border-t border-outline pt-12">
       <div className="grid md:grid-cols-2 gap-8 items-center">
@@ -52,4 +53,4 @@ export default function SeccionHistoria() {
       </div>
     </section>
   );
-}
+});
