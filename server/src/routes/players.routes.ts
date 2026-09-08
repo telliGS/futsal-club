@@ -39,10 +39,13 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
 });
 
 router.post("/players/:id/cambiar-primera", requireAuth, async (req, res) => {
-  const { aTeamId } = req.body;
-  if (aTeamId) {
-    const can = await canAccessTeam(req.user!.id, aTeamId);
-    if (!can) return res.status(403).json({ success: false, error: "No tenés acceso a este equipo" });
+  const { aTeamId, deTeamId } = req.body;
+  // El delegado debe controlar AMBOS equipos: el destino (donde entra el
+  // jugador) y el origen (de donde se lo saca).
+  for (const teamId of [aTeamId, deTeamId]) {
+    if (teamId && !(await canAccessTeam(req.user!.id, teamId))) {
+      return res.status(403).json({ success: false, error: "No tenés acceso a este equipo" });
+    }
   }
   return cambiarPrimera(req, res);
 });

@@ -4,7 +4,7 @@ import { prisma } from "../config.js";
 import { canAccessTeam } from "../middlewares/auth.js";
 import { calcularEstadoCuota } from "../lib/cuota.js";
 import { getTeamPlayersRows } from "../lib/listas.js";
-import { calcularDocumentos, MAX_DOC_BYTES, TipoDocumento, TIPOS_DOCUMENTO, aptoParaJugar, vencimientoPorRegla } from "../lib/ficha.js";
+import { calcularDocumentos, MAX_DOC_BYTES, TIPOS_DOCUMENTO, vencimientoPorRegla } from "../lib/ficha.js";
 import { registrarAvisoSeguro } from "../lib/seguro.js";
 import { registrarAvisoGym } from "../lib/gym.js";
 import { canAccessPlayer } from "../lib/player-access.js";
