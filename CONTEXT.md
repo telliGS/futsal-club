@@ -19,15 +19,15 @@ futsal-club/
 ├── client/                # Frontend React (Vite)
 │   ├── public/            # Escudo, imágenes, sitemap, robots
 │   └── src/
-│       ├── components/    # Layout, panel (modales, vistas), CookieBanner
+│       ├── components/    # Layout, panel (modales, vistas), home (secciones de la landing), CookieBanner
 │       ├── pages/         # Home, Cronograma, Historia, Status, Login, Dashboard…
-│       └── lib/           # api, uso, helpers del panel
+│       └── lib/           # api, uso, helpers del panel, hooks de dominio (use-*)
 ├── server/                # API Express + Prisma
 │   ├── prisma/schema.prisma
 │   └── src/
 │       ├── routes/        # auth, players, teams, matches, gym, seguro, presupuesto…
 │       ├── controllers/   # Lógica de negocio
-│       ├── lib/           # cuota, gym, listas, import, timbo, nativo…
+│       ├── lib/           # cuota, gym, listas, import, timbo, nativo, player-access…
 │       ├── adapters/      # timbo.adapter.ts (integración fixtures)
 │       └── scripts/       # seed y utilidades de demo
 └── assets/                # Escudo original
@@ -93,13 +93,15 @@ CI corre ambos en cada push a `master` (GitHub Actions): `test` (server + client
 - TypeScript `strict: true`; evitar `any`.
 - Archivos `kebab-case.ts`, componentes `PascalCase.tsx`.
 - Errores de API siempre `{ success: false, error: string }` + código HTTP.
-- Commits `[tipo]: mensaje corto` (feat/fix/refactor/docs/polish/test).
+- Commits `tipo: mensaje corto` o `tipo(scope): mensaje` (ej: `refactor: …`, `fix: …`, `docs: …`). Sin corchetes.
+- **Organización del código grande (refactor 08/09/2026)**: las páginas quedan como orquestadores delgados (estado + composición); el JSX pesado va a `components/<pagina>/` (p. ej. `components/home/`); la lógica reutilizada va a hooks `lib/use-*.ts` (client) y la lógica de acceso/negocio a `lib/*.ts` (server). Ej: Dashboard 1984→629 líneas (12 hooks), Home 783→147 líneas (9 componentes), acceso a jugadores unificado en `server/src/lib/player-access.ts`.
 
 ## Roadmap
 1. Contenido visual: fotos reales del club.
 2. Experiencia pública: filtros por categoría en el cronograma, más visibilidad de partidos.
 3. Dashboard: confirmaciones destructivas, persistir vista/equipo, resumen de cobros.
 4. Roadmap del club: panel de profesores, panel de ventas, alertas de pagos, PWA.
+5. (Opcional) README: actualizar el "Último commit deployado" (quedó viejo).
 
 ---
-**Última actualización**: 07/09/2026 — versión pública del contexto (sin credenciales ni datos personales). Hoy: repo hecho público, fix de doble rol (jugador+DT/AT) con acceso unificado, deploy manual del server documentado, bugs de Home/Cronograma corregidos (emergente de próximo partido, práctica fantasma, filtro por categoría).
+**Última actualización**: 08/09/2026 — refactor de escaneabilidad terminado (3 fases, commits `b505896`, `c589c68`, `0f78ad9`): Dashboard con 12 hooks de dominio en `client/src/lib/use-*` (1984→629 líneas), Home con secciones en `client/src/components/home/` (783→147 líneas), y acceso a jugador del server unificado en `server/src/lib/player-access.ts` (`assertPlayerAccess`/`canAccessPlayer`) con código muerto eliminado (routes 213→54, controller 602→524). Verificado: tsc + builds + tests (6 client / 44 server). **Pendiente: deploy MANUAL del server** (`npx vercel --prod` desde `server/`) para que el refactor de acceso llegue a producción — el push por sí solo no deploya el backend.
