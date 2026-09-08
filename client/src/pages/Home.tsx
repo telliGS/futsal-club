@@ -47,12 +47,13 @@ export default function Home() {
   // Destacado: el partido no terminado más cercano (en curso o por jugarse),
   // sin depender del orden de la lista. Avanza solo al pasar cada horario.
   // Nota: un partido a las 21:00 ARG = 00:00 UTC, así que NO se filtra por
-  // "hora confirmada" (heurística rota para las 21:00).
+  // "hora confirmada" (heurística rota para las 21:00). Los partidos sin
+  // horario (dateTime null de TIMBO) quedan fuera hasta que se programen.
   const destacado = useMemo(
     () =>
       matches
-        .filter((m) => estadoPartido(m, now) !== "terminado")
-        .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())[0],
+        .filter((m) => m.dateTime !== null && estadoPartido(m, now) !== "terminado")
+        .sort((a, b) => new Date(a.dateTime!).getTime() - new Date(b.dateTime!).getTime())[0],
     [matches, now]
   );
 
@@ -62,7 +63,7 @@ export default function Home() {
       setRestante(null);
       return;
     }
-    const diff = new Date(destacado.dateTime).getTime() - now;
+    const diff = new Date(destacado.dateTime!).getTime() - now;
     if (diff <= 0) {
       setRestante(null);
       return;
@@ -114,10 +115,12 @@ export default function Home() {
   const cerrarTeam = useCallback(() => setSelTeam(null), []);
   const cerrarEmergente = useCallback(() => setShowEmergente(false), []);
 
-  // Partidos del equipo seleccionado agrupados por día local
+  // Partidos del equipo seleccionado agrupados por día local (sin horario aún
+  // no se agrupan; aparecen cuando TIMBO confirme el fixture).
   const porDia = useMemo(() => {
     const mapa = new Map<string, IMatch[]>();
     for (const m of teamMatches ?? []) {
+      if (m.dateTime === null) continue;
       const dia = diaKeyLocal(m.dateTime);
       const grupo = mapa.get(dia) ?? [];
       grupo.push(m);
@@ -126,10 +129,11 @@ export default function Home() {
     return mapa;
   }, [teamMatches]);
 
-  // Próximos agrupados por día local
+  // Próximos agrupados por día local (los sin horario los filtra el server).
   const restoPorDia = useMemo(() => {
     const mapa = new Map<string, IMatch[]>();
     for (const m of matches) {
+      if (m.dateTime === null) continue;
       const dia = diaKeyLocal(m.dateTime);
       const grupo = mapa.get(dia) ?? [];
       grupo.push(m);

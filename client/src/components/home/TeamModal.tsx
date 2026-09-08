@@ -62,7 +62,7 @@ export default memo(function TeamModal({ selTeam, teamLoading, teamError, teamMa
                   </p>
                   <div className="space-y-2">
                     {parts.map((m) => {
-                      const yaJugado = new Date(m.dateTime) < new Date();
+                      const yaJugado = new Date(m.dateTime!) < new Date();
                       const conResultado = m.clubGoals != null && m.rivalGoals != null && yaJugado;
                       const ganado = conResultado && m.clubGoals! > m.rivalGoals!;
                       const perdido = conResultado && m.clubGoals! < m.rivalGoals!;

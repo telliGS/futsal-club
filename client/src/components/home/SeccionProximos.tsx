@@ -60,7 +60,7 @@ export default memo(function SeccionProximos({ loading, error, matches, restoPor
                           {formatDia(m.dateTime).slice(0, 3)}
                         </p>
                         <p className="font-display font-bold text-lg leading-none mt-1">
-                          {new Date(m.dateTime).getDate()}
+                          {new Date(m.dateTime!).getDate()}
                         </p>
                       </div>
                       <div className="flex-1 min-w-0">
