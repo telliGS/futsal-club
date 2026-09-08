@@ -95,6 +95,7 @@ CI corre ambos en cada push a `master` (GitHub Actions): `test` (server + client
 - Errores de API siempre `{ success: false, error: string }` + código HTTP.
 - Commits `tipo: mensaje corto` o `tipo(scope): mensaje` (ej: `refactor: …`, `fix: …`, `docs: …`). Sin corchetes.
 - **Organización del código grande (refactor 08/09/2026)**: las páginas quedan como orquestadores delgados (estado + composición); el JSX pesado va a `components/<pagina>/` (p. ej. `components/home/`); la lógica reutilizada va a hooks `lib/use-*.ts` (client) y la lógica de acceso/negocio a `lib/*.ts` (server). Ej: Dashboard 1984→629 líneas (12 hooks), Home 783→147 líneas (9 componentes), acceso a jugadores unificado en `server/src/lib/player-access.ts`.
+- **Patrones de estado y UI**: los hooks que mutan el plantel usan `OnPlayersChange` (`Dispatch<SetStateAction<IPlayer[]>>`, en `panel-types.ts`); operaciones repetidas (pago mensual, base64 de archivos) viven en factories/helpers compartidos (`use-pago-mensual.ts`, `file-utils.ts`); componentes pesados o frecuentes se envuelven en `React.memo` y sus "maps" se calculan con `useMemo`.
 
 ## Roadmap
 1. Contenido visual: fotos reales del club.
@@ -104,4 +105,19 @@ CI corre ambos en cada push a `master` (GitHub Actions): `test` (server + client
 5. (Opcional) README: actualizar el "Último commit deployado" (quedó viejo).
 
 ---
-**Última actualización**: 08/09/2026 — refactor de escaneabilidad terminado (3 fases, commits `b505896`, `c589c68`, `0f78ad9`): Dashboard con 12 hooks de dominio en `client/src/lib/use-*` (1984→629 líneas), Home con secciones en `client/src/components/home/` (783→147 líneas), y acceso a jugador del server unificado en `server/src/lib/player-access.ts` (`assertPlayerAccess`/`canAccessPlayer`) con código muerto eliminado (routes 213→54, controller 602→524). Verificado: tsc + builds + tests (6 client / 44 server). **Pendiente: deploy MANUAL del server** (`npx vercel --prod` desde `server/`) para que el refactor de acceso llegue a producción — el push por sí solo no deploya el backend.
+**Última actualización**: 08/09/2026 — ronda "10/10" cerrada (commits `fdf61c5`, `99d9ef7`).
+
+**Server** (`fdf61c5`):
+- `gym.routes.ts` ahora usa el acceso unificado `assertPlayerAccess` (ALGUNO de sus equipos o ADMIN) y elimina el `checkPlayerAccess` local que exigía **TODOS** los equipos (bloqueaba a delegados con jugadores multi-equipo) y dejaba pasar al jugador sin vínculos. Rutas intactas.
+- `players.routes.ts` `cambiar-primera` valida acceso también al equipo de **origen** (`deTeamId`), no solo al destino.
+- `players.controller.ts`: import muerto `TipoDocumento`/`aptoParaJugar` eliminado.
+
+**Client** (`99d9ef7`):
+- Cuota y gym deduplicados en `client/src/lib/use-pago-mensual.ts` (factory parametrizado por endpoint, campo `payments`/`gymPayments`, si aplica `estadoCuota`/`status` y textos de UX —copiados EXACTOS). `use-cuotas.ts` y `use-gym-pagos.ts` son wrappers que conservan su API pública.
+- Tipo único `OnPlayersChange = Dispatch<SetStateAction<IPlayer[]>>` en `panel-types.ts` (antes firmas distintas por hook).
+- `use-toasts.ts`: contador en `useRef` (antes byte `counter`, toasts del mismo batch compartían id y se borraban de más).
+- Base64 centralizado en `client/src/lib/file-utils.ts` (`fileToBase64`, chunks 0x8000): `use-player-docs` e `use-excel` dejan de duplicarlo.
+- `use-player-form.ts`: casts `as unknown as` eliminados (`IPlayer` ya tipa `hasInsurance`/`vaAlGym`/`gymPrecio`), firma unificada, `token` en deps.
+- `Home.tsx`: `useMemo` para destacado/agrupaciones y `useCallback` para handlers; los 9 componentes de `components/home/` envueltos en `React.memo` — el tick de reloj de 30 s solo re-renderiza el countdown del Emergente.
+
+Verificado: tsc + builds + tests (6 client / 44 server) en ambas capas. **Pendiente: deploy MANUAL del server** (`npx vercel --prod` desde `server/`) para que `0f78ad9` + `fdf61c5` lleguen a producción — el push por sí solo no deploya el backend.
