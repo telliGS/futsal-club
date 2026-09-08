@@ -18,7 +18,7 @@ interface IFichasModalProps {
   list: IDocItem[];
   loading: boolean;
   msg: string;
-  vigenciaHint: () => string;
+  vigenciaHint: (tipo: string) => string;
   subirDoc: () => void;
   descargarDoc: (d: IDocItem) => void;
   borrarDoc: (d: IDocItem) => void;
@@ -96,7 +96,7 @@ export default function FichasModal({
               />
             </label>
             <label className="block col-span-2">
-              <span className="text-xs text-white/40">{vigenciaHint()}</span>
+              <span className="text-xs text-white/40">{vigenciaHint(form.tipo)}</span>
             </label>
             <label className="block col-span-2">
               <span className="text-xs text-white/60">Descripción (opcional)</span>

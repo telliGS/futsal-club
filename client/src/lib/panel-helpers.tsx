@@ -126,3 +126,64 @@ export function Icon({ name, className = "w-4 h-4" }: { name: keyof typeof ICONS
     </svg>
   );
 }
+
+// ---------- Helpers de fechas y montos (panel) ----------
+
+/** Mes actual en formato "YYYY-MM". */
+export function mesActual(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Formatea un número como pesos argentinos; null/undefined → "—". */
+export function formatPesos(n: number | null | undefined): string {
+  if (n == null) return "—";
+  return "$" + Math.round(n).toLocaleString("es-AR");
+}
+
+/** Lunes de la semana actual + `offset` semanas (offset 0 = semana en curso). */
+export function lunesDeSemana(offset: number): Date {
+  const now = new Date();
+  const dow = now.getDay() === 0 ? 7 : now.getDay(); // 1=lun...7=dom
+  const lun = new Date(now);
+  lun.setDate(now.getDate() - (dow - 1) + offset * 7);
+  lun.setHours(0, 0, 0, 0);
+  return lun;
+}
+
+/** Fecha como "YYYY-MM-DD". */
+export function fmtDay(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// ---------- Cronograma: colores por lugar ----------
+
+const POLI_LUGARES_COLOR: Record<string, string> = {
+  "Polideportivo": "bg-primary/15 border-primary/40 text-primary-light",
+  "La Toma": "bg-sky-500/10 border-sky-500/30 text-sky-300",
+  "Palermo": "bg-amber-500/10 border-amber-500/30 text-amber-300",
+  "Borja": "bg-purple-500/10 border-purple-500/30 text-purple-300",
+  "Gimnasio": "bg-orange-500/10 border-orange-500/30 text-orange-300",
+};
+
+export function placeColor(place: string): string {
+  const base = POLI_LUGARES_COLOR[place];
+  if (base) return base;
+  if (/gym|gimnasio/i.test(place)) return POLI_LUGARES_COLOR["Gimnasio"];
+  return "bg-surface-2 border-outline text-white/70";
+}
+
+// ---------- Fichas: ayuda según tipo de documento ----------
+
+export function vigenciaHint(tipo: string): string {
+  if (tipo === "ERGONOMETRIA") {
+    return "Ergo: vence a los 2 años de la emisión (se calcula automáticamente).";
+  }
+  if (tipo === "ELECTROCARDIOGRAMA") {
+    return "Electro: vence al año de la emisión (se calcula automáticamente).";
+  }
+  if (tipo === "FICHA_MEDICA") {
+    return "Ficha médica: vence a los 2 años de la emisión (se calcula automáticamente).";
+  }
+  return "Documento: sin vencimiento por regla.";
+}
