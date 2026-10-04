@@ -1,26 +1,16 @@
 import { Request, Response } from "express";
 import { prisma } from "../config.js";
 import {
-  CLUB_ZONES, getZoneMatches, clubTeamForMatch, clubInfoFromMatch,
-  resultFromMatch, weekendWindowArg, ARG_TZ_OFFSET_MS,
-  TIMBO_EDITION_ID, ITimboMatch,
+  getZoneMatches, getEditionCategories, getActiveZones, clubZoneByName,
+  clubTeamForMatch, clubInfoFromMatch, resultFromMatch,
+  weekendWindowArg, ARG_TZ_OFFSET_MS,
+  TIMBO_EDITION_ID, ITimboMatch, ITimboCategory, ITimboActiveZone, IClubZoneMapping,
 } from "../lib/timbo.js";
 import { adaptTimboMatch } from "../adapters/timbo.adapter.js";
 
 const SYNC_TOKEN = process.env.TIMBO_SYNC_TOKEN;
-const MAX_ROUNDS = 16;
 const PARTIDO_EN_CURSO_WINDOW_MS = 2 * 3_600_000;
-
-async function lastWindowRounds(): Promise<Record<number, number>> {
-  const state = await prisma.syncState.findUnique({ where: { key: "timbo" } });
-  const raw = state?.value as { lastWindowRound?: Record<string, number> } | null;
-  const out: Record<number, number> = {};
-  for (const [k, v] of Object.entries(raw?.lastWindowRound ?? {})) {
-    const n = Number(v);
-    if (Number.isFinite(n) && n > 0) out[Number(k)] = n;
-  }
-  return out;
-}
+const ZONE_FETCH_CONCURRENCY = 6;
 
 async function saveState(payload: Record<string, unknown>): Promise<void> {
   await prisma.syncState.upsert({
@@ -41,6 +31,20 @@ function extendedWindow(now: Date): { start: Date; end: Date } {
   return { start, end: nextEnd };
 }
 
+/** Ejecuta fn sobre items con máximo `limit` en paralelo (preserva orden). */
+async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
 export async function runTimboSync(now = new Date()): Promise<{
   ok: boolean;
   editionId: number;
@@ -53,48 +57,75 @@ export async function runTimboSync(now = new Date()): Promise<{
   details: string[];
 }> {
   const window = extendedWindow(now);
-  const prevWindowRounds = await lastWindowRounds();
   const details: string[] = [];
   let synced = 0, created = 0, updated = 0, removed = 0;
-  const newRounds: Record<string, number> = {};
   const seenIds = new Set<number>();
+  const perZone: Record<string, number> = {};
+  const perCategory = new Map<string, number>();
 
   const teamCache = new Map<string, { id: string } | null>();
 
-  for (const zoneCfg of CLUB_ZONES) {
-    const anchor = prevWindowRounds[zoneCfg.categoryZone];
-    const startRound = anchor ? Math.max(1, anchor - 2) : 1;
-    let zoneWindowRound = 0;
-    let zoneSynced = 0;
+  // 1. Categorías de la edición → solo las del club (match por nombre).
+  const categories: ITimboCategory[] = await getEditionCategories();
+  const clubCats: Array<{ cat: ITimboCategory; cfg: IClubZoneMapping }> = [];
+  for (const cat of categories) {
+    const cfg = clubZoneByName(cat.name);
+    if (cfg) clubCats.push({ cat, cfg });
+  }
+  if (clubCats.length === 0) throw new Error("TIMBO no devolvió categorías del club");
 
-    for (let r = startRound; r <= MAX_ROUNDS; r++) {
-      let matches: ITimboMatch[] = [];
+  // Rondas a escanear: de 1 hasta la mayor ronda total (incluye playoffs).
+  // Se descubren las zonas activas por ronda: las fases de playoff (4tos,
+  // semis, finales, Vuelta...) son zonas con IDs nuevos que no están en
+  // CLUB_ZONES y solo aparecen en `fixtures?round=N`.
+  const endRound = Math.max(...clubCats.map((x) => x.cat.round_count));
+
+  for (let r = 1; r <= endRound; r++) {
+    let active: ITimboActiveZone[];
+    try {
+      active = await getActiveZones(r);
+    } catch (e) {
+      details.push(`ronda ${r}: error descubriendo zonas (${(e as Error).message})`);
+      continue;
+    }
+
+    const targets: Array<{ zone: ITimboActiveZone; cfg: IClubZoneMapping }> = [];
+    for (const z of active) {
+      if (z.count_matches === 0) continue;
+      const hit = clubCats.find((x) => x.cat.id === z.categoryZone);
+      if (hit) targets.push({ zone: z, cfg: hit.cfg });
+    }
+    if (targets.length === 0) continue;
+
+    const results = await mapPool(targets, ZONE_FETCH_CONCURRENCY, async (t) => {
       try {
-        matches = await getZoneMatches(zoneCfg.categoryZone, r);
+        return { t, matches: await getZoneMatches(t.zone.id, r), error: null as string | null };
       } catch (e) {
-        details.push(`${zoneCfg.timboCategoryName}: error r${r} (${(e as Error).message})`);
-        break;
+        return { t, matches: [] as ITimboMatch[], error: (e as Error).message };
       }
-      if (matches.length === 0) continue;
+    });
+
+    for (const { t, matches, error } of results) {
+      const label = `${t.cfg.timboCategoryName}${t.zone.name ? ` [${t.zone.name}]` : ""}`;
+      if (error) {
+        details.push(`${label}: error r${r} (${error})`);
+        continue;
+      }
 
       const relevant = matches.filter((m) => {
         if (!m.date_iso) return false;
         const d = new Date(m.date_iso);
         return d >= window.start && d <= window.end;
       });
-      if (relevant.length > 0) {
-        zoneWindowRound = r;
-        zoneSynced += relevant.length;
-      }
-      if (relevant.length === 0) continue;
+      if (relevant.length > 0) perZone[t.zone.id] = r;
 
       for (const m of relevant) {
-        const clubTeamName = clubTeamForMatch(m, zoneCfg);
+        const clubTeamName = clubTeamForMatch(m, t.cfg);
         if (!clubTeamName) continue;
         const team = teamCache.get(clubTeamName) ?? (await prisma.team.findUnique({ where: { name: clubTeamName } }));
         teamCache.set(clubTeamName, team ?? null);
         if (!team) {
-          details.push(`${zoneCfg.timboCategoryName}: no existe Team "${clubTeamName}"`);
+          details.push(`${label}: no existe Team "${clubTeamName}"`);
           continue;
         }
         seenIds.add(m.id);
@@ -105,7 +136,7 @@ export async function runTimboSync(now = new Date()): Promise<{
         // guarda dateTime null. Así no aparece como "próximo" (las queries de
         // rango lo excluyen) y el client muestra "Horario a confirmar".
         if (!norm.dateTime) {
-          details.push(`${zoneCfg.timboCategoryName}: sin horario (id=${m.id}, ${norm.rival})`);
+          details.push(`${label}: sin horario (id=${m.id}, ${norm.rival})`);
         }
         const dateTime = norm.dateTime ? new Date(norm.dateTime) : null;
         const prev = await prisma.match.findUnique({ where: { timboId: m.id } });
@@ -133,13 +164,13 @@ export async function runTimboSync(now = new Date()): Promise<{
         });
         synced++;
         if (prev) updated++; else created++;
+        perCategory.set(t.cfg.timboCategoryName, (perCategory.get(t.cfg.timboCategoryName) ?? 0) + 1);
       }
-
-      const allAfter = matches.every((m) => m.date_iso && new Date(m.date_iso) > window.end);
-      if (allAfter) break;
     }
-    if (zoneWindowRound > 0) newRounds[zoneCfg.categoryZone] = zoneWindowRound;
-    details.push(`${zoneCfg.timboCategoryName}: ${zoneSynced} partido(s)`);
+  }
+
+  for (const { cfg } of clubCats) {
+    details.push(`${cfg.timboCategoryName}: ${perCategory.get(cfg.timboCategoryName) ?? 0} partido(s)`);
   }
 
   const stale = await prisma.match.deleteMany({
@@ -155,7 +186,7 @@ export async function runTimboSync(now = new Date()): Promise<{
     editionId: TIMBO_EDITION_ID,
     lastSyncAt: now.toISOString(),
     window: { start: window.start.toISOString(), end: window.end.toISOString() },
-    lastWindowRound: newRounds,
+    lastWindowRound: perZone,
   });
 
   return {
@@ -163,7 +194,7 @@ export async function runTimboSync(now = new Date()): Promise<{
     editionId: TIMBO_EDITION_ID,
     window: { start: window.start.toISOString(), end: window.end.toISOString() },
     synced, created, updated, removed,
-    perZone: newRounds,
+    perZone,
     details,
   };
 }

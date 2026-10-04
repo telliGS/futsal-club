@@ -98,6 +98,91 @@ export async function getZoneMatches(zoneId: number, round: number): Promise<ITi
   return json.matches.filter((m) => m && typeof m.id === "number");
 }
 
+// ------------------------------------------------------------
+// Descubrimiento de zonas por ronda.
+// TIMBO agrupa el fixture en "zonas" (fase regular, 4tos, semis,
+// Vuelta...) con IDs propios. Las fases de PLAYOFF nacen con IDs
+// nuevos que no están en CLUB_ZONES y solo se revelan al pedir el
+// fixture ronda por ronda (`fixtures?round=N`). Por eso el sync
+// descubre las zonas activas en cada ronda en vez de iterar una
+// lista hardcodeada.
+// ------------------------------------------------------------
+
+export interface ITimboCategory {
+  id: number;
+  name: string;
+  /** Última ronda con partidos jugados/publicados. */
+  current_round: number;
+  /** Cantidad total de rondas de la categoría (incluye playoffs). */
+  round_count: number;
+}
+
+export interface ITimboActiveZone {
+  /** zoneId (para getZoneMatches) */
+  id: number;
+  name: string;
+  /** categoryZone: id de la categoría a la que pertenece */
+  categoryZone: number;
+  categoryName: string;
+  count_matches: number;
+}
+
+/** Parsea la respuesta de `/embeded/editions/{id}/categories`. */
+export function parseEditionCategories(json: unknown): ITimboCategory[] {
+  if (!Array.isArray(json)) return [];
+  const out: ITimboCategory[] = [];
+  for (const c of json as Array<Partial<ITimboCategory> | null>) {
+    if (!c || typeof c.id !== "number" || typeof c.name !== "string") continue;
+    out.push({
+      id: c.id,
+      name: c.name,
+      current_round: typeof c.current_round === "number" ? c.current_round : 1,
+      round_count: typeof c.round_count === "number" ? c.round_count : 1,
+    });
+  }
+  return out;
+}
+
+/** Parsea la respuesta de `/embeded/editions/{id}/fixtures?round=N`. */
+export function parseActiveZones(json: unknown): ITimboActiveZone[] {
+  if (!Array.isArray(json)) return [];
+  const out: ITimboActiveZone[] = [];
+  for (const cat of json as Array<{
+    id?: number;
+    name?: string;
+    zones?: Array<{ id?: number; name?: string; count_matches?: number }> | null;
+  } | null>) {
+    if (!cat || typeof cat.id !== "number" || !Array.isArray(cat.zones)) continue;
+    for (const z of cat.zones) {
+      if (!z || typeof z.id !== "number") continue;
+      out.push({
+        id: z.id,
+        name: z.name ?? "",
+        categoryZone: cat.id,
+        categoryName: cat.name ?? "",
+        count_matches: typeof z.count_matches === "number" ? z.count_matches : 0,
+      });
+    }
+  }
+  return out;
+}
+
+/** Categorías de la edición activa (con rondas actual y total). */
+export async function getEditionCategories(): Promise<ITimboCategory[]> {
+  return parseEditionCategories(await timboFetch(`/embeded/editions/${TIMBO_EDITION_ID}/categories`));
+}
+
+/** Zonas con partidos en la ronda N de la edición (descubre playoffs). */
+export async function getActiveZones(round: number): Promise<ITimboActiveZone[]> {
+  return parseActiveZones(await timboFetch(`/embeded/editions/${TIMBO_EDITION_ID}/fixtures?round=${round}`));
+}
+
+/** Config del club para un nombre de categoría TIMBO (normalizado), o null. */
+export function clubZoneByName(categoryName: string): IClubZoneMapping | null {
+  const n = norm(categoryName);
+  return CLUB_ZONES.find((z) => norm(z.timboCategoryName) === n) ?? null;
+}
+
 /** Normaliza para comparar: mayúsculas sin tildes ni espacios extra. */
 export function norm(name?: string | null): string {
   return (name ?? "")

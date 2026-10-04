@@ -135,3 +135,17 @@ TIMBO manda `00:00` como placeholder cuando todavía no asignó la hora real. Un
 - README: se quitó el "Último commit deployado" hardcodeado (quedaba viejo) → apunta a este CONTEXT.md.
 
 **Pendiente: deploy MANUAL del server** para `0f78ad9` + `fdf61c5` + `fa71eea` (acceso jugador, ronda 10/10 y dateTime null). El front se deploya solo al pushear.
+
+---
+
+**Última actualización**: 04/10/2026 — sync descubre zonas de PLAYOFF (fix "faltan los partidos del finde").
+
+**Problema**: el sync solo iteraba las 9 zonas hardcodeadas de `CLUB_ZONES` (fase regular). TIMBO guarda los playoffs (4tos, semis, finales, "Vuelta") en **zonas nuevas con IDs propios** que solo se revelan consultando `GET /embeded/editions/{id}/fixtures?round=N` ronda por ronda. Resultado: los 4tos de Segunda del 04/10 (PARANÁ A vs JH NEGRO, 20:30) y del 05/10 (ECONÓMICAS A vs JH C, 21:00) **no se cargaban**.
+
+**Solución** (commits de este día):
+- `server/src/lib/timbo.ts`: helpers `getEditionCategories()` (`/categories` → `current_round` y `round_count` por categoría), `getActiveZones(round)` (`/fixtures?round=N` → zonas activas con sus IDs) y `clubZoneByName()` (match por nombre normalizado). Funciones parse puras (`parseEditionCategories`, `parseActiveZones`) testeadas.
+- `server/src/controllers/sync.controller.ts`: `runTimboSync` ya NO itera `CLUB_ZONES` por `categoryZone`; en su lugar escanea `r = 1..max(round_count)` (23, no el hardcode viejo `MAX_ROUNDS=16`), descubre las zonas activas de cada ronda, filtra las de categorías del club y fetchea cada zona **en paralelo (concurrency 6)**. Se eliminó el anchor `lastWindowRound` (`lastWindowRounds()`).
+- Endpoints explorados y descartados (vacíos): `/fixtures/additional/{cat}`, `/fixtures/interzonal/{cat}` (son otras fases, no los playoffs de liga).
+- Nota: el admin backoffice usa `/api/backoffice` (requiere login); la web pública (`timbo.futbol`) consume los mismos `/embeded` que nosotros.
+
+Verificado: 50/50 tests server, `tsc` OK, smoke local contra la API real → 7 partidos del club en la ventana (los 5 conocidos + los 2 de playoff).

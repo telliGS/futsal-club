@@ -7,6 +7,9 @@ import {
   clubInfoFromMatch,
   resultFromMatch,
   clubTeamForMatch,
+  clubZoneByName,
+  parseEditionCategories,
+  parseActiveZones,
   CLUB_ZONES,
   type ITimboMatch,
   type ITimboPosition,
@@ -93,6 +96,68 @@ describe("clubTeamForMatch", () => {
   });
   it("null sin partido del club", () => {
     assert.equal(clubTeamForMatch(match(["OTRO CLUB A", "OTRO CLUB B"]), c13), null);
+  });
+});
+
+describe("parseEditionCategories", () => {
+  it("extrae id, nombre y rondas de la respuesta de TIMBO", () => {
+    const cats = parseEditionCategories([
+      { id: 178583342, name: "Segunda División", current_round: 9, round_count: 13, match_duration: 20 },
+      { id: 475979060, name: "C15", current_round: 7, round_count: 23 },
+    ]);
+    assert.equal(cats.length, 2);
+    assert.deepEqual(cats[0], { id: 178583342, name: "Segunda División", current_round: 9, round_count: 13 });
+    assert.deepEqual(cats[1], { id: 475979060, name: "C15", current_round: 7, round_count: 23 });
+  });
+  it("descarta entradas inválidas y respuestas que no son array", () => {
+    assert.deepEqual(parseEditionCategories(null), []);
+    assert.deepEqual(parseEditionCategories({}), []);
+    assert.deepEqual(parseEditionCategories([{ id: "x", name: 1 }, null, { id: 3, name: "C11" }]), [
+      { id: 3, name: "C11", current_round: 1, round_count: 1 },
+    ]);
+  });
+});
+
+describe("parseActiveZones", () => {
+  it("aplaniza zonas por categoría con su categoryZone", () => {
+    const zones = parseActiveZones([
+      {
+        id: 178583342,
+        name: "Segunda División",
+        zones: [
+          { id: 1447239283, name: "4tos de FINAL", count_matches: 2 },
+          { id: 156900032, name: "4vos de Final Plata", count_matches: 2 },
+        ],
+      },
+      { id: 1919724182, name: "C11", zones: [] },
+      { id: 475979060, name: "C15" },
+    ]);
+    assert.equal(zones.length, 2);
+    assert.deepEqual(zones[0], {
+      id: 1447239283,
+      name: "4tos de FINAL",
+      categoryZone: 178583342,
+      categoryName: "Segunda División",
+      count_matches: 2,
+    });
+    assert.equal(zones[1].categoryZone, 178583342);
+  });
+  it("tolera respuestas no válidas", () => {
+    assert.deepEqual(parseActiveZones("html"), []);
+    assert.deepEqual(parseActiveZones([{ id: 1, zones: "x" }, null]), []);
+  });
+});
+
+describe("clubZoneByName", () => {
+  it("matchea por nombre normalizado (tildes incluidas)", () => {
+    assert.equal(clubZoneByName("Segunda División")?.timboCategoryName, "Segunda División");
+    assert.equal(clubZoneByName("SEGUNDA DIVISION")?.timboCategoryName, "Segunda División");
+    assert.equal(clubZoneByName("C13")?.teams[0].clubTeamName, "C13");
+  });
+  it("null para categorías sin equipo del club", () => {
+    assert.equal(clubZoneByName("Tercera División"), null);
+    assert.equal(clubZoneByName("C9"), null);
+    assert.equal(clubZoneByName(""), null);
   });
 });
 
