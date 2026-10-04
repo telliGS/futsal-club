@@ -31,10 +31,14 @@ async function saveState(payload: Record<string, unknown>): Promise<void> {
 }
 
 function extendedWindow(now: Date): { start: Date; end: Date } {
-  const { start: weekendStart, end: weekendEnd } = weekendWindowArg(now);
+  const { end: weekendEnd } = weekendWindowArg(now);
   const localNow = new Date(now.getTime() + ARG_TZ_OFFSET_MS);
   const start = new Date(localNow.getTime() - PARTIDO_EN_CURSO_WINDOW_MS);
-  return { start, end: weekendEnd };
+  // Cubre también el finde SIGUIENTE: TIMBO publica el fixture con varios
+  // días de anticipación y estos partidos deben cargarse de una.
+  const nextEnd = new Date(weekendEnd);
+  nextEnd.setUTCDate(nextEnd.getUTCDate() + 7);
+  return { start, end: nextEnd };
 }
 
 export async function runTimboSync(now = new Date()): Promise<{
@@ -165,7 +169,15 @@ export async function runTimboSync(now = new Date()): Promise<{
 }
 
 export const syncTimbo = async (req: Request, res: Response) => {
-  const token = (req.headers["x-timbo-sync-token"] as string) ?? (req.body?.token as string | undefined);
+  // Válido por header propietario, Authorization Bearer (cron de Vercel con
+  // "secret"), query string o body. Todos comparados contra el mismo token.
+  const token =
+    (req.headers["x-timbo-sync-token"] as string) ??
+    (typeof req.headers.authorization === "string"
+      ? req.headers.authorization.replace(/^Bearer\s+/i, "")
+      : undefined) ??
+    (typeof req.query.token === "string" ? req.query.token : undefined) ??
+    (req.body?.token as string | undefined);
   if (!SYNC_TOKEN || token !== SYNC_TOKEN) {
     return res.status(401).json({ success: false, error: "Token inválido" });
   }
